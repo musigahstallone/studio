@@ -20,7 +20,7 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [isCameraInitializing, setIsCameraInitializing] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(document.createElement('canvas')); // Create canvas once
+  const canvasRef = useRef<HTMLCanvasElement>(document.createElement('canvas')); 
 
   const stopCameraStream = useCallback(() => {
     if (videoRef.current && videoRef.current.srcObject) {
@@ -52,11 +52,19 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
       } catch (error) {
         console.error('Error accessing camera:', error);
         setHasCameraPermission(false);
-        toast({
-          variant: 'destructive',
-          title: 'Camera Access Denied',
-          description: 'Please enable camera permissions in your browser settings.',
-        });
+        if (error instanceof Error && error.name === "NotAllowedError") {
+            toast({
+                variant: 'destructive',
+                title: 'Camera Access Denied',
+                description: 'Please enable camera permissions in your browser settings and refresh the page.',
+            });
+        } else {
+            toast({
+                variant: 'destructive',
+                title: 'Camera Error',
+                description: 'Could not access the camera. Please ensure it is not in use by another application.',
+            });
+        }
       } finally {
         setIsCameraInitializing(false);
       }
@@ -80,6 +88,11 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
     }
 
     const video = videoRef.current;
+    if (video.readyState < HTMLMediaElement.HAVE_METADATA) {
+      toast({ variant: "destructive", title: "Capture Error", description: "Video stream not ready yet."});
+      return;
+    }
+
     const canvas = canvasRef.current;
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
@@ -104,8 +117,6 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
         title: "Data Extracted from Camera Scan",
         description: `Merchant: ${result.merchant || 'N/A'}, Amount: $${result.amount.toFixed(2)}`,
       });
-      // Optionally stop camera after successful scan
-      // stopCameraStream(); 
     } catch (error) {
        toast({
         variant: "destructive",
@@ -126,33 +137,31 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {isCameraInitializing && <p className="text-muted-foreground">Initializing camera...</p>}
-        
-        {hasCameraPermission === false && !isCameraInitializing && (
-            <Alert variant="destructive">
-                <Zap className="h-4 w-4" />
-                <AlertTitle>Camera Access Required</AlertTitle>
-                <AlertDescription>
-                    Camera access is denied or not available. Please enable permissions in your browser settings and refresh the page.
-                </AlertDescription>
-            </Alert>
-        )}
-
         <div className="relative w-full aspect-video bg-muted rounded-md overflow-hidden">
             <video 
                 ref={videoRef} 
-                className={`w-full h-full object-cover ${hasCameraPermission ? '' : 'hidden'}`} 
+                className="w-full h-full object-cover"
                 autoPlay 
                 playsInline 
                 muted 
             />
-            {!hasCameraPermission && !isCameraInitializing && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
-                    <Camera className="h-16 w-16 text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground">Camera preview will appear here once permission is granted.</p>
+            { isCameraInitializing && (
+                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4 bg-background/80">
+                    <Camera className="h-16 w-16 text-muted-foreground mb-4 animate-pulse" />
+                    <p className="text-muted-foreground">Initializing camera...</p>
                 </div>
             )}
         </div>
+        
+        { hasCameraPermission === false && !isCameraInitializing && (
+            <Alert variant="destructive">
+                <Zap className="h-4 w-4" />
+                <AlertTitle>Camera Access Required</AlertTitle>
+                <AlertDescription>
+                    Camera access is denied or not available. Please enable permissions in your browser settings and refresh the page. If the issue persists, ensure your browser supports camera access and no other app is using the camera.
+                </AlertDescription>
+            </Alert>
+        )}
 
         <Button 
             onClick={handleCapture} 

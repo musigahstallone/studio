@@ -5,24 +5,23 @@ import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DollarSign, TrendingUp, TrendingDown, Filter } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip as RechartsTooltip } from 'recharts';
-import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart'; // ChartTooltip is implicitly used by ChartTooltipContent
+import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart'; 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useExpenses } from '@/contexts/ExpenseContext'; // Import useExpenses
+import { useExpenses } from '@/contexts/ExpenseContext'; 
 import { useState, useMemo } from 'react';
 import type { Category } from '@/lib/types';
 
 
 const chartConfigBase = {
-  total: { // This key will be used for the Bar's dataKey
+  total: { 
     label: "Total Expenses",
-    color: "hsl(var(--destructive))", // Or use a chart-specific color like var(--chart-1)
+    color: "hsl(var(--chart-1))", 
   },
-  // You can add more configurations if your chart has multiple series
 };
 
 
 export default function DashboardPage() {
-  const { expenses } = useExpenses(); // Use expenses from context
+  const { expenses } = useExpenses(); 
   const [selectedCategory, setSelectedCategory] = useState<Category | 'all'>('all');
 
   const filteredExpenses = useMemo(() => {
@@ -41,7 +40,6 @@ export default function DashboardPage() {
   const balance = totalIncome - totalExpenses;
 
   const expenseByCategory = useMemo(() => {
-    // Use all expenses for category list, but filteredExpenses for chart data if needed (or stick to all for breakdown)
     return expenses 
       .filter(e => e.type === 'expense')
       .reduce((acc, e) => {
@@ -56,7 +54,7 @@ export default function DashboardPage() {
     
     return Object.entries(source)
       .map(([category, total]) => ({ category, total: Number(total.toFixed(2)) }))
-      .filter(item => item.total > 0) // Only show categories with expenses
+      .filter(item => item.total > 0) 
       .sort((a, b) => b.total - a.total);
   }, [expenseByCategory, selectedCategory, filteredExpenses]);
   
@@ -77,7 +75,6 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">${totalIncome.toFixed(2)}</div>
-              {/* <p className="text-xs text-muted-foreground">Based on current filter</p> */}
             </CardContent>
           </Card>
           <Card>
@@ -87,7 +84,6 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">${totalExpenses.toFixed(2)}</div>
-              {/* <p className="text-xs text-muted-foreground">Based on current filter</p> */}
             </CardContent>
           </Card>
           <Card>
@@ -97,7 +93,6 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">${balance.toFixed(2)}</div>
-              {/* <p className="text-xs text-muted-foreground">Based on current filter</p> */}
             </CardContent>
           </Card>
         </div>
