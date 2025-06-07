@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -63,7 +64,8 @@ export function AppSidebarNav() {
               tooltip={{ children: "Settings", className: "group-data-[collapsible=icon]:block hidden" }}
               className="justify-start"
             >
-              <Link href="#">
+              {/* TODO: Link to actual settings page if/when created */}
+              <Link href="#"> 
                 <Cog className="h-5 w-5" />
                 <span>Settings</span>
               </Link>
@@ -75,6 +77,7 @@ export function AppSidebarNav() {
               tooltip={{ children: "Log Out", className: "group-data-[collapsible=icon]:block hidden" }}
               className="justify-start"
             >
+              {/* TODO: Implement actual log out functionality */}
               <Link href="#">
                 <LogOut className="h-5 w-5" />
                 <span>Log Out</span>
