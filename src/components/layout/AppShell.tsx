@@ -1,12 +1,22 @@
 
+"use client"; // Add "use client" if AppHeader or other children require it
+
 import type { ReactNode } from 'react';
 import { AppHeader } from './AppHeader';
+import { usePathname } from 'next/navigation'; // Import usePathname
 
 interface AppShellProps {
   children: ReactNode;
 }
 
 export function AppShell({ children }: AppShellProps) {
+  const pathname = usePathname();
+
+  // Don't render AppShell (which includes AppHeader) for the login page
+  if (pathname === '/login') {
+    return <>{children}</>; // Render children directly, e.g. the LoginPage content
+  }
+
   return (
     <div className="flex flex-col min-h-svh">
       <AppHeader />

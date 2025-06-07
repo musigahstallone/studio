@@ -1,11 +1,14 @@
 
 "use client";
 
+import { useEffect } from 'react'; // For route protection
+import { useRouter } from 'next/navigation'; // For route protection
+import { useAuth } from '@/contexts/AuthContext'; // For route protection
+
 import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { DollarSign, TrendingUp, TrendingDown, ListChecks, Target } from 'lucide-react';
-import { useExpenses } from '@/contexts/ExpenseContext';
-import { useBudgets } from '@/contexts/ExpenseContext';
+import { DollarSign, TrendingUp, TrendingDown, ListChecks, Target, Loader2 } from 'lucide-react'; // Added Loader2
+import { useExpenses, useBudgets } from '@/contexts/ExpenseContext';
 import { useMemo } from 'react';
 import { RecentTransactionsList } from '@/components/dashboard/RecentTransactionsList';
 import { Button } from '@/components/ui/button';
@@ -14,8 +17,16 @@ import { Progress } from "@/components/ui/progress";
 
 
 export default function DashboardPage() {
-  const { expenses } = useExpenses();
-  const { budgets } = useBudgets();
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+  const { expenses, loadingExpenses } = useExpenses();
+  const { budgets, loadingBudgets } = useBudgets();
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, authLoading, router]);
 
   const totalIncome = useMemo(() => {
     return expenses
@@ -39,16 +50,28 @@ export default function DashboardPage() {
         isOverBudget: budget.spentAmount > budget.amount,
         percentageSpent: budget.amount > 0 ? (budget.spentAmount / budget.amount) * 100 : 0,
       }))
-      .sort((a, b) => b.percentageSpent - a.percentageSpent)
+      .sort((a, b) => b.percentageSpent - a.percentageSpent) // Sort by highest percentage spent
       .slice(0, 3);
   }, [budgets]);
+
+  if (authLoading || (!user && !authLoading) || loadingExpenses || loadingBudgets) { // Check if user is loaded but not present
+    return (
+      <AppShell>
+        <div className="flex flex-col items-center justify-center h-full py-10">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <p className="mt-4 text-muted-foreground">Loading Dashboard...</p>
+        </div>
+      </AppShell>
+    );
+  }
+
 
   return (
     <AppShell>
       <div className="space-y-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <h1 className="font-headline text-3xl font-semibold text-foreground">
-            Welcome Back!
+            Welcome Back, {user?.displayName || user?.email?.split('@')[0] || 'User'}!
           </h1>
         </div>
 
@@ -132,6 +155,16 @@ export default function DashboardPage() {
                     <Link href="/budgets">View All Budgets</Link>
                 </Button>
               </div>
+            )}
+             {budgets.length === 0 && (
+                <CardContent>
+                    <p className="text-muted-foreground text-center">No budgets set yet. 
+                        <Button variant="link" asChild className="p-1 h-auto text-sm">
+                           <Link href="/budgets">Create one</Link>
+                        </Button>
+                         to see highlights here.
+                    </p>
+                </CardContent>
             )}
           </Card>
         )}

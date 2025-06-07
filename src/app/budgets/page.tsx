@@ -1,6 +1,9 @@
 
 "use client";
 
+import { useEffect } from 'react'; // For route protection
+import { useRouter } from 'next/navigation'; // For route protection
+
 import { AppShell } from '@/components/layout/AppShell';
 import { BudgetForm } from '@/components/budgets/BudgetForm';
 import { BudgetList } from '@/components/budgets/BudgetList';
@@ -16,9 +19,16 @@ import { CardTitle, CardDescription } from '@/components/ui/card';
 
 export default function BudgetsPage() {
   const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
   const { budgets, addBudget, updateBudget, deleteBudget, loadingBudgets } = useBudgets();
   const [isBudgetFormOpen, setIsBudgetFormOpen] = useState(false);
   const [editingBudget, setEditingBudget] = useState<Partial<Budget> | undefined>(undefined);
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, authLoading, router]);
 
   const handleOpenFormForNew = () => {
     setEditingBudget(undefined);
@@ -34,8 +44,6 @@ export default function BudgetsPage() {
     if (id) {
       const budgetToUpdateFromState = budgets.find(b => b.id === id);
       if (budgetToUpdateFromState) {
-        // spentAmount is calculated dynamically, so we don't pass it to updateBudget directly from form
-        // updateBudget in context should handle setting updatedAt
         await updateBudget({ id, ...budgetData });
       }
     } else {
@@ -56,7 +64,7 @@ export default function BudgetsPage() {
     : "Define a name and spending limit for a category.";
 
 
-  if (authLoading || (user && loadingBudgets)) {
+  if (authLoading || (!user && !authLoading) || loadingBudgets) {
     return (
       <AppShell>
         <div className="flex items-center justify-center h-64">
@@ -67,18 +75,6 @@ export default function BudgetsPage() {
     );
   }
   
-  if (!user && !authLoading) {
-     return (
-      <AppShell>
-        <div className="flex flex-col items-center justify-center h-64 text-center">
-            <CardTitle className="text-xl mb-2">Access Denied</CardTitle>
-            <CardDescription>Please log in to manage your budgets.</CardDescription>
-             {/* Add a login button/link here if you have a login page */}
-        </div>
-      </AppShell>
-    );
-  }
-
   return (
     <AppShell>
       <div className="space-y-8">

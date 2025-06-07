@@ -39,19 +39,15 @@ export default function RootLayout({
 
                   var fontTheme = localStorage.getItem('fontTheme') || '${DEFAULT_FONT_THEME_ID}';
                   var fontThemeClass = 'font-theme-' + fontTheme;
+                  
+                  // Remove any other font theme classes first to avoid conflicts
+                  ${fontPairings
+                    .map(fp => `'font-theme-${fp.id}'`)
+                    .join(', ')}.forEach(cls => document.documentElement.classList.remove(cls));
+                  
+                  // Add the selected/default font theme class
                   document.documentElement.classList.add(fontThemeClass);
                   
-                  // Remove any other font theme classes
-                  ${fontPairings
-                    .map(fp => fp.id)
-                    .filter(id => id !== DEFAULT_FONT_THEME_ID) // Don't try to remove the default if it's the one being set
-                    .map(id => `document.documentElement.classList.remove('font-theme-${id}');`)
-                    .join('\n')}
-                  if (fontTheme !== '${DEFAULT_FONT_THEME_ID}') { // Ensure the currently applied one is added
-                     document.documentElement.classList.add('font-theme-' + fontTheme);
-                  }
-
-
                 } catch (e) { console.error('Error applying initial theme/font:', e); }
               })();
             `,
@@ -59,6 +55,7 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased bg-background text-foreground">
+        {/* AppProviders now wraps the children directly, AppShell is inside children for conditional rendering */}
         <AppProviders>
           {children}
           <Toaster />

@@ -1,66 +1,82 @@
 
 "use client";
 
+import { useEffect, useState, useMemo } from 'react'; // Added useMemo
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useExpenses, useBudgets } from '@/contexts/ExpenseContext';
-import { useAuth } from '@/contexts/AuthContext'; // Import useAuth
-import { useMemo, useEffect, useState } from 'react';
 import { RecentTransactionsList } from '@/components/dashboard/RecentTransactionsList';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Activity, TrendingDown, TrendingUp, Target, Tag, CreditCard, BarChart3, Users, ListChecks, Settings, ArrowRight, Loader2, AlertTriangle } from 'lucide-react';
-// import { db } from '@/lib/firebase'; // For fetching user profile if needed for isAdmin
-// import { doc, getDoc } from 'firebase/firestore';
-// import type { AppUser } from '@/lib/types';
-
+import type { AppUser } from '@/lib/types'; // Ensure AppUser is imported if needed for admin checks
 // For demo: this would come from custom claims or a roles collection in a real app
 // You could fetch the AppUser profile here and check an `isAdmin` field.
+// import { doc, getDoc } from 'firebase/firestore';
+// import { db } from '@/lib/firebase';
+
+
+// Simplified admin check for now - this logic needs to be robust in a real app (e.g., custom claims)
+// const IS_ADMIN_DEMO_FLAG = true; // Set this to false to test the access denied view for non-admins.
+// For a real app, you'd fetch user profile and check an `isAdmin` field after auth.
 // const checkIsAdmin = async (userId: string): Promise<boolean> => {
 //   if (!userId) return false;
-//   const userDocRef = doc(db, 'users', userId); // Assuming you have a 'users' collection for profiles
+//   const userDocRef = doc(db, 'users', userId);
 //   const userDocSnap = await getDoc(userDocRef);
 //   if (userDocSnap.exists()) {
 //     const userData = userDocSnap.data() as AppUser;
-//     return userData.isAdmin === true;
+//     return userData.isAdmin === true; // Ensure your AppUser type and Firestore doc have 'isAdmin'
 //   }
 //   return false; 
 // };
 
-// Simplified admin check for now
-const IS_ADMIN_DEMO_FLAG = true; // Set this to false to test the access denied view.
 
 export default function AdminDashboardPage() {
   const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
   const { allPlatformExpenses, loadingAllPlatformExpenses } = useExpenses(); 
   const { allPlatformBudgets, loadingAllPlatformBudgets } = useBudgets(); 
   
-  const [isAdmin, setIsAdmin] = useState(false); // Placeholder for real admin check
+  const [isAdmin, setIsAdmin] = useState(false); 
   const [checkingAdminStatus, setCheckingAdminStatus] = useState(true);
 
   useEffect(() => {
-    // Simulate admin check. In a real app, this would involve checking claims or a roles DB.
-    // For now, we'll use the IS_ADMIN_DEMO_FLAG if a user is logged in.
-    if (!authLoading) {
-      if (user && IS_ADMIN_DEMO_FLAG) { // User must be logged in AND demo flag true
-        setIsAdmin(true); 
+    if (!authLoading && !user) {
+      router.push('/login');
+      return; // Early return if not authenticated
+    }
+
+    const verifyAdminStatus = async () => {
+      if (user?.uid) {
+        // In a real app, fetch the user's profile from Firestore
+        // and check their 'isAdmin' status.
+        // For this demo, we'll use a hardcoded list or a simple flag.
+        // const adminStatus = await checkIsAdmin(user.uid);
+        // setIsAdmin(adminStatus);
+
+        // For this example, let's assume the first registered user or a specific email is admin.
+        // THIS IS NOT SECURE FOR PRODUCTION. Use Custom Claims or a roles collection.
+        if (user.email === 'admin@example.com' || user.uid === 'YOUR_ADMIN_UID_HERE') { // Replace with actual logic
+          setIsAdmin(true);
+        } else {
+          setIsAdmin(false);
+        }
       } else {
-        setIsAdmin(false);
+         setIsAdmin(false);
       }
       setCheckingAdminStatus(false);
+    };
+    
+    if (!authLoading && user) {
+       verifyAdminStatus();
+    } else if (!authLoading && !user) { // Explicitly set if no user after loading
+       setIsAdmin(false);
+       setCheckingAdminStatus(false);
     }
-    // Example of how you might fetch admin status from a user profile:
-    // const verifyAdmin = async () => {
-    //   if (user?.uid) {
-    //     const adminStatus = await checkIsAdmin(user.uid);
-    //     setIsAdmin(adminStatus);
-    //   } else {
-    //     setIsAdmin(false);
-    //   }
-    //   setCheckingAdminStatus(false);
-    // };
-    // if (!authLoading) verifyAdmin();
-  }, [user, authLoading]);
+
+  }, [user, authLoading, router]);
 
   const totalTransactions = allPlatformExpenses.length;
 
@@ -76,7 +92,7 @@ export default function AdminDashboardPage() {
       .reduce((sum, e) => sum + e.amount, 0);
   }, [allPlatformExpenses]);
 
-  const activeBudgetsCount = allPlatformBudgets.length;
+  // const activeBudgetsCount = allPlatformBudgets.length; // This was unused
 
   const categoryCounts = useMemo(() => {
     const counts: { [key: string]: number } = {};
@@ -106,14 +122,11 @@ export default function AdminDashboardPage() {
 
   const topSpendingCategory = spendingByCategory.length > 0 ? spendingByCategory[0] : { category: "N/A", total: 0 };
   
-  // Mock user count is now dynamic from UserList page (though UserList itself is mock)
-  // For a real count, you'd query your 'users' collection in Firestore.
-  // const mockUserCount = 53; 
-
   const managementLinks = [
+    // Updated links for admin context if needed, or keep them as is
     { href: '/expenses', label: 'View My Transactions', icon: ListChecks, description: 'Access your personal transactions.' },
     { href: '/budgets', label: 'View My Budgets', icon: Target, description: 'Access your personal budgets.' },
-    { href: '/admin/users', label: 'Manage Users', icon: Users, description: 'View platform users (mock data, admin only).' },
+    { href: '/admin/users', label: 'Manage Users', icon: Users, description: 'View platform users.' },
     { href: '/settings', label: 'App Settings', icon: Settings, description: 'Configure application-wide settings.' },
   ];
 
@@ -138,7 +151,7 @@ export default function AdminDashboardPage() {
               <CardTitle className="text-2xl">Access Denied</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">You do not have permission to view this page. Please log in with an admin account.</p>
+              <p className="text-muted-foreground">You do not have permission to view this page.</p>
               <Button asChild className="mt-6">
                 <Link href="/">Go to My Dashboard</Link>
               </Button>
@@ -160,7 +173,7 @@ export default function AdminDashboardPage() {
         </div>
         <p className="text-sm text-muted-foreground">
           Platform analytics and management overview.
-          <span className="italic"> (Note: "Platform" data currently reflects all data in local Firestore cache for expenses_all/budgets_all collections. True multi-user analytics and secure admin data fetching require robust Firebase Rules and potentially Cloud Functions.)</span>
+          <span className="italic"> (Note: "Platform" data uses Firestore collections `expenses_all` and `budgets_all`. Secure admin data fetching requires robust Firebase Rules and potentially Cloud Functions for true multi-user analytics.)</span>
         </p>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -171,7 +184,7 @@ export default function AdminDashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-foreground">{totalTransactions}</div>
-              <p className="text-xs text-muted-foreground">Across 'expenses_all' collection</p>
+              <p className="text-xs text-muted-foreground">From 'expenses_all' collection</p>
             </CardContent>
           </Card>
           <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
@@ -201,7 +214,7 @@ export default function AdminDashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-foreground">N/A</div>
-              <p className="text-xs text-muted-foreground">(Requires 'users' collection query)</p>
+              <p className="text-xs text-muted-foreground">(Requires live 'users' collection query)</p>
             </CardContent>
           </Card>
         </div>
@@ -279,17 +292,16 @@ export default function AdminDashboardPage() {
                 <CardTitle className="flex items-center text-xl">
                     Future Admin Analytics
                 </CardTitle>
-                <CardDescription>Placeholders for more advanced analytics that would require full Firebase integration and backend logic (e.g., Cloud Functions, secure aggregation).</CardDescription>
+                <CardDescription>Placeholders for more advanced analytics that would require full Firebase integration and backend logic (e.g., Cloud Functions, secure aggregation, custom claims for RBAC).</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2 text-muted-foreground">
-                <p>- Most active users by transaction volume.</p>
-                <p>- Total transaction amounts per client (daily, weekly, monthly).</p>
-                <p>- Collective client transaction statistics (this month, week, day).</p>
-                <p>- Average transactions per hour.</p>
-                <p>- Real-time data streams for key metrics.</p>
+                <p>- Most active users by transaction volume (requires querying user data and aggregating).</p>
+                <p>- Total transaction amounts per client (daily, weekly, monthly - requires user-specific aggregation).</p>
+                <p>- Collective client transaction statistics (requires platform-wide aggregation).</p>
+                <p>- Average transactions per hour (requires time-series analysis).</p>
+                <p>- Real-time data streams for key metrics (requires more advanced setup).</p>
             </CardContent>
           </Card>
-        
       </div>
     </AppShell>
   );

@@ -1,6 +1,9 @@
 
 "use client";
 
+import { useEffect } from 'react'; // For route protection
+import { useRouter } from 'next/navigation'; // For route protection
+
 import { AppShell } from '@/components/layout/AppShell';
 import { ExpenseForm } from '@/components/expenses/ExpenseForm';
 import { TextCategorizationForm } from '@/components/expenses/TextCategorizationForm';
@@ -16,29 +19,35 @@ import { ResponsiveFormWrapper } from '@/components/shared/ResponsiveFormWrapper
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useAuth } from '@/contexts/AuthContext'; // Import useAuth
+import { useAuth } from '@/contexts/AuthContext'; 
 
 export default function ExpensesPage() {
   const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
   const { expenses, addExpense, deleteExpense, updateExpense, loadingExpenses } = useExpenses();
   const [editingExpense, setEditingExpense] = useState<Partial<Expense> | undefined>(undefined);
-  const [activeView, setActiveView] = useState("list"); // "list", "text-ai", "receipt-ai", "camera-ai"
+  const [activeView, setActiveView] = useState("list"); 
   const [isExpenseFormOpen, setIsExpenseFormOpen] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, authLoading, router]);
 
   const handleOpenFormForNew = () => {
     setEditingExpense(undefined);
     setIsExpenseFormOpen(true);
   };
 
-  // Modified to include receiptUrl from ProcessedExpenseData
   const handleAddOrUpdateExpense = (expenseData: Omit<Expense, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => {
-    addExpense(expenseData, expenseData.receiptUrl); // Pass receiptUrl to context function
+    addExpense(expenseData, expenseData.receiptUrl); 
     setEditingExpense(undefined);
     setIsExpenseFormOpen(false);
   };
 
   const handleUpdateExistingExpense = (expense: Expense) => {
-    updateExpense(expense); // Assumes updateExpense in context handles receiptUrl if present
+    updateExpense(expense); 
     setEditingExpense(undefined);
     setIsExpenseFormOpen(false);
   };
@@ -56,7 +65,7 @@ export default function ExpensesPage() {
       category: data.category,
       merchant: data.merchant,
       type: data.type,
-      receiptUrl: data.receiptUrl // Capture receipt URL from AI processing step
+      receiptUrl: data.receiptUrl 
     });
     setIsExpenseFormOpen(true); 
   }, []);
@@ -70,7 +79,7 @@ export default function ExpensesPage() {
   const formDescription = editingExpense?.id ? "Update the details of your transaction." : "Enter the details for a new transaction.";
 
 
-  if (authLoading || (user && loadingExpenses)) {
+  if (authLoading || (!user && !authLoading) || loadingExpenses) {
     return (
       <AppShell>
         <div className="flex items-center justify-center h-64">
@@ -80,19 +89,6 @@ export default function ExpensesPage() {
       </AppShell>
     );
   }
-
-  if (!user && !authLoading) {
-     return (
-      <AppShell>
-        <div className="flex flex-col items-center justify-center h-64 text-center">
-            <CardTitle className="text-xl mb-2">Access Denied</CardTitle>
-            <CardDescription>Please log in to manage your transactions.</CardDescription>
-            {/* Add a login button/link here if you have a login page */}
-        </div>
-      </AppShell>
-    );
-  }
-
 
   return (
     <AppShell>

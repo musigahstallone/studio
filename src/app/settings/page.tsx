@@ -1,11 +1,36 @@
 
-// src/app/settings/page.tsx
+"use client"; // Make this a client component for auth check
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ThemeSwitcher } from '@/components/settings/ThemeSwitcher';
+import { Loader2 } from 'lucide-react';
 // import { FontSwitcher } from '@/components/settings/FontSwitcher'; // Font switcher is temporarily disabled
 
 export default function SettingsPage() {
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, authLoading, router]);
+
+  if (authLoading || (!user && !authLoading)) {
+    return (
+      <AppShell>
+        <div className="flex flex-col items-center justify-center h-full py-10">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <p className="mt-4 text-muted-foreground">Loading Settings...</p>
+        </div>
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell>
       <div className="space-y-8">
