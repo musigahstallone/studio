@@ -2,11 +2,11 @@
 "use client";
 
 import Link from 'next/link';
-import { PiggyBank, Menu, X } from 'lucide-react';
+import { PiggyBank, Menu, X, ShieldCheck } from 'lucide-react'; // Added ShieldCheck
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { AppSidebarNav } from './AppSidebarNav'; // Re-using for mobile nav content
+import { AppSidebarNav } from './AppSidebarNav'; 
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -15,6 +15,7 @@ const navLinks = [
   { href: '/expenses', label: 'Expenses' },
   { href: '/budgets', label: 'Budgets' },
   { href: '/settings', label: 'Settings' },
+  { href: '/admin', label: 'Admin', icon: ShieldCheck }, // Added Admin link
 ];
 
 export function AppHeader() {
@@ -42,6 +43,7 @@ export function AppHeader() {
         <nav className="hidden md:flex items-center gap-1">
           {navLinks.map((link) => (
             <ButtonLink key={link.href} href={link.href} isActive={pathname === link.href}>
+              {link.icon && <link.icon className="h-4 w-4 mr-1.5" />} 
               {link.label}
             </ButtonLink>
           ))}
@@ -70,7 +72,6 @@ export function AppHeader() {
               </SheetTitle>
             </SheetHeader>
             <div className="flex-grow overflow-y-auto">
-              {/* Use AppSidebarNav, but pass handleMobileLinkClick */}
               <AppSidebarNav onLinkClick={handleMobileLinkClick} isMobileLayout={true} />
             </div>
              <button
@@ -98,7 +99,7 @@ function ButtonLink({ href, isActive, children }: ButtonLinkProps) {
     <Link
       href={href}
       className={cn(
-        "rounded-md px-3 py-2 text-sm font-medium transition-colors",
+        "rounded-md px-3 py-2 text-sm font-medium transition-colors flex items-center",
         isActive
           ? "bg-primary/10 text-primary"
           : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"

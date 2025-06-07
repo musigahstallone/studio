@@ -7,24 +7,24 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-} from '@/components/ui/sidebar'; // We can reuse these styled components
-import { LayoutDashboard, CreditCard, Target, Cog, LogOut } from 'lucide-react';
+} from '@/components/ui/sidebar';
+import { LayoutDashboard, CreditCard, Target, Cog, ShieldCheck } from 'lucide-react'; // Added ShieldCheck
 import { cn } from '@/lib/utils';
 
 const mainNavItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/expenses', label: 'Expenses', icon: CreditCard },
   { href: '/budgets', label: 'Budgets', icon: Target },
+  { href: '/admin', label: 'Admin', icon: ShieldCheck }, // Added Admin link
 ];
 
 const footerNavItems = [
   { href: '/settings', label: 'Settings', icon: Cog },
-  // { href: '#', label: 'Log Out', icon: LogOut }, // TODO: Implement actual log out
 ];
 
 interface AppSidebarNavProps {
-  onLinkClick?: () => void; // Callback for when a link is clicked, e.g. to close mobile drawer
-  isMobileLayout?: boolean; // To adjust styles if needed for mobile drawer context
+  onLinkClick?: () => void; 
+  isMobileLayout?: boolean; 
 }
 
 export function AppSidebarNav({ onLinkClick, isMobileLayout = false }: AppSidebarNavProps) {
@@ -43,7 +43,6 @@ export function AppSidebarNav({ onLinkClick, isMobileLayout = false }: AppSideba
         isActive={pathname === item.href}
         className={cn(
           "justify-start w-full text-base md:text-sm",
-           // Specific styling for mobile drawer items
           isMobileLayout ? "py-3 px-3 hover:bg-muted" : "",
           pathname === item.href && (isMobileLayout ? "bg-muted text-primary font-semibold" : "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary")
         )}
