@@ -10,9 +10,9 @@ import {
   SidebarMenuButton,
   SidebarContent,
   SidebarFooter,
+  useSidebar, // Import useSidebar
 } from '@/components/ui/sidebar';
-import { Button } from '@/components/ui/button';
-import { LayoutDashboard, CreditCard, Target, Settings, LogOut, PiggyBank, Cog } from 'lucide-react';
+import { LayoutDashboard, CreditCard, Target, Cog, LogOut, PiggyBank } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
@@ -23,11 +23,18 @@ const navItems = [
 
 export function AppSidebarNav() {
   const pathname = usePathname();
+  const { isMobile, setOpenMobile } = useSidebar(); // Get sidebar context
+
+  const handleLinkClick = () => {
+    if (isMobile) {
+      setOpenMobile(false); // Close sidebar on mobile after link click
+    }
+  };
 
   return (
     <>
       <SidebarHeader className="border-b">
-        <Link href="/" className="flex items-center gap-2 py-2 group-data-[collapsible=icon]:justify-center">
+        <Link href="/" className="flex items-center gap-2 py-2 group-data-[collapsible=icon]:justify-center" onClick={handleLinkClick}>
           <PiggyBank className="h-7 w-7 text-primary group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8" />
           <span className="font-headline text-xl font-semibold tracking-tight text-foreground group-data-[collapsible=icon]:hidden">
             PennyPincher AI
@@ -46,6 +53,7 @@ export function AppSidebarNav() {
                   "justify-start",
                   pathname === item.href && "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary"
                 )}
+                onClick={handleLinkClick} // Add onClick handler here
               >
                 <Link href={item.href}>
                   <item.icon className="h-5 w-5" />
@@ -63,6 +71,7 @@ export function AppSidebarNav() {
               asChild 
               tooltip={{ children: "Settings", className: "group-data-[collapsible=icon]:block hidden" }}
               className="justify-start"
+              onClick={handleLinkClick} // Add onClick handler here
             >
               {/* TODO: Link to actual settings page if/when created */}
               <Link href="#"> 
@@ -76,6 +85,7 @@ export function AppSidebarNav() {
               asChild 
               tooltip={{ children: "Log Out", className: "group-data-[collapsible=icon]:block hidden" }}
               className="justify-start"
+              onClick={handleLinkClick} // Add onClick handler here
             >
               {/* TODO: Implement actual log out functionality */}
               <Link href="#">
