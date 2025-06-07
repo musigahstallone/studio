@@ -70,8 +70,8 @@ export interface Expense {
   id: string;
   userId: string;
   description: string;
-  amount: number;
-  date: string; // YYYY-MM-DD (keep as string for form consistency, convert from/to Timestamp for Firestore)
+  amount: number; // Assumed to be in DEFAULT_STORED_CURRENCY
+  date: string; // YYYY-MM-DD
   category: Category;
   merchant?: string;
   type: 'expense' | 'income';
@@ -85,34 +85,35 @@ export interface Budget {
   userId: string;
   name: string;
   category: Category;
-  amount: number;
-  spentAmount: number; // Calculated client-side
+  amount: number; // Assumed to be in DEFAULT_STORED_CURRENCY
+  spentAmount: number; // Calculated client-side, also in DEFAULT_STORED_CURRENCY before display conversion
   createdAt?: string | Timestamp;
   updatedAt?: string | Timestamp;
 }
 
-// This is the app's internal User type, could store more profile info from Firestore
 export interface AppUser {
   uid: string;
   name?: string | null;
   email?: string | null;
   photoURL?: string | null;
   joinDate?: string; // ISO string date
-  isAdmin?: boolean; // Added for RBAC
-  // For mock data consistency on admin page if needed, but ideally fetched
+  isAdmin?: boolean;
   transactionCount?: number;
   totalSpent?: number;
 }
 
 export const supportedCurrencies = ['USD', 'EUR', 'KES'] as const;
 export type CurrencyCode = typeof supportedCurrencies[number];
-export const DEFAULT_CURRENCY: CurrencyCode = 'USD';
+
+// DEFAULT_CURRENCY is the one selected by default in settings if nothing is in localStorage
+export const DEFAULT_CURRENCY: CurrencyCode = 'USD'; 
+// DEFAULT_STORED_CURRENCY is the currency in which all raw numerical amounts are assumed to be stored in Firestore
+export const DEFAULT_STORED_CURRENCY: CurrencyCode = 'USD'; 
+
 export const CurrencyCodeSchema = z.enum(supportedCurrencies);
 
 export type Theme = 'light' | 'dark' | 'system';
 export const DEFAULT_THEME: Theme = 'system';
 
-// Add font theme ID type if not already present from previous font work
-export type FontThemeId = string; // Or a more specific enum if you have fixed font themes
-export const DEFAULT_FONT_THEME_ID_CONST = 'work-sans-dm-serif-display'; // Ensure this matches your fonts.ts
-
+export type FontThemeId = string; 
+export const DEFAULT_FONT_THEME_ID_CONST = 'work-sans-dm-serif-display';
