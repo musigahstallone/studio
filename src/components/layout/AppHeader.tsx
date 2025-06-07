@@ -1,33 +1,110 @@
 
 "use client";
 
-import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar'; // Imported useSidebar
-import { PiggyBank } from 'lucide-react';
 import Link from 'next/link';
+import { PiggyBank, Menu, X } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import { useState } from 'react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { AppSidebarNav } from './AppSidebarNav'; // Re-using for mobile nav content
+import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
+
+const navLinks = [
+  { href: '/', label: 'Dashboard' },
+  { href: '/expenses', label: 'Expenses' },
+  { href: '/budgets', label: 'Budgets' },
+  { href: '/settings', label: 'Settings' },
+];
 
 export function AppHeader() {
-  const { state: sidebarState, isMobile } = useSidebar();
+  const pathname = usePathname();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const isMobile = useIsMobile();
 
-  // Show app name in header if:
-  // 1. On mobile (isMobile is true)
-  // 2. Not on mobile AND sidebar is collapsed (icon-only view)
-  const showAppNameInHeader = isMobile || (!isMobile && sidebarState === "collapsed");
+  const handleMobileLinkClick = () => {
+    setIsMobileMenuOpen(false);
+  };
 
   return (
-    <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur sm:px-6 lg:px-8">
-      <div className="flex items-center gap-2">
-        <SidebarTrigger className="md:hidden" /> {/* Hidden on md and up */}
-        {showAppNameInHeader && (
+    <>
+      <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b bg-background/95 px-4 backdrop-blur-sm sm:px-6 lg:px-8">
+        <div className="flex items-center gap-2">
           <Link href="/" className="flex items-center gap-2">
             <PiggyBank className="h-7 w-7 text-primary" />
             <h1 className="font-headline text-xl font-semibold tracking-tight text-foreground">
               PennyPincher AI
             </h1>
           </Link>
-        )}
-      </div>
-      {/* Future user profile / settings button can go here */}
-    </header>
+        </div>
+
+        {/* Desktop Navigation */}
+        <nav className="hidden md:flex items-center gap-1">
+          {navLinks.map((link) => (
+            <ButtonLink key={link.href} href={link.href} isActive={pathname === link.href}>
+              {link.label}
+            </ButtonLink>
+          ))}
+        </nav>
+
+        {/* Mobile Menu Button */}
+        <div className="md:hidden">
+          <button
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="p-2 text-foreground hover:text-primary transition-colors"
+            aria-label="Open menu"
+          >
+            <Menu className="h-6 w-6" />
+          </button>
+        </div>
+      </header>
+
+      {/* Mobile Navigation Drawer */}
+      {isMobile && (
+        <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+          <SheetContent side="left" className="w-72 p-0 flex flex-col bg-background">
+            <SheetHeader className="p-4 border-b">
+              <SheetTitle className="flex items-center gap-2">
+                 <PiggyBank className="h-7 w-7 text-primary" />
+                 <span className="font-headline text-xl font-semibold tracking-tight text-foreground">PennyPincher AI</span>
+              </SheetTitle>
+            </SheetHeader>
+            <div className="flex-grow overflow-y-auto">
+              {/* Use AppSidebarNav, but pass handleMobileLinkClick */}
+              <AppSidebarNav onLinkClick={handleMobileLinkClick} isMobileLayout={true} />
+            </div>
+             <button
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              >
+                <X className="h-5 w-5" />
+                <span className="sr-only">Close</span>
+              </button>
+          </SheetContent>
+        </Sheet>
+      )}
+    </>
   );
 }
 
+interface ButtonLinkProps {
+  href: string;
+  isActive: boolean;
+  children: React.ReactNode;
+}
+
+function ButtonLink({ href, isActive, children }: ButtonLinkProps) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "rounded-md px-3 py-2 text-sm font-medium transition-colors",
+        isActive
+          ? "bg-primary/10 text-primary"
+          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+      )}
+    >
+      {children}
+    </Link>
+  );
+}

@@ -2,7 +2,7 @@
 "use client";
 
 import type { Expense } from '@/lib/types';
-import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useCallback, useMemo } from 'react';
 
 // Consolidated initial mock data
 const initialExpensesData: Expense[] = [
@@ -59,3 +59,83 @@ export const useExpenses = (): ExpenseContextType => {
   }
   return context;
 };
+
+// This will be moved or created in a separate BudgetContext.tsx file
+// For now, adding it here to resolve the import in page.tsx
+// In a real app, this should be in its own file: src/contexts/BudgetContext.tsx
+
+import type { Budget } from '@/lib/types'; // Assuming Budget type is defined
+// Re-importing useExpenses as useExpenseContextForBudgets to avoid naming conflict
+// This is a common pattern if one context depends on data from another or for modularity.
+
+const initialBudgetsState: Budget[] = [
+  // Example initial data (can be removed if starting fresh)
+  { id: 'b1', name: 'Monthly Food', category: 'Food & Drink', amount: 400, spentAmount: 0 },
+  { id: 'b2', name: 'Transport Costs', category: 'Transportation', amount: 150, spentAmount: 0 },
+];
+
+interface BudgetContextActualType {
+  budgets: Budget[];
+  addBudget: (budgetData: Omit<Budget, 'id' | 'spentAmount'>) => void;
+  updateBudget: (updatedBudget: Omit<Budget, 'spentAmount'> & { spentAmount?: number }) => void;
+  deleteBudget: (id: string) => void;
+  // getBudgetSpentAmount: (category: Budget['category']) => number; // Might not be needed if spentAmount is always part of budget object
+}
+
+const BudgetContextActual = createContext<BudgetContextActualType | undefined>(undefined);
+
+export const BudgetProviderActual = ({ children }: { children: ReactNode }) => {
+  const [budgetsData, setBudgetsData] = useState<Budget[]>(initialBudgetsState);
+  const { expenses: allExpenses } = useExpenses(); // Get all expenses to calculate spent amounts
+
+  // Recalculate spent amounts whenever budgetsData or allExpenses change
+  const processedBudgets = useMemo(() => {
+    return budgetsData.map(budget => {
+      const spent = allExpenses
+        .filter(e => e.type === 'expense' && e.category === budget.category)
+        .reduce((sum, e) => sum + e.amount, 0);
+      return { ...budget, spentAmount: spent };
+    }).sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+  }, [budgetsData, allExpenses]);
+
+  const addBudgetInternal = useCallback((budgetData: Omit<Budget, 'id' | 'spentAmount'>) => {
+    const newBudget: Budget = {
+      id: crypto.randomUUID(),
+      ...budgetData,
+      spentAmount: 0, // Will be recalculated by processedBudgets
+    };
+    setBudgetsData(prev => [...prev, newBudget]);
+  }, []);
+
+  const updateBudgetInternal = useCallback((updatedBudgetData: Omit<Budget, 'spentAmount'> & { spentAmount?: number }) => {
+    setBudgetsData(prev =>
+      prev.map(b => (b.id === updatedBudgetData.id ? { ...b, ...updatedBudgetData, spentAmount: b.spentAmount } : b)) // keep original spentAmount, processedBudgets will update it
+    );
+  }, []);
+
+  const deleteBudgetInternal = useCallback((id: string) => {
+    setBudgetsData(prev => prev.filter(b => b.id !== id));
+  }, []);
+
+  return (
+    <BudgetContextActual.Provider value={{ 
+      budgets: processedBudgets, 
+      addBudget: addBudgetInternal, 
+      updateBudget: updateBudgetInternal, 
+      deleteBudget: deleteBudgetInternal 
+    }}>
+      {children}
+    </BudgetContextActual.Provider>
+  );
+};
+
+export const useBudgets = (): BudgetContextActualType => {
+  const context = useContext(BudgetContextActual);
+  if (context === undefined) {
+    // This check is important. It ensures that useBudgets is only called
+    // from components that are descendants of BudgetProvider.
+    throw new Error('useBudgets must be used within a BudgetProviderActual');
+  }
+  return context;
+};
+

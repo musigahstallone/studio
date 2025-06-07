@@ -1,16 +1,19 @@
 
 "use client";
 
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { ExpenseProvider } from "@/contexts/ExpenseContext";
+import { ExpenseProvider, BudgetProviderActual } from "@/contexts/ExpenseContext"; // Added BudgetProviderActual
 import type { ReactNode } from "react";
+import { TooltipProvider } from "@/components/ui/tooltip";
+
 
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
-    <SidebarProvider defaultOpen={true}>
+    <TooltipProvider delayDuration={0}>
       <ExpenseProvider>
-        {children}
+        <BudgetProviderActual> {/* Added BudgetProviderActual wrapper */}
+          {children}
+        </BudgetProviderActual>
       </ExpenseProvider>
-    </SidebarProvider>
+    </TooltipProvider>
   );
 }

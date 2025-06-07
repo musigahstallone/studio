@@ -5,21 +5,15 @@ import { AppShell } from '@/components/layout/AppShell';
 import { BudgetForm } from '@/components/budgets/BudgetForm';
 import { BudgetList } from '@/components/budgets/BudgetList';
 import type { Budget } from '@/lib/types';
-import { useState, useMemo } from 'react';
-import { useExpenses } from '@/contexts/ExpenseContext';
+import { useState } from 'react';
 import { ResponsiveFormWrapper } from '@/components/shared/ResponsiveFormWrapper';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
-
-const initialBudgetsData: Budget[] = [
-  // Example initial data (can be removed if starting fresh)
-  // { id: 'b1', name: 'Monthly Food', category: 'Food & Drink', amount: 400, spentAmount: 0 },
-  // { id: 'b2', name: 'Transport Costs', category: 'Transportation', amount: 150, spentAmount: 0 },
-];
+import { useBudgets } from '@/contexts/ExpenseContext'; // Changed to use the combined context for now
 
 export default function BudgetsPage() {
-  const [budgets, setBudgets] = useState<Budget[]>(initialBudgetsData);
-  const { expenses } = useExpenses(); 
+  // Budgets state and logic are now managed by useBudgets hook
+  const { budgets, addBudget, updateBudget, deleteBudget } = useBudgets();
   const [isBudgetFormOpen, setIsBudgetFormOpen] = useState(false);
   const [editingBudget, setEditingBudget] = useState<Partial<Budget> | undefined>(undefined);
 
@@ -33,34 +27,25 @@ export default function BudgetsPage() {
     setIsBudgetFormOpen(true);
   };
 
-  const handleSaveBudget = (budget: Budget) => {
-    setBudgets(prev => {
-      const index = prev.findIndex(b => b.id === budget.id);
-      if (index > -1) {
-        const updatedBudgets = [...prev];
-        updatedBudgets[index] = budget;
-        return updatedBudgets;
+  const handleSaveBudget = (budgetData: Omit<Budget, 'id' | 'spentAmount'>, id?: string) => {
+    if (id) {
+      // This is an update
+      const budgetToUpdate = budgets.find(b => b.id === id);
+      if (budgetToUpdate) {
+        updateBudget({ ...budgetToUpdate, ...budgetData });
       }
-      // When adding a new budget, ensure its spentAmount is initialized correctly
-      // (it should already be passed from BudgetForm based on existing expenses or 0)
-      return [budget, ...prev].sort((a,b) => (a.name || "").localeCompare(b.name || ""));
-    });
+    } else {
+      // This is an add
+      addBudget(budgetData);
+    }
     setIsBudgetFormOpen(false);
     setEditingBudget(undefined);
   };
 
-  const handleDeleteBudget = (id: string) => {
-    setBudgets(prev => prev.filter(b => b.id !== id));
+  const handleDeleteBudgetCallback = (id: string) => {
+    deleteBudget(id);
   };
 
-  const budgetsWithSpentAmounts = useMemo(() => {
-    return budgets.map(budget => {
-      const spent = expenses
-        .filter(e => e.type === 'expense' && e.category === budget.category)
-        .reduce((sum, e) => sum + e.amount, 0);
-      return { ...budget, spentAmount: spent };
-    }).sort((a,b) => (a.name || "").localeCompare(b.name || ""));
-  }, [budgets, expenses]);
 
   const formTitle = editingBudget?.id ? "Edit Budget" : "Set New Budget";
   const formDescription = editingBudget?.id 
@@ -78,8 +63,8 @@ export default function BudgetsPage() {
         </div>
         
         <BudgetList 
-          budgets={budgetsWithSpentAmounts} 
-          onDeleteBudget={handleDeleteBudget} 
+          budgets={budgets} // budgets from context already include spentAmount
+          onDeleteBudget={handleDeleteBudgetCallback} 
           onEditBudget={handleEditBudget} 
         />
 
@@ -88,7 +73,7 @@ export default function BudgetsPage() {
           onOpenChange={setIsBudgetFormOpen}
           title={formTitle}
           description={formDescription}
-          side="right"
+          side="right" // For desktop sheet
         >
           <BudgetForm 
             onSaveBudget={handleSaveBudget} 

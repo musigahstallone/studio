@@ -4,98 +4,73 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  SidebarHeader,
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarContent,
-  SidebarFooter,
-  useSidebar, // Import useSidebar
-} from '@/components/ui/sidebar';
-import { LayoutDashboard, CreditCard, Target, Cog, LogOut, PiggyBank } from 'lucide-react';
+} from '@/components/ui/sidebar'; // We can reuse these styled components
+import { LayoutDashboard, CreditCard, Target, Cog, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const navItems = [
+const mainNavItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/expenses', label: 'Expenses', icon: CreditCard },
   { href: '/budgets', label: 'Budgets', icon: Target },
 ];
 
-export function AppSidebarNav() {
+const footerNavItems = [
+  { href: '/settings', label: 'Settings', icon: Cog },
+  // { href: '#', label: 'Log Out', icon: LogOut }, // TODO: Implement actual log out
+];
+
+interface AppSidebarNavProps {
+  onLinkClick?: () => void; // Callback for when a link is clicked, e.g. to close mobile drawer
+  isMobileLayout?: boolean; // To adjust styles if needed for mobile drawer context
+}
+
+export function AppSidebarNav({ onLinkClick, isMobileLayout = false }: AppSidebarNavProps) {
   const pathname = usePathname();
-  const { isMobile, setOpenMobile } = useSidebar(); // Get sidebar context
 
   const handleLinkClick = () => {
-    if (isMobile) {
-      setOpenMobile(false); // Close sidebar on mobile after link click
+    if (onLinkClick) {
+      onLinkClick();
     }
   };
 
+  const renderNavItem = (item: typeof mainNavItems[0]) => (
+    <SidebarMenuItem key={item.href} className={isMobileLayout ? "px-2 py-1" : ""}>
+      <SidebarMenuButton
+        asChild
+        isActive={pathname === item.href}
+        className={cn(
+          "justify-start w-full text-base md:text-sm",
+           // Specific styling for mobile drawer items
+          isMobileLayout ? "py-3 px-3 hover:bg-muted" : "",
+          pathname === item.href && (isMobileLayout ? "bg-muted text-primary font-semibold" : "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary")
+        )}
+        onClick={handleLinkClick}
+      >
+        <Link href={item.href}>
+          <item.icon className="h-5 w-5 mr-3 shrink-0" />
+          <span>{item.label}</span>
+        </Link>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
+  
   return (
     <>
-      <SidebarHeader className="border-b">
-        <Link href="/" className="flex items-center gap-2 py-2 group-data-[collapsible=icon]:justify-center" onClick={handleLinkClick}>
-          <PiggyBank className="h-7 w-7 text-primary group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8" />
-          <span className="font-headline text-xl font-semibold tracking-tight text-foreground group-data-[collapsible=icon]:hidden">
-            PennyPincher AI
-          </span>
-        </Link>
-      </SidebarHeader>
-      <SidebarContent className="p-2">
-        <SidebarMenu>
-          {navItems.map((item) => (
-            <SidebarMenuItem key={item.href}>
-              <SidebarMenuButton
-                asChild
-                isActive={pathname === item.href}
-                tooltip={{ children: item.label, className: "group-data-[collapsible=icon]:block hidden" }}
-                className={cn(
-                  "justify-start",
-                  pathname === item.href && "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary"
-                )}
-                onClick={handleLinkClick} // Add onClick handler here
-              >
-                <Link href={item.href}>
-                  <item.icon className="h-5 w-5" />
-                  <span>{item.label}</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
+      <div className={cn("p-4", isMobileLayout ? "pt-2" : "")}>
+        <SidebarMenu className={isMobileLayout ? "flex flex-col gap-2" : ""}>
+          {mainNavItems.map(renderNavItem)}
         </SidebarMenu>
-      </SidebarContent>
-      <SidebarFooter className="mt-auto border-t p-2">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton 
-              asChild 
-              tooltip={{ children: "Settings", className: "group-data-[collapsible=icon]:block hidden" }}
-              className="justify-start"
-              onClick={handleLinkClick} // Add onClick handler here
-            >
-              {/* TODO: Link to actual settings page if/when created */}
-              <Link href="#"> 
-                <Cog className="h-5 w-5" />
-                <span>Settings</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-             <SidebarMenuButton 
-              asChild 
-              tooltip={{ children: "Log Out", className: "group-data-[collapsible=icon]:block hidden" }}
-              className="justify-start"
-              onClick={handleLinkClick} // Add onClick handler here
-            >
-              {/* TODO: Implement actual log out functionality */}
-              <Link href="#">
-                <LogOut className="h-5 w-5" />
-                <span>Log Out</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
+      </div>
+      {footerNavItems.length > 0 && (
+        <div className={cn("mt-auto border-t p-4", isMobileLayout ? "pt-2" : "")}>
+           <SidebarMenu className={isMobileLayout ? "flex flex-col gap-2" : ""}>
+            {footerNavItems.map(renderNavItem)}
+          </SidebarMenu>
+        </div>
+      )}
     </>
   );
 }
