@@ -35,8 +35,8 @@ function BudgetListItem({ budget, onDeleteBudget, onEditBudget }: BudgetListItem
               <span>Budget: ${budget.amount.toFixed(2)}</span>
             </div>
             <p className={`text-xs mt-0.5 ${isOverBudget ? 'text-destructive' : 'text-muted-foreground'}`}>
-              {isOverBudget 
-                ? `Over by $${Math.abs(remaining).toFixed(2)}` 
+              {isOverBudget
+                ? `Over by $${Math.abs(remaining).toFixed(2)}`
                 : `$${remaining.toFixed(2)} remaining`}
             </p>
           </div>
@@ -87,10 +87,10 @@ export function BudgetList({ budgets, onDeleteBudget, onEditBudget }: BudgetList
       <div className="border rounded-lg overflow-hidden">
         <div className="divide-y">
           {paginatedBudgets.map((budget) => (
-            <BudgetListItem 
-              key={budget.id} 
-              budget={budget} 
-              onDeleteBudget={onDeleteBudget} 
+            <BudgetListItem
+              key={budget.id}
+              budget={budget}
+              onDeleteBudget={onDeleteBudget}
               onEditBudget={onEditBudget}
             />
           ))}

@@ -77,8 +77,17 @@ export interface Expense {
 
 export interface Budget {
   id: string;
-  name: string; 
+  name: string;
   category: Category;
   amount: number; // Target budget amount
   spentAmount: number; // Actual amount spent in this category for the period
+}
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  joinDate: string; // YYYY-MM-DD
+  transactionCount: number;
+  totalSpent: number;
 }

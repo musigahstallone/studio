@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription } from "@/components/ui/card";
 import { useState, useEffect } from "react";
 import { format, parseISO } from 'date-fns';
 
-const ITEMS_PER_PAGE = 5;
+const ITEMS_PER_PAGE = 5; // Keep this lower for the main expenses page
 
 interface ExpenseListItemProps {
   expense: Expense;
@@ -25,21 +25,18 @@ function ExpenseListItem({ expense, onDeleteExpense, onEditExpense }: ExpenseLis
   const [formattedDate, setFormattedDate] = useState('');
 
   useEffect(() => {
-    // Ensure date formatting happens only on client-side to avoid hydration mismatch
     if (expense.date) {
       try {
-        // Assuming expense.date is YYYY-MM-DD
-        setFormattedDate(format(parseISO(expense.date), 'PP')); // e.g., Jul 20, 2024
+        setFormattedDate(format(parseISO(expense.date), 'PP')); 
       } catch (e) {
         console.error("Error formatting date:", expense.date, e);
-        setFormattedDate(expense.date); // Fallback to original date string if parsing fails
+        setFormattedDate(expense.date); 
       }
     }
   }, [expense.date]);
 
   return (
     <div className="p-4 border-b hover:bg-muted/50 transition-colors grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4 sm:gap-6 items-center">
-      {/* LEFT: Description + Metadata */}
       <div className="flex items-start gap-3">
         <TypeIcon className={`h-6 w-6 mt-1 ${iconColor} flex-shrink-0`} />
         <div className="flex-1 min-w-0">
@@ -54,7 +51,6 @@ function ExpenseListItem({ expense, onDeleteExpense, onEditExpense }: ExpenseLis
         </div>
       </div>
 
-      {/* RIGHT: Amount + Buttons */}
       <div className="flex sm:flex-col items-end sm:items-end justify-between sm:justify-center gap-2 sm:gap-3">
         <p className={`text-lg sm:text-xl font-bold ${amountColor} text-right sm:text-left`}>
           {isIncome ? '+' : '-'}${expense.amount.toFixed(2)}

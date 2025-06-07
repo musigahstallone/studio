@@ -4,7 +4,7 @@
 import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DollarSign, TrendingUp, TrendingDown, ListChecks, Target } from 'lucide-react';
-import { useExpenses } from '@/contexts/ExpenseContext'; 
+import { useExpenses } from '@/contexts/ExpenseContext';
 import { useBudgets } from '@/contexts/ExpenseContext';
 import { useMemo } from 'react';
 import { RecentTransactionsList } from '@/components/dashboard/RecentTransactionsList';
@@ -14,8 +14,8 @@ import { Progress } from "@/components/ui/progress";
 
 
 export default function DashboardPage() {
-  const { expenses } = useExpenses(); 
-  const { budgets } = useBudgets(); 
+  const { expenses } = useExpenses();
+  const { budgets } = useBudgets();
 
   const totalIncome = useMemo(() => {
     return expenses
@@ -28,19 +28,19 @@ export default function DashboardPage() {
       .filter(e => e.type === 'expense')
       .reduce((sum, e) => sum + e.amount, 0);
   }, [expenses]);
-  
+
   const balance = totalIncome - totalExpenses;
 
   const budgetHighlights = useMemo(() => {
-    return budgets 
+    return budgets
       .map(budget => ({
         ...budget,
-        progress: budget.amount > 0 ? Math.min((budget.spentAmount / budget.amount) * 100, 100) : 0, // Cap progress at 100% for display
+        progress: budget.amount > 0 ? Math.min((budget.spentAmount / budget.amount) * 100, 100) : 0,
         isOverBudget: budget.spentAmount > budget.amount,
         percentageSpent: budget.amount > 0 ? (budget.spentAmount / budget.amount) * 100 : 0,
       }))
-      .sort((a, b) => b.percentageSpent - a.percentageSpent) // Sort by highest percentage spent first
-      .slice(0, 3); 
+      .sort((a, b) => b.percentageSpent - a.percentageSpent)
+      .slice(0, 3);
   }, [budgets]);
 
   return (
@@ -50,7 +50,6 @@ export default function DashboardPage() {
           <h1 className="font-headline text-3xl font-semibold text-foreground">
             Welcome Back!
           </h1>
-          {/* "Add New Transaction" button removed from here */}
         </div>
 
         <p className="text-lg text-muted-foreground">
@@ -98,7 +97,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {budgetHighlights.map(budget => (
-                <Card key={budget.id} className="flex flex-col">
+                <Card key={budget.id} className="flex flex-col bg-card hover:shadow-md transition-shadow">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-lg">{budget.name}</CardTitle>
                     <CardDescription>{budget.category}</CardDescription>
@@ -120,7 +119,7 @@ export default function DashboardPage() {
                     )}
                   </CardContent>
                   <div className="p-4 pt-0 text-right">
-                     <Button variant="link" asChild size="sm" className="text-xs">
+                     <Button variant="link" asChild size="sm" className="text-xs text-primary hover:text-primary/80">
                         <Link href="/budgets">Manage Budgets</Link>
                     </Button>
                   </div>
@@ -136,7 +135,7 @@ export default function DashboardPage() {
             )}
           </Card>
         )}
-        
+
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center text-xl">
@@ -149,7 +148,7 @@ export default function DashboardPage() {
             <RecentTransactionsList count={5} />
           </CardContent>
         </Card>
-        
+
       </div>
     </AppShell>
   );
