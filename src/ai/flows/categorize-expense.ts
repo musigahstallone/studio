@@ -41,9 +41,10 @@ const CategorySchema = z.enum([
 
 const CategorizeExpenseOutputSchema = z.object({
   merchant: z.string().optional().describe('The name of the merchant, if identifiable.'),
-  amount: z.number().describe('The amount of the expense.'),
-  date: z.string().describe('The date of the expense in ISO format (YYYY-MM-DD). If not specified, use the current date.'),
-  category: CategorySchema.describe('The budget category of the expense.'),
+  amount: z.number().describe('The amount of the transaction.'),
+  date: z.string().describe('The date of the transaction in ISO format (YYYY-MM-DD). If not specified, use the current date.'),
+  category: CategorySchema.describe('The budget category of the transaction.'),
+  type: z.enum(["expense", "income"]).describe('Whether the transaction is an expense or income.'),
 });
 
 export type CategorizeExpenseOutput = z.infer<typeof CategorizeExpenseOutputSchema>;
@@ -58,10 +59,11 @@ const prompt = ai.definePrompt({
   name: 'categorizeExpensePrompt',
   input: {schema: CategorizeExpenseInputSchema},
   output: {schema: CategorizeExpenseOutputSchema},
-  prompt: `You are an AI assistant that categorizes expenses based on a free-form text description.
+  prompt: `You are an AI assistant that categorizes transactions based on a free-form text description.
 
-  Analyze the following description and extract the merchant (if available), amount, date, and budget category.
-  If the date is not specified in the description, assume the current date.
+  Analyze the following description and extract the merchant (if available), amount, date, budget category, and determine if it's an expense or income.
+  If the date is not specified in the description, assume the current date, formatted as YYYY-MM-DD.
+  Based on the context of the description (e.g., "received salary", "paid for lunch"), classify this as 'expense' or 'income'.
 
   Description: {{{description}}}
 
@@ -84,10 +86,19 @@ const categorizeExpenseFlow = ai.defineFlow(
     if (!output) {
       throw new Error("AI failed to provide an output for categorization.");
     }
-     // Ensure date is present, fallback to today if AI misses it (though prompt guides it)
     if (!output.date) {
       output.date = new Date().toISOString().split('T')[0];
+    }
+    if (!output.type) {
+        // Basic fallback if AI misses type, though prompt guides it.
+        const descriptionLower = input.description.toLowerCase();
+        if (descriptionLower.includes('salary') || descriptionLower.includes('received') || descriptionLower.includes('deposit')) {
+            output.type = 'income';
+        } else {
+            output.type = 'expense';
+        }
     }
     return output;
   }
 );
+

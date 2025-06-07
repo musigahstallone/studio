@@ -45,17 +45,16 @@ export default function ExpensesPage() {
     setIsExpenseFormOpen(true);
   };
 
-  const handleDataExtracted = useCallback((data: ProcessedExpenseData & { type: "expense" | "income" }) => {
+  const handleDataExtracted = useCallback((data: ProcessedExpenseData) => { // Type is now part of ProcessedExpenseData
     setEditingExpense({ 
       description: data.description,
       amount: data.amount,
       date: data.date,
       category: data.category,
       merchant: data.merchant,
-      type: data.type
+      type: data.type // Use type from AI
     });
-    setIsExpenseFormOpen(true); // Open the main expense form pre-filled
-    // setActiveView("list"); // Optionally switch back to list view or stay on AI tab
+    setIsExpenseFormOpen(true); 
   }, []);
 
   const handleFormSubmissionDone = () => {
@@ -104,7 +103,7 @@ export default function ExpensesPage() {
               <CardHeader>
                 <CardTitle>Categorize by Text</CardTitle>
                 <CardDescription>
-                  Type a description (e.g., &quot;Lunch at Cafe Mocha - $12.50&quot;), and AI will parse it.
+                  Type a description (e.g., &quot;Lunch at Cafe Mocha $12.50&quot; or &quot;Received salary $2000&quot;), and AI will parse it.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -116,9 +115,9 @@ export default function ExpensesPage() {
           {activeView === "receipt-ai" && (
             <Card>
               <CardHeader>
-                <CardTitle>Extract from Receipt Image</CardTitle>
+                <CardTitle>Extract from Receipt/Document</CardTitle>
                 <CardDescription>
-                  Upload your receipt image, and AI handles the rest.
+                  Upload an image of your receipt or financial document, and AI handles the rest.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -130,9 +129,9 @@ export default function ExpensesPage() {
           {activeView === "camera-ai" && (
             <Card>
               <CardHeader>
-                <CardTitle>Scan Receipt via Camera</CardTitle>
+                <CardTitle>Scan with Camera</CardTitle>
                 <CardDescription>
-                  Use your camera to scan a receipt for AI-powered data extraction.
+                  Use your camera to scan a receipt or document for AI-powered data extraction.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -147,7 +146,7 @@ export default function ExpensesPage() {
           onOpenChange={setIsExpenseFormOpen}
           title={formTitle}
           description={formDescription}
-          side="right" // This will be overridden to "bottom" on mobile by the wrapper itself
+          side="right" 
         >
           <ExpenseForm 
             onAddExpense={handleAddOrUpdateExpense} 
@@ -161,3 +160,4 @@ export default function ExpensesPage() {
     </AppShell>
   );
 }
+

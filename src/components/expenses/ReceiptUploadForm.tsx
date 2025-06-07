@@ -9,7 +9,7 @@ import { ScanLine } from "lucide-react";
 import { processReceiptExpense, type ProcessedExpenseData } from "@/actions/aiActions";
 
 interface ReceiptUploadFormProps {
-  onDataExtracted: (data: ProcessedExpenseData & { type: "expense" | "income" }) => void;
+  onDataExtracted: (data: ProcessedExpenseData) => void; // Type is now part of ProcessedExpenseData
 }
 
 export function ReceiptUploadForm({ onDataExtracted }: ReceiptUploadFormProps) {
@@ -38,13 +38,11 @@ export function ReceiptUploadForm({ onDataExtracted }: ReceiptUploadFormProps) {
     setExtractedData(null);
     try {
       const result = await processReceiptExpense({ photoDataUri: fileDataUri });
-      const type = (result.category === 'Salary' || (result.category === 'Investments' && result.amount > 0)) ? 'income' : 'expense';
-      
       setExtractedData(result);
-      onDataExtracted({...result, type}); 
+      onDataExtracted(result); // Type is now included in result
       toast({
         title: "Data Extracted",
-        description: `Merchant: ${result.merchant || 'N/A'}, Amount: $${result.amount.toFixed(2)}`,
+        description: `${result.description} - Amount: $${result.amount.toFixed(2)}`,
       });
     } catch (error) {
        toast({
@@ -66,13 +64,16 @@ export function ReceiptUploadForm({ onDataExtracted }: ReceiptUploadFormProps) {
       {extractedData && (
          <div className="mt-4 rounded-md border bg-muted/50 p-4 text-sm">
           <h4 className="font-semibold mb-2 text-foreground">Extracted Data:</h4>
+          <p><span className="font-medium text-muted-foreground">Description:</span> {extractedData.description}</p>
           <p><span className="font-medium text-muted-foreground">Merchant:</span> {extractedData.merchant || "N/A"}</p>
           <p><span className="font-medium text-muted-foreground">Amount:</span> ${extractedData.amount.toFixed(2)}</p>
           <p><span className="font-medium text-muted-foreground">Date:</span> {extractedData.date}</p>
           <p><span className="font-medium text-muted-foreground">Category:</span> {extractedData.category}</p>
+          <p><span className="font-medium text-muted-foreground">Type:</span> {extractedData.type}</p>
           <p className="mt-3 text-xs text-muted-foreground">This data has been used to pre-fill the manual entry form. Please review and submit.</p>
         </div>
       )}
     </div>
   );
 }
+

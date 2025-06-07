@@ -10,7 +10,7 @@ import { Camera, ScanLine, Zap, Maximize, Minimize, RefreshCw } from "lucide-rea
 import { cn } from "@/lib/utils";
 
 interface CameraReceiptScanProps {
-  onDataExtracted: (data: ProcessedExpenseData & { type: "expense" | "income" }) => void;
+  onDataExtracted: (data: ProcessedExpenseData) => void; // Type is now part of ProcessedExpenseData
 }
 
 export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
@@ -33,7 +33,7 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
 
   const startCameraStream = useCallback(async () => {
     setIsCameraInitializing(true);
-    setHasCameraPermission(null); // Reset permission state
+    setHasCameraPermission(null); 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       setHasCameraPermission(false);
       setIsCameraInitializing(false);
@@ -81,6 +81,12 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
   }, [startCameraStream, stopCameraStream]);
 
   const handleCapture = async () => {
+    if (isFullScreen) {
+      setIsFullScreen(false); // Minimize first if in fullscreen
+      // Adding a very brief pause to allow UI to redraw before capturing canvas might be beneficial on some systems
+      await new Promise(resolve => setTimeout(resolve, 50)); 
+    }
+
     if (!videoRef.current || !hasCameraPermission) {
       toast({
         variant: "destructive",
@@ -88,10 +94,6 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
         description: "Please ensure camera permission is granted and the video feed is active.",
       });
       return;
-    }
-
-    if (isFullScreen) {
-      setIsFullScreen(false); // Minimize after capture starts
     }
 
     const video = videoRef.current;
@@ -116,13 +118,11 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
     setExtractedData(null);
     try {
       const result = await processReceiptExpense({ photoDataUri });
-      const type = (result.category === 'Salary' || (result.category === 'Investments' && result.amount > 0)) ? 'income' : 'expense';
-      
       setExtractedData(result);
-      onDataExtracted({...result, type});
+      onDataExtracted(result); // Type is now included in result
       toast({
         title: "Data Extracted",
-        description: `Merchant: ${result.merchant || 'N/A'}, Amount: $${result.amount.toFixed(2)}`,
+        description: `${result.description} - Amount: $${result.amount.toFixed(2)}`,
       });
     } catch (error) {
        toast({
@@ -138,12 +138,12 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
   return (
     <div className="space-y-4">
       <div className={cn(
-        "relative bg-muted rounded-md overflow-hidden shadow-inner",
-        isFullScreen ? "fixed inset-0 z-[9999] bg-black" : "w-full aspect-[4/3] sm:aspect-video md:h-96 lg:h-[500px]"
+        "relative bg-muted rounded-md overflow-hidden shadow-inner group", // Added group for button visibility
+        isFullScreen ? "fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center" : "w-full aspect-[4/3] sm:aspect-video md:h-96 lg:h-[500px]"
       )}>
         <video 
             ref={videoRef} 
-            className="w-full h-full object-cover"
+            className={cn("object-contain", isFullScreen ? "max-w-full max-h-full" : "w-full h-full" )}
             autoPlay 
             playsInline 
             muted 
@@ -167,12 +167,24 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
             variant="ghost" 
             size="icon" 
             onClick={() => setIsFullScreen(!isFullScreen)} 
-            className="absolute top-2 right-2 z-10 bg-black/30 hover:bg-black/50 text-white"
+            className="absolute top-2 right-2 z-20 bg-black/30 hover:bg-black/50 text-white" // z-index increased
             aria-label={isFullScreen ? "Exit Fullscreen" : "Enter Fullscreen"}
             title={isFullScreen ? "Exit Fullscreen" : "Enter Fullscreen"}
             >
             {isFullScreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
         </Button>
+        {isFullScreen && hasCameraPermission && !isCameraInitializing && (
+             <Button 
+                onClick={handleCapture} 
+                disabled={isLoading} 
+                className="absolute bottom-5 left-1/2 -translate-x-1/2 z-20 bg-primary/80 hover:bg-primary text-primary-foreground px-6 py-3"
+                size="lg"
+                aria-label="Capture and Extract"
+             >
+                <ScanLine className="mr-2 h-5 w-5" /> 
+                {isLoading ? "Processing..." : "Capture"}
+            </Button>
+        )}
       </div>
       
       { hasCameraPermission === false && !isCameraInitializing && (
@@ -185,25 +197,31 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
           </Alert>
       )}
 
-      <Button 
-          onClick={handleCapture} 
-          disabled={isLoading || !hasCameraPermission || isCameraInitializing} 
-          className="w-full"
-      >
-        <ScanLine className="mr-2 h-4 w-4" /> 
-        {isLoading ? "Processing..." : "Capture & Extract"}
-      </Button>
+      {!isFullScreen && ( // Only show the main button if not in fullscreen
+        <Button 
+            onClick={handleCapture} 
+            disabled={isLoading || !hasCameraPermission || isCameraInitializing} 
+            className="w-full"
+        >
+          <ScanLine className="mr-2 h-4 w-4" /> 
+          {isLoading ? "Processing..." : "Capture & Extract"}
+        </Button>
+      )}
+
 
       {extractedData && (
          <div className="mt-4 rounded-md border bg-muted/50 p-4 text-sm">
           <h4 className="font-semibold mb-2 text-foreground">Extracted Data:</h4>
+          <p><span className="font-medium text-muted-foreground">Description:</span> {extractedData.description}</p>
           <p><span className="font-medium text-muted-foreground">Merchant:</span> {extractedData.merchant || "N/A"}</p>
           <p><span className="font-medium text-muted-foreground">Amount:</span> ${extractedData.amount.toFixed(2)}</p>
           <p><span className="font-medium text-muted-foreground">Date:</span> {extractedData.date}</p>
           <p><span className="font-medium text-muted-foreground">Category:</span> {extractedData.category}</p>
+          <p><span className="font-medium text-muted-foreground">Type:</span> {extractedData.type}</p>
           <p className="mt-3 text-xs text-muted-foreground">This data has been used to pre-fill the manual entry form. Please review and submit.</p>
         </div>
       )}
     </div>
   );
 }
+
