@@ -11,8 +11,9 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['Lora', 'serif'], // Updated body font
-        headline: ['Manrope', 'sans-serif'], // Updated headline font
+        // These will now use CSS variables set by the active font theme class
+        body: ['var(--font-family-body)', 'serif'], 
+        headline: ['var(--font-family-headline)', 'sans-serif'],
         code: ['monospace'],
       },
       colors: {

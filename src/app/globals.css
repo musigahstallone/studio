@@ -3,10 +3,6 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: Arial, Helvetica, sans-serif;
-}
-
 @layer base {
   :root {
     --background: 0 0% 98%; /* Almost White */
@@ -44,6 +40,10 @@ body {
     --sidebar-accent-foreground: 40 90% 55%; /* Primary color for text on active item */
     --sidebar-border: 0 0% 80%;
     --sidebar-ring: 40 90% 55%;
+
+    /* Default Font Variables */
+    --font-family-body: 'Lora', serif;
+    --font-family-headline: 'Manrope', sans-serif;
   }
 
   .dark {
@@ -81,6 +81,33 @@ body {
     --sidebar-accent-foreground: 40 80% 60%;
     --sidebar-border: 0 0% 20%;
     --sidebar-ring: 40 80% 60%;
+
+    /* Default Font Variables for Dark Mode (can be same or different) */
+    /* If font themes override these, this is just a fallback if no theme class is set */
+    --font-family-body: 'Lora', serif;
+    --font-family-headline: 'Manrope', sans-serif;
+  }
+
+  /* Font Theme Classes */
+  .font-theme-manrope-lora {
+    --font-family-body: 'Lora', serif;
+    --font-family-headline: 'Manrope', sans-serif;
+  }
+  .font-theme-inter-merriweather {
+    --font-family-body: 'Inter', sans-serif;
+    --font-family-headline: "'Merriweather', serif";
+  }
+  .font-theme-work-sans-dm-serif-display {
+    --font-family-body: 'Work Sans', sans-serif;
+    --font-family-headline: "'DM Serif Display', serif";
+  }
+  .font-theme-poppins-source-serif-pro {
+    --font-family-body: 'Poppins', sans-serif;
+    --font-family-headline: "'Source Serif Pro', serif";
+  }
+  .font-theme-space-grotesk-eb-garamond {
+    --font-family-body: "'Space Grotesk', sans-serif";
+    --font-family-headline: "'EB Garamond', serif";
   }
 }
 
@@ -90,6 +117,10 @@ body {
   }
   body {
     @apply bg-background text-foreground overflow-x-hidden;
+    font-family: var(--font-family-body); /* Apply body font variable */
+  }
+  /* Apply headline font variable to h1-h6 or a specific class */
+  h1, h2, h3, h4, h5, h6, .font-headline {
+    font-family: var(--font-family-headline);
   }
 }
-

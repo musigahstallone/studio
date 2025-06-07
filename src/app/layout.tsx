@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { AppProviders } from '@/components/layout/AppProviders';
+import { DEFAULT_FONT_THEME_ID, fontPairings } from '@/lib/fonts';
 
 export const metadata: Metadata = {
   title: 'PennyPincher AI',
@@ -20,9 +21,10 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        {/* Updated Font Links */}
-        <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap" rel="stylesheet" />
-        <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet" />
+        {/* Include all font links needed for the selectable themes */}
+        {fontPairings.map(fp => (
+          fp.googleFontLink && <link key={fp.id} href={fp.googleFontLink} rel="stylesheet" />
+        ))}
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -34,7 +36,23 @@ export default function RootLayout({
                   } else {
                     document.documentElement.classList.remove('dark');
                   }
-                } catch (e) {}
+
+                  var fontTheme = localStorage.getItem('fontTheme') || '${DEFAULT_FONT_THEME_ID}';
+                  var fontThemeClass = 'font-theme-' + fontTheme;
+                  document.documentElement.classList.add(fontThemeClass);
+                  
+                  // Remove any other font theme classes
+                  ${fontPairings
+                    .map(fp => fp.id)
+                    .filter(id => id !== DEFAULT_FONT_THEME_ID) // Don't try to remove the default if it's the one being set
+                    .map(id => `document.documentElement.classList.remove('font-theme-${id}');`)
+                    .join('\n')}
+                  if (fontTheme !== '${DEFAULT_FONT_THEME_ID}') { // Ensure the currently applied one is added
+                     document.documentElement.classList.add('font-theme-' + fontTheme);
+                  }
+
+
+                } catch (e) { console.error('Error applying initial theme/font:', e); }
               })();
             `,
           }}
