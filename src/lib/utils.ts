@@ -2,69 +2,91 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { CurrencyCode } from "./types";
-import { DEFAULT_STORED_CURRENCY } from "./types"; // Import the base currency
+import { DEFAULT_STORED_CURRENCY } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-// Locales for formatting
 const KES_LOCALE = 'sw-KE';
 const USD_LOCALE = 'en-US';
-const EUR_LOCALE = 'de-DE';
+const EUR_LOCALE = 'de-DE'; // German locale for EUR typically uses comma as decimal, dot as thousand.
+// For EUR, 'fr-FR' or 'es-ES' might be more common for dot as decimal, comma as thousand.
+// Let's stick with a common one or allow override. For now, de-DE is common for just symbol.
+// Using 'en-IE' for EUR to get € symbol with dot decimal separator.
+const EUR_LOCALE_EN = 'en-IE';
+
 
 const localeMap: Record<CurrencyCode, string> = {
   KES: KES_LOCALE,
   USD: USD_LOCALE,
-  EUR: EUR_LOCALE,
+  EUR: EUR_LOCALE_EN, // Using English (Ireland) for EUR to get € symbol with standard dot decimal
 };
 
-// Approximate conversion rates FROM DEFAULT_STORED_CURRENCY (e.g., USD)
-// 1 DEFAULT_STORED_CURRENCY = X targetCurrency
-// Example: If DEFAULT_STORED_CURRENCY is USD:
-// 1 USD = 1 USD
-// 1 USD = 0.92 EUR
-// 1 USD = 130 KES
-const APPROXIMATE_CONVERSION_RATES_FROM_DEFAULT: Record<CurrencyCode, number> = {
-  USD: 1,       // If default is USD
-  EUR: 0.92,    // 1 USD to EUR
-  KES: 130,     // 1 USD to KES
-  // Add other currencies if DEFAULT_STORED_CURRENCY is different.
-  // E.g., if DEFAULT_STORED_CURRENCY was KES:
-  // KES: 1,
-  // USD: 1 / 130,
-  // EUR: (1 / 130) * 0.92
+// Rates to convert *FROM* DEFAULT_STORED_CURRENCY *TO* other currencies (for display)
+// Example: If DEFAULT_STORED_CURRENCY is USD: 1 USD = X targetCurrency
+const CONVERSION_RATES_FROM_BASE: Record<CurrencyCode, number> = {
+  USD: 1,    // 1 USD = 1 USD
+  EUR: 0.92, // 1 USD = 0.92 EUR
+  KES: 130,  // 1 USD = 130 KES
 };
-// Ensure rates are correct if DEFAULT_STORED_CURRENCY changes from USD.
-// The current rates assume DEFAULT_STORED_CURRENCY = 'USD'.
 
+// Rates to convert *FROM* a local currency *TO* DEFAULT_STORED_CURRENCY (for storage)
+// Example: If DEFAULT_STORED_CURRENCY is USD: 1 localCurrency = X USD
+const CONVERSION_RATES_TO_BASE: Record<CurrencyCode, number> = {
+  USD: 1,                       // 1 USD = 1 USD (DEFAULT_STORED_CURRENCY)
+  EUR: 1 / CONVERSION_RATES_FROM_BASE.EUR, // 1 EUR = 1/0.92 USD
+  KES: 1 / CONVERSION_RATES_FROM_BASE.KES, // 1 KES = 1/130 USD
+};
 
+/**
+ * Converts an amount from a given input currency to the DEFAULT_STORED_CURRENCY.
+ * @param amount The amount in the inputCurrency.
+ * @param inputCurrency The currency code of the input amount.
+ * @returns The amount converted to DEFAULT_STORED_CURRENCY.
+ */
+export function convertToBaseCurrency(
+  amount: number,
+  inputCurrency: CurrencyCode
+): number {
+  if (inputCurrency === DEFAULT_STORED_CURRENCY) {
+    return amount;
+  }
+  const rate = CONVERSION_RATES_TO_BASE[inputCurrency];
+  if (typeof rate !== 'number') {
+    console.warn(
+      `No conversion rate defined from ${inputCurrency} to ${DEFAULT_STORED_CURRENCY}. Returning original amount.`
+    );
+    return amount; // Fallback: return original amount if no rate
+  }
+  return amount * rate;
+}
+
+/**
+ * Formats an amount stored in DEFAULT_STORED_CURRENCY into the targetDisplayCurrency.
+ * @param amountInBaseCurrency The amount in DEFAULT_STORED_CURRENCY.
+ * @param targetDisplayCurrency The currency to display the amount in.
+ * @returns A formatted currency string.
+ */
 export function formatCurrency(
-  amountInDefaultStoredCurrency: number,
+  amountInBaseCurrency: number,
   targetDisplayCurrency: CurrencyCode
 ): string {
-  let displayAmount = amountInDefaultStoredCurrency;
+  let displayAmount = amountInBaseCurrency;
 
-  // Perform conversion if the target display currency is different from the default stored currency
   if (DEFAULT_STORED_CURRENCY !== targetDisplayCurrency) {
-    // Assuming all amounts are stored in DEFAULT_STORED_CURRENCY (e.g., USD)
-    // We need to convert from DEFAULT_STORED_CURRENCY to targetDisplayCurrency.
-    // The APPROXIMATE_CONVERSION_RATES_FROM_DEFAULT provides direct rates from the default.
-    
-    const conversionRateToTarget = APPROXIMATE_CONVERSION_RATES_FROM_DEFAULT[targetDisplayCurrency];
-
+    const conversionRateToTarget = CONVERSION_RATES_FROM_BASE[targetDisplayCurrency];
     if (typeof conversionRateToTarget === 'number') {
-      displayAmount = amountInDefaultStoredCurrency * conversionRateToTarget;
+      displayAmount = amountInBaseCurrency * conversionRateToTarget;
     } else {
       console.warn(
-        `No conversion rate defined from ${DEFAULT_STORED_CURRENCY} to ${targetDisplayCurrency}. Displaying original amount for ${DEFAULT_STORED_CURRENCY}.`
+        `No conversion rate defined from ${DEFAULT_STORED_CURRENCY} to ${targetDisplayCurrency}. Displaying original amount in ${DEFAULT_STORED_CURRENCY}.`
       );
-      // Fallback: format the original amount but label it with the target currency - this is potentially misleading.
-      // A better fallback might be to show in DEFAULT_STORED_CURRENCY, or throw an error.
-      // For now, we proceed to format 'displayAmount' which is still 'amountInDefaultStoredCurrency'.
+      // Fallback: format the original amount but label it with the target currency
+      // This is potentially misleading if conversion fails.
+      // For now, we proceed to format 'displayAmount' which is still 'amountInBaseCurrency'.
     }
   }
-  // If DEFAULT_STORED_CURRENCY === targetDisplayCurrency, displayAmount remains amountInDefaultStoredCurrency
 
   const effectiveLocale = localeMap[targetDisplayCurrency] || USD_LOCALE;
 
@@ -76,8 +98,7 @@ export function formatCurrency(
       maximumFractionDigits: 2,
     }).format(displayAmount);
   } catch (error) {
-    console.error("Currency formatting error:", error);
-    // Fallback formatting (shows target currency code, which might be incorrect if conversion failed)
+    console.error("Currency formatting error:", error, { amountInBaseCurrency, targetDisplayCurrency, displayAmount });
     return `${targetDisplayCurrency} ${displayAmount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
   }
 }

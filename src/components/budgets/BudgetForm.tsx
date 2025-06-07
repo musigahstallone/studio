@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -23,30 +24,33 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import type { Budget } from "@/lib/types";
-import { expenseCategories } from "@/lib/types"; 
-import { PlusCircle, Save } from "lucide-react"; // Added Save icon
+import { expenseCategories, DEFAULT_STORED_CURRENCY } from "@/lib/types";
+import { PlusCircle, Save } from "lucide-react";
+import { useSettings } from "@/contexts/SettingsContext"; // Import useSettings
+import { convertToBaseCurrency, formatCurrency } from "@/lib/utils"; // Import conversion utils
+import { useEffect } from "react";
 
-// Schema matches data structure expected by Firestore add/update in context
-// id, userId, spentAmount, createdAt, updatedAt are handled by context or calculated
+
 const BudgetFormSchema = z.object({
-  id: z.string().optional(), // For identifying budget to update
+  id: z.string().optional(),
   name: z.string().min(1, { message: "Budget name is required." }).max(50, { message: "Name must be 50 characters or less."}),
-  category: z.string().min(1, { message: "Category is required." }), // Will be validated against expenseCategories
+  category: z.string().min(1, { message: "Category is required." }),
+  // Amount entered by user in their localCurrency
   amount: z.number().positive({ message: "Budget amount must be positive." }),
 });
 
 type BudgetFormData = z.infer<typeof BudgetFormSchema>;
 
 interface BudgetFormProps {
-  // onSaveBudget now expects data matching what addBudget/updateBudget in context need
   onSaveBudget: (budgetData: Omit<Budget, 'id' | 'userId' | 'spentAmount' | 'createdAt' | 'updatedAt'>, id?: string) => void;
-  existingBudgets: Budget[]; 
+  existingBudgets: Budget[];
   initialData?: Partial<Budget>;
   onSubmissionDone?: () => void;
 }
 
 export function BudgetForm({ onSaveBudget, existingBudgets, initialData, onSubmissionDone }: BudgetFormProps) {
   const { toast } = useToast();
+  const { localCurrency, displayCurrency, isMounted: settingsMounted } = useSettings(); // Get localCurrency
   const isEditing = !!initialData?.id;
 
   const form = useForm<BudgetFormData>({
@@ -58,11 +62,33 @@ export function BudgetForm({ onSaveBudget, existingBudgets, initialData, onSubmi
       id: initialData?.id || undefined,
       name: initialData?.name || "",
       category: initialData?.category || "",
-      amount: initialData?.amount || 0,
+      amount: initialData?.amount || 0, // This will be interpreted as localCurrency by user
     },
   });
 
+  useEffect(() => {
+    let amountForForm = initialData?.amount || 0;
+    if (initialData?.amount && settingsMounted && localCurrency !== DEFAULT_STORED_CURRENCY) {
+      // Convert stored base currency amount to local currency for form input display
+      const rateFromBaseToLocal = 1 / (CONVERSION_RATES_TO_BASE_BUDGET[localCurrency] || 1);
+      amountForForm = initialData.amount * rateFromBaseToLocal;
+    }
+
+    form.reset({
+      id: initialData?.id || undefined,
+      name: initialData?.name || "",
+      category: initialData?.category || "",
+      amount: parseFloat(amountForForm.toFixed(2)) || 0,
+    });
+  }, [initialData, form, settingsMounted, localCurrency]);
+
+
   function onSubmit(values: BudgetFormData) {
+    if (!settingsMounted) {
+      toast({ variant: "destructive", title: "Error", description: "Settings not loaded. Please try again." });
+      return;
+    }
+
     if (existingBudgets.some(b => b.name.toLowerCase() === values.name.toLowerCase() && b.id !== values.id)) {
       form.setError("name", { type: "manual", message: "This budget name already exists." });
       return;
@@ -71,26 +97,28 @@ export function BudgetForm({ onSaveBudget, existingBudgets, initialData, onSubmi
          form.setError("category", { type: "manual", message: "A budget for this category already exists. Edit the existing one or choose a different category." });
         return;
     }
-    
-    // Data prepared for context functions. `id` is passed separately for `onSaveBudget`.
+
+    // Convert amount from localCurrency (user input) to DEFAULT_STORED_CURRENCY
+    const amountInBaseCurrency = convertToBaseCurrency(values.amount, localCurrency);
+
     const budgetDataForContext: Omit<Budget, 'id' | 'userId' | 'spentAmount' | 'createdAt' | 'updatedAt'> = {
       name: values.name,
-      category: values.category as any, 
-      amount: values.amount,
+      category: values.category as any,
+      amount: amountInBaseCurrency, // Store converted amount
     };
 
-    onSaveBudget(budgetDataForContext, values.id); // Pass ID if editing
+    onSaveBudget(budgetDataForContext, values.id);
 
     toast({
       title: isEditing ? "Budget Updated" : "Budget Set",
-      description: `${values.name} (${values.category}): $${values.amount.toFixed(2)}`,
+      description: `${values.name} (${values.category}): ${formatCurrency(amountInBaseCurrency, displayCurrency)}`,
     });
     form.reset({ name: "", category: "", amount: 0, id: undefined });
     if (onSubmissionDone) {
       onSubmissionDone();
     }
   }
-  
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -113,10 +141,10 @@ export function BudgetForm({ onSaveBudget, existingBudgets, initialData, onSubmi
           render={({ field }) => (
             <FormItem>
               <FormLabel>Category</FormLabel>
-              <Select 
-                onValueChange={field.onChange} 
+              <Select
+                onValueChange={field.onChange}
                 defaultValue={field.value}
-                disabled={isEditing} 
+                disabled={isEditing}
               >
                 <FormControl>
                   <SelectTrigger>
@@ -125,8 +153,8 @@ export function BudgetForm({ onSaveBudget, existingBudgets, initialData, onSubmi
                 </FormControl>
                 <SelectContent>
                   {expenseCategories.map((category) => (
-                    <SelectItem 
-                      key={category} 
+                    <SelectItem
+                      key={category}
                       value={category}
                       disabled={!isEditing && existingBudgets.some(b => b.category === category)}
                     >
@@ -144,16 +172,16 @@ export function BudgetForm({ onSaveBudget, existingBudgets, initialData, onSubmi
           name="amount"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Budget Amount</FormLabel>
+              <FormLabel>Budget Amount (in {settingsMounted ? localCurrency : "local currency"})</FormLabel>
               <FormControl>
-                <Input 
-                    type="number" 
-                    placeholder="0.00" 
-                    {...field} 
+                <Input
+                    type="number"
+                    placeholder="0.00"
+                    {...field}
                     onChange={e => {
                       const val = e.target.value;
                       if (val === "") {
-                        field.onChange(val); 
+                        field.onChange(val);
                       } else {
                         const num = parseFloat(val);
                         field.onChange(isNaN(num) ? val : num);
@@ -161,11 +189,14 @@ export function BudgetForm({ onSaveBudget, existingBudgets, initialData, onSubmi
                     }}
                 />
               </FormControl>
+              <FormDescription>
+                Enter the amount in your selected local input currency.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-full">
+        <Button type="submit" className="w-full" disabled={!settingsMounted}>
           {isEditing ? <Save className="mr-2 h-4 w-4" /> : <PlusCircle className="mr-2 h-4 w-4" />}
           {isEditing ? "Update Budget" : "Set Budget"}
         </Button>
@@ -173,3 +204,10 @@ export function BudgetForm({ onSaveBudget, existingBudgets, initialData, onSubmi
     </Form>
   );
 }
+
+// Temporary placeholder, replace with actual calculation if needed for form.reset
+const CONVERSION_RATES_TO_BASE_BUDGET: Record<string, number> = {
+  USD: 1,
+  EUR: 1 / 0.92,
+  KES: 1 / 130,
+};

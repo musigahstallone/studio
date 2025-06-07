@@ -2,17 +2,27 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { DEFAULT_CURRENCY, DEFAULT_THEME, type CurrencyCode, type Theme, type FontThemeId, DEFAULT_FONT_THEME_ID_CONST } from '@/lib/types';
-import { fontPairings } from '@/lib/fonts'; // Assuming fontPairings and DEFAULT_FONT_THEME_ID are here
+import { 
+  DEFAULT_DISPLAY_CURRENCY, 
+  DEFAULT_THEME, 
+  type CurrencyCode, 
+  type Theme, 
+  type FontThemeId, 
+  DEFAULT_FONT_THEME_ID_CONST,
+  DEFAULT_LOCAL_CURRENCY // Import new default
+} from '@/lib/types';
+import { fontPairings } from '@/lib/fonts';
 
 interface SettingsContextType {
   theme: Theme;
   setTheme: (theme: Theme) => void;
   fontTheme: FontThemeId;
   setFontTheme: (fontThemeId: FontThemeId) => void;
-  currency: CurrencyCode;
-  setCurrency: (currency: CurrencyCode) => void;
-  isMounted: boolean; // To help avoid hydration mismatches on initial load
+  displayCurrency: CurrencyCode; // Renamed for clarity
+  setDisplayCurrency: (currency: CurrencyCode) => void; // Renamed for clarity
+  localCurrency: CurrencyCode; // New: for input
+  setLocalCurrency: (currency: CurrencyCode) => void; // New: for input
+  isMounted: boolean;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -20,13 +30,15 @@ const SettingsContext = createContext<SettingsContextType | undefined>(undefined
 export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [theme, setThemeState] = useState<Theme>(DEFAULT_THEME);
   const [fontTheme, setFontThemeState] = useState<FontThemeId>(DEFAULT_FONT_THEME_ID_CONST);
-  const [currency, setCurrencyState] = useState<CurrencyCode>(DEFAULT_CURRENCY);
+  const [displayCurrency, setDisplayCurrencyState] = useState<CurrencyCode>(DEFAULT_DISPLAY_CURRENCY);
+  const [localCurrency, setLocalCurrencyState] = useState<CurrencyCode>(DEFAULT_LOCAL_CURRENCY); // New state
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     const storedTheme = localStorage.getItem('theme') as Theme | null;
     const storedFontTheme = localStorage.getItem('fontTheme') as FontThemeId | null;
-    const storedCurrency = localStorage.getItem('currency') as CurrencyCode | null;
+    const storedDisplayCurrency = localStorage.getItem('displayCurrency') as CurrencyCode | null;
+    const storedLocalCurrency = localStorage.getItem('localCurrency') as CurrencyCode | null; // New: load local currency
 
     if (storedTheme) {
       setThemeState(storedTheme);
@@ -34,14 +46,14 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         document.documentElement.classList.add('dark');
       } else if (storedTheme === 'light') {
         document.documentElement.classList.remove('dark');
-      } else { // system
+      } else { 
         if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
           document.documentElement.classList.add('dark');
         } else {
           document.documentElement.classList.remove('dark');
         }
       }
-    } else { // Default to system if no theme stored
+    } else {
        if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
           document.documentElement.classList.add('dark');
         } else {
@@ -56,8 +68,11 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       applyFontThemeClass(DEFAULT_FONT_THEME_ID_CONST);
     }
 
-    if (storedCurrency) {
-      setCurrencyState(storedCurrency);
+    if (storedDisplayCurrency) {
+      setDisplayCurrencyState(storedDisplayCurrency);
+    }
+    if (storedLocalCurrency) { // New: set local currency
+      setLocalCurrencyState(storedLocalCurrency);
     }
     setIsMounted(true);
   }, []);
@@ -76,10 +91,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       document.documentElement.classList.add('dark');
     } else if (newTheme === 'light') {
       document.documentElement.classList.remove('dark');
-    } else { // system
-      // Remove explicit dark/light, let CSS media query take over
+    } else {
       document.documentElement.classList.remove('dark'); 
-      // Re-apply based on system preference immediately
       if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
         document.documentElement.classList.add('dark');
       }
@@ -92,13 +105,24 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     applyFontThemeClass(newFontId);
   }, []);
 
-  const setCurrency = useCallback((newCurrency: CurrencyCode) => {
-    setCurrencyState(newCurrency);
-    localStorage.setItem('currency', newCurrency);
+  const setDisplayCurrency = useCallback((newCurrency: CurrencyCode) => {
+    setDisplayCurrencyState(newCurrency);
+    localStorage.setItem('displayCurrency', newCurrency);
+  }, []);
+
+  const setLocalCurrency = useCallback((newCurrency: CurrencyCode) => { // New function
+    setLocalCurrencyState(newCurrency);
+    localStorage.setItem('localCurrency', newCurrency);
   }, []);
 
   return (
-    <SettingsContext.Provider value={{ theme, setTheme, fontTheme, setFontTheme, currency, setCurrency, isMounted }}>
+    <SettingsContext.Provider value={{ 
+      theme, setTheme, 
+      fontTheme, setFontTheme, 
+      displayCurrency, setDisplayCurrency,
+      localCurrency, setLocalCurrency, // Provide new state and setter
+      isMounted 
+    }}>
       {children}
     </SettingsContext.Provider>
   );

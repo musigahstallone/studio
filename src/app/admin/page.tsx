@@ -11,17 +11,17 @@ import { RecentTransactionsList } from '@/components/dashboard/RecentTransaction
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Activity, TrendingDown, TrendingUp, Target, Tag, CreditCard, BarChart3, Users, ListChecks, Settings, ArrowRight, Loader2, Lock } from 'lucide-react';
-import { useSettings } from '@/contexts/SettingsContext';
+import { useSettings } from '@/contexts/SettingsContext'; // Use displayCurrency
 import { formatCurrency } from '@/lib/utils';
 import { useMemo } from 'react';
 
 
 export default function AdminDashboardPage() {
-  const { user, isAdminUser, loading: authLoading } = useAuth(); // Use isAdminUser from AuthContext
+  const { user, isAdminUser, loading: authLoading } = useAuth();
   const router = useRouter();
   const { allPlatformExpenses, loadingAllPlatformExpenses } = useExpenses();
-  const { allPlatformBudgets, loadingAllPlatformBudgets } = useBudgets(); 
-  const { currency, isMounted: settingsMounted } = useSettings();
+  const { allPlatformBudgets, loadingAllPlatformBudgets } = useBudgets();
+  const { displayCurrency, isMounted: settingsMounted } = useSettings(); // Use displayCurrency
 
 
   useEffect(() => {
@@ -29,12 +29,7 @@ export default function AdminDashboardPage() {
       router.push('/login');
       return;
     }
-    // If auth has loaded, and user is present but not an admin, redirect them or show access denied.
-    // The !isAdminUser check is crucial here.
     if (!authLoading && user && !isAdminUser) {
-      // Option 1: Redirect to home if preferred
-      // router.push('/'); 
-      // Option 2: Let the UI below handle "Access Denied" rendering
       // No explicit redirect here, the component will render the access denied message.
     }
 
@@ -43,13 +38,13 @@ export default function AdminDashboardPage() {
   const totalTransactions = allPlatformExpenses.length;
 
   const totalExpenseValue = useMemo(() => {
-    return allPlatformExpenses
+    return allPlatformExpenses // Amounts are in base currency
       .filter(e => e.type === 'expense')
       .reduce((sum, e) => sum + e.amount, 0);
   }, [allPlatformExpenses]);
 
   const totalIncomeValue = useMemo(() => {
-    return allPlatformExpenses
+    return allPlatformExpenses // Amounts are in base currency
       .filter(e => e.type === 'income')
       .reduce((sum, e) => sum + e.amount, 0);
   }, [allPlatformExpenses]);
@@ -70,7 +65,7 @@ export default function AdminDashboardPage() {
 
   const spendingByCategory = useMemo(() => {
     const categoryMap: { [key: string]: number } = {};
-    allPlatformExpenses
+    allPlatformExpenses // Amounts are in base currency
       .filter(e => e.type === 'expense')
       .forEach(expense => {
         categoryMap[expense.category] = (categoryMap[expense.category] || 0) + expense.amount;
@@ -100,7 +95,6 @@ export default function AdminDashboardPage() {
     );
   }
 
-  // This check is after loading, ensuring isAdminUser has been determined.
   if (!isAdminUser) {
     return (
       <AppShell>
@@ -139,7 +133,7 @@ export default function AdminDashboardPage() {
           {user && <p className="text-xs text-muted-foreground">Logged in as Admin: {user.email}</p>}
         </div>
         <p className="text-sm text-muted-foreground">
-          Platform analytics (all amounts in {currency}) and management overview.
+          Platform analytics (all amounts displayed in {displayCurrency}) and management overview.
         </p>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -159,7 +153,8 @@ export default function AdminDashboardPage() {
               <TrendingDown className="h-5 w-5 text-red-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-foreground">{formatCurrency(totalExpenseValue, currency)}</div>
+              {/* Format for display */}
+              <div className="text-3xl font-bold text-foreground">{formatCurrency(totalExpenseValue, displayCurrency)}</div>
                <p className="text-xs text-muted-foreground">Sum from 'expenses_all'</p>
             </CardContent>
           </Card>
@@ -169,7 +164,8 @@ export default function AdminDashboardPage() {
               <TrendingUp className="h-5 w-5 text-green-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-foreground">{formatCurrency(totalIncomeValue, currency)}</div>
+               {/* Format for display */}
+              <div className="text-3xl font-bold text-foreground">{formatCurrency(totalIncomeValue, displayCurrency)}</div>
                <p className="text-xs text-muted-foreground">Sum from 'expenses_all'</p>
             </CardContent>
           </Card>
@@ -179,7 +175,6 @@ export default function AdminDashboardPage() {
               <Users className="h-5 w-5 text-purple-500" />
             </CardHeader>
             <CardContent>
-              {/* User count would require fetching all users, can be added if UserList source is adapted */}
               <div className="text-3xl font-bold text-foreground">N/A</div>
               <p className="text-xs text-muted-foreground">(See 'Manage Users')</p>
             </CardContent>
@@ -233,11 +228,12 @@ export default function AdminDashboardPage() {
                     <BarChart3 className="h-6 w-6 mr-3 text-orange-500" />
                     Highest Spending Platform Category
                 </CardTitle>
-                <CardDescription>Expense category with the highest total spending (from 'expenses_all', in {currency}).</CardDescription>
+                <CardDescription>Expense category with the highest total spending (from 'expenses_all', displayed in {displayCurrency}).</CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="text-2xl font-semibold text-foreground">{topSpendingCategory.category}</div>
-                <p className="text-sm text-muted-foreground">Total: {formatCurrency(topSpendingCategory.total, currency)}</p>
+                 {/* Format for display */}
+                <p className="text-sm text-muted-foreground">Total: {formatCurrency(topSpendingCategory.total, displayCurrency)}</p>
             </CardContent>
           </Card>
         </div>
@@ -248,7 +244,7 @@ export default function AdminDashboardPage() {
               <CreditCard className="h-6 w-6 mr-3 text-primary" />
               Recent Platform Activity (from 'expenses_all')
             </CardTitle>
-             <CardDescription>Latest transactions recorded across the platform (in {currency}).</CardDescription>
+             <CardDescription>Latest transactions recorded across the platform (displayed in {displayCurrency}).</CardDescription>
           </CardHeader>
           <CardContent>
             <RecentTransactionsList count={10} expensesData={allPlatformExpenses} />
@@ -258,7 +254,7 @@ export default function AdminDashboardPage() {
             <CardHeader>
                 <CardTitle className="text-xl">Advanced Platform Analytics</CardTitle>
                 <CardDescription>
-                  The following analytics require backend processing (e.g., Cloud Functions) for efficient and scalable implementation. 
+                  The following analytics require backend processing (e.g., Cloud Functions) for efficient and scalable implementation.
                   They are not available with the current client-side setup.
                 </CardDescription>
             </CardHeader>
@@ -272,7 +268,7 @@ export default function AdminDashboardPage() {
                     <li>Real-time data streams for key metrics.</li>
                 </ul>
                  <p className="mt-3 text-xs">
-                  These features typically involve server-side aggregation of data from the 'users', 'expenses_all', and 'budgets_all' collections, 
+                  These features typically involve server-side aggregation of data from the 'users', 'expenses_all', and 'budgets_all' collections,
                   and potentially storing pre-calculated results for quick retrieval by the admin dashboard.
                 </p>
             </CardContent>

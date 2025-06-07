@@ -24,18 +24,19 @@ import { CalendarIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import type { Category } from "@/lib/types";
+import type { Category, CurrencyCode } from "@/lib/types"; // Added CurrencyCode
 import { expenseCategories, incomeCategories } from "@/lib/types";
 import type { z } from "zod";
-import type { ExpenseFormSchema } from "./ExpenseForm"; 
+import type { ExpenseFormSchema } from "./ExpenseForm";
 
 interface ExpenseFormFieldsProps {
   control: Control<z.infer<typeof ExpenseFormSchema>>;
   formType: "expense" | "income";
   onFormTypeChange: (type: "expense" | "income") => void;
+  localCurrencySymbol: string; // To display alongside amount input
 }
 
-export function ExpenseFormFields({ control, formType, onFormTypeChange }: ExpenseFormFieldsProps) {
+export function ExpenseFormFields({ control, formType, onFormTypeChange, localCurrencySymbol }: ExpenseFormFieldsProps) {
   const categories = formType === "expense" ? expenseCategories : incomeCategories;
 
   return (
@@ -51,7 +52,7 @@ export function ExpenseFormFields({ control, formType, onFormTypeChange }: Expen
                 field.onChange(value);
                 onFormTypeChange(value as "expense" | "income");
               }}
-              value={field.value} // Changed from defaultValue
+              value={field.value}
             >
               <FormControl>
                 <SelectTrigger>
@@ -87,14 +88,16 @@ export function ExpenseFormFields({ control, formType, onFormTypeChange }: Expen
         name="amount"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Amount</FormLabel>
+            <FormLabel>Amount (in {localCurrencySymbol || "your local currency"})</FormLabel>
             <FormControl>
-              <Input type="number" placeholder="0.00" {...field} 
+              <Input 
+                type="number" 
+                placeholder="0.00" 
+                {...field}
                 onChange={e => {
                   const val = e.target.value;
-                  // Allow empty string for clearing, otherwise parse as float
                   if (val === "") {
-                    field.onChange(val); 
+                    field.onChange(val);
                   } else {
                     const num = parseFloat(val);
                     field.onChange(isNaN(num) ? val : num);
@@ -102,11 +105,14 @@ export function ExpenseFormFields({ control, formType, onFormTypeChange }: Expen
                 }}
               />
             </FormControl>
+            <FormDescription>
+              Enter the amount in your selected local input currency.
+            </FormDescription>
             <FormMessage />
           </FormItem>
         )}
       />
-      
+
       <FormField
         control={control}
         name="merchant"
@@ -169,9 +175,9 @@ export function ExpenseFormFields({ control, formType, onFormTypeChange }: Expen
         render={({ field }) => (
           <FormItem>
             <FormLabel>Category</FormLabel>
-            <Select 
-              onValueChange={field.onChange} 
-              value={field.value} // Changed from defaultValue
+            <Select
+              onValueChange={field.onChange}
+              value={field.value}
             >
               <FormControl>
                 <SelectTrigger>

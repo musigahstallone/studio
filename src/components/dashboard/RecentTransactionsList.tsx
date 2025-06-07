@@ -9,7 +9,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { format, parseISO } from 'date-fns';
-import { useSettings } from "@/contexts/SettingsContext";
+import { useSettings } from "@/contexts/SettingsContext"; // Use displayCurrency
 import { formatCurrency } from "@/lib/utils";
 
 interface RecentTransactionItemProps {
@@ -17,7 +17,7 @@ interface RecentTransactionItemProps {
 }
 
 function RecentTransactionItem({ expense }: RecentTransactionItemProps) {
-  const { currency, isMounted: settingsMounted } = useSettings();
+  const { displayCurrency, isMounted: settingsMounted } = useSettings(); // Use displayCurrency
   const isIncome = expense.type === 'income';
   const TypeIcon = isIncome ? ArrowUpCircle : ArrowDownCircle;
   const amountColor = isIncome ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
@@ -37,7 +37,7 @@ function RecentTransactionItem({ expense }: RecentTransactionItemProps) {
   }, [expense.date]);
 
   if (!settingsMounted) {
-    return ( // Simple placeholder for list item during loading
+    return (
         <div className="flex items-center justify-between p-3 border-b last:border-b-0 h-16 animate-pulse bg-muted/30 rounded-md my-1">
             <div className="flex items-center gap-3">
                 <div className="h-5 w-5 rounded-full bg-muted"></div>
@@ -64,7 +64,8 @@ function RecentTransactionItem({ expense }: RecentTransactionItemProps) {
         </div>
       </div>
       <p className={`text-sm font-semibold ${amountColor} whitespace-nowrap`}>
-        {isIncome ? '+' : '-'}{formatCurrency(expense.amount, currency)}
+        {/* expense.amount is in base currency, formatCurrency converts to displayCurrency */}
+        {isIncome ? '+' : '-'}{formatCurrency(expense.amount, displayCurrency)}
       </p>
     </div>
   );
@@ -73,21 +74,20 @@ function RecentTransactionItem({ expense }: RecentTransactionItemProps) {
 
 interface RecentTransactionsListProps {
   count: number;
-  expensesData?: Expense[]; // Optional prop to pass specific expenses (e.g., for admin)
+  expensesData?: Expense[];
 }
 
 export function RecentTransactionsList({ count, expensesData }: RecentTransactionsListProps) {
-  const { expenses: userExpenses } = useExpenses(); // These are already filtered for the current user
+  const { expenses: userExpenses } = useExpenses();
   const { isMounted: settingsMounted } = useSettings();
 
-  // Use provided expensesData if available (for admin), otherwise use user-scoped expenses
   const sourceExpenses = expensesData || userExpenses;
 
   const recentExpenses = sourceExpenses
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, count);
 
-  if (!settingsMounted && !expensesData) { // Only show list-level skeleton if not admin view with its own data
+  if (!settingsMounted && !expensesData) {
     return (
       <div className="space-y-2 py-6">
         {[...Array(Math.min(count, 3))].map((_, i) => (
@@ -111,7 +111,7 @@ export function RecentTransactionsList({ count, expensesData }: RecentTransactio
     return (
       <div className="text-center text-muted-foreground py-6">
         <p>No transactions recorded yet.</p>
-        {!expensesData && ( // Show "Add transaction" link only if not admin view
+        {!expensesData && (
           <CardDescription className="mt-1">
             <Button variant="link" asChild className="p-0 h-auto">
               <Link href="/expenses">Add your first transaction</Link>
@@ -130,7 +130,7 @@ export function RecentTransactionsList({ count, expensesData }: RecentTransactio
           <RecentTransactionItem key={expense.id} expense={expense} />
         ))}
       </div>
-      {sourceExpenses.length > count && !expensesData && ( // Show "View All" only if not admin view using its own data
+      {sourceExpenses.length > count && !expensesData && (
         <div className="mt-4 text-center">
           <Button variant="outline" asChild size="sm">
             <Link href="/expenses">View All My Transactions</Link>

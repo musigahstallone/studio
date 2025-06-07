@@ -7,7 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Trash2, Edit3, Target, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
-import { useSettings } from "@/contexts/SettingsContext";
+import { useSettings } from "@/contexts/SettingsContext"; // Use displayCurrency
 import { formatCurrency } from "@/lib/utils";
 
 const ITEMS_PER_PAGE = 5;
@@ -19,9 +19,10 @@ interface BudgetListItemProps {
 }
 
 function BudgetListItem({ budget, onDeleteBudget, onEditBudget }: BudgetListItemProps) {
-  const { currency, isMounted: settingsMounted } = useSettings();
+  const { displayCurrency, isMounted: settingsMounted } = useSettings(); // Use displayCurrency
+  // budget.amount and budget.spentAmount are in base currency
   const progress = budget.amount > 0 ? (budget.spentAmount / budget.amount) * 100 : 0;
-  const remaining = budget.amount - budget.spentAmount;
+  const remaining = budget.amount - budget.spentAmount; // This calculation is fine in base currency
   const isOverBudget = budget.spentAmount > budget.amount;
 
   if (!settingsMounted) {
@@ -60,13 +61,14 @@ function BudgetListItem({ budget, onDeleteBudget, onEditBudget }: BudgetListItem
           <div className="w-full max-w-xs mt-1">
             <Progress value={Math.min(progress, 100)} className={`h-2 ${isOverBudget ? "[&>div]:bg-destructive" : ""}`} />
             <div className="flex justify-between text-xs text-muted-foreground mt-1">
-              <span>Spent: {formatCurrency(budget.spentAmount, currency)}</span>
-              <span>Budget: {formatCurrency(budget.amount, currency)}</span>
+              {/* Format amounts for display */}
+              <span>Spent: {formatCurrency(budget.spentAmount, displayCurrency)}</span>
+              <span>Budget: {formatCurrency(budget.amount, displayCurrency)}</span>
             </div>
             <p className={`text-xs mt-0.5 ${isOverBudget ? 'text-destructive' : 'text-muted-foreground'}`}>
               {isOverBudget
-                ? `Over by ${formatCurrency(Math.abs(remaining), currency)}`
-                : `${formatCurrency(remaining, currency)} remaining`}
+                ? `Over by ${formatCurrency(Math.abs(remaining), displayCurrency)}`
+                : `${formatCurrency(remaining, displayCurrency)} remaining`}
             </p>
           </div>
         </div>

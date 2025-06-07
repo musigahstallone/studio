@@ -1,14 +1,14 @@
 
 "use client";
 
-import type { AppUser } from "@/lib/types"; // Changed to AppUser
+import type { AppUser } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Mail, CalendarDays, DollarSign, ShoppingBag, ChevronLeft, ChevronRight, ShieldCheck, ShieldAlert, UserCircle } from "lucide-react";
 import { Card, CardDescription, CardContent } from "@/components/ui/card";
 import { useState, useEffect } from "react";
 import { format, parseISO, isValid } from 'date-fns';
 import Image from "next/image";
-import { useSettings } from "@/contexts/SettingsContext";
+import { useSettings } from "@/contexts/SettingsContext"; // Use displayCurrency
 import { formatCurrency } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -16,11 +16,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 const ITEMS_PER_PAGE = 10;
 
 interface UserListItemProps {
-  user: AppUser; // Changed to AppUser
+  user: AppUser;
 }
 
 function UserListItem({ user }: UserListItemProps) {
-  const { currency, isMounted: settingsMounted } = useSettings();
+  const { displayCurrency, isMounted: settingsMounted } = useSettings(); // Use displayCurrency
   const [formattedJoinDate, setFormattedJoinDate] = useState('');
 
   useEffect(() => {
@@ -35,7 +35,7 @@ function UserListItem({ user }: UserListItemProps) {
         }
       } catch (e) {
         console.error("Error formatting join date for user:", user.uid, user.joinDate, e);
-        setFormattedJoinDate(String(user.joinDate)); // Fallback
+        setFormattedJoinDate(String(user.joinDate));
       }
     } else {
       setFormattedJoinDate('N/A');
@@ -61,7 +61,7 @@ function UserListItem({ user }: UserListItemProps) {
   return (
     <div className="p-4 border-b hover:bg-muted/50 transition-colors grid grid-cols-1 md:grid-cols-[auto_1fr_auto] gap-4 items-center">
       <Avatar className="h-10 w-10 border">
-        <AvatarImage src={user.photoURL || undefined} alt={user.name || user.email || 'User'} data-ai-hint="user avatar" />
+        <AvatarImage src={user.photoURL || undefined} alt={user.name || user.email || 'User'} data-ai-hint="user avatar"/>
         <AvatarFallback>
           {user.name ? user.name.charAt(0).toUpperCase() : (user.email ? user.email.charAt(0).toUpperCase() : <UserCircle className="h-5 w-5" />)}
         </AvatarFallback>
@@ -79,26 +79,23 @@ function UserListItem({ user }: UserListItemProps) {
       </div>
 
       <div className="flex flex-col items-start md:items-end gap-1 text-xs text-muted-foreground">
-        {/* Transaction count and total spent would require separate data fetching logic */}
         <span className="flex items-center"><ShoppingBag className="h-3 w-3 mr-1 text-primary" />{user.transactionCount || 0} Txns (mock)</span>
-        <span className="flex items-center"><DollarSign className="h-3 w-3 mr-1 text-green-500" />Spent: {formatCurrency(user.totalSpent || 0, currency)} (mock)</span>
-        {/* Add action buttons here if needed in future e.g. View Details, Edit, Make Admin */}
-        {/* <Button variant="outline" size="sm" className="mt-2">View Details</Button> */}
+        {/* user.totalSpent is in base currency, formatCurrency converts to displayCurrency */}
+        <span className="flex items-center"><DollarSign className="h-3 w-3 mr-1 text-green-500" />Spent: {formatCurrency(user.totalSpent || 0, displayCurrency)} (mock)</span>
       </div>
     </div>
   );
 }
 
 interface UserListProps {
-  users: AppUser[]; 
+  users: AppUser[];
 }
 
 export function UserList({ users }: UserListProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const { isMounted: settingsMounted } = useSettings();
 
-  // Users are already sorted by joinDate in the page component if needed
-  const sortedUsers = users; // If pre-sorted
+  const sortedUsers = users;
 
   const totalPages = Math.ceil(sortedUsers.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;

@@ -7,10 +7,10 @@ import { Trash2, Edit3, ArrowDownCircle, ArrowUpCircle, Tag, CalendarDays, Build
 import { Card, CardContent, CardDescription } from "@/components/ui/card";
 import { useState, useEffect } from "react";
 import { format, parseISO } from 'date-fns';
-import { useSettings } from "@/contexts/SettingsContext";
+import { useSettings } from "@/contexts/SettingsContext"; // Use displayCurrency
 import { formatCurrency } from "@/lib/utils";
 
-const ITEMS_PER_PAGE = 5; // Keep this lower for the main expenses page
+const ITEMS_PER_PAGE = 5;
 
 interface ExpenseListItemProps {
   expense: Expense;
@@ -19,7 +19,7 @@ interface ExpenseListItemProps {
 }
 
 function ExpenseListItem({ expense, onDeleteExpense, onEditExpense }: ExpenseListItemProps) {
-  const { currency, isMounted: settingsMounted } = useSettings();
+  const { displayCurrency, isMounted: settingsMounted } = useSettings(); // Use displayCurrency
   const isIncome = expense.type === 'income';
   const TypeIcon = isIncome ? ArrowUpCircle : ArrowDownCircle;
   const amountColor = isIncome ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
@@ -78,7 +78,8 @@ function ExpenseListItem({ expense, onDeleteExpense, onEditExpense }: ExpenseLis
 
       <div className="flex sm:flex-col items-end sm:items-end justify-between sm:justify-center gap-2 sm:gap-3">
         <p className={`text-lg sm:text-xl font-bold ${amountColor} text-right sm:text-left`}>
-          {isIncome ? '+' : '-'}{formatCurrency(expense.amount, currency)}
+          {/* expense.amount is in base currency, formatCurrency converts to displayCurrency */}
+          {isIncome ? '+' : '-'}{formatCurrency(expense.amount, displayCurrency)}
         </p>
 
         <div className="flex gap-2">

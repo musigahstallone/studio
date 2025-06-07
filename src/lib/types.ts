@@ -70,7 +70,7 @@ export interface Expense {
   id: string;
   userId: string;
   description: string;
-  amount: number; // Assumed to be in DEFAULT_STORED_CURRENCY
+  amount: number; // This will always be stored in DEFAULT_STORED_CURRENCY
   date: string; // YYYY-MM-DD
   category: Category;
   merchant?: string;
@@ -85,8 +85,8 @@ export interface Budget {
   userId: string;
   name: string;
   category: Category;
-  amount: number; // Assumed to be in DEFAULT_STORED_CURRENCY
-  spentAmount: number; // Calculated client-side, also in DEFAULT_STORED_CURRENCY before display conversion
+  amount: number; // This will always be stored in DEFAULT_STORED_CURRENCY
+  spentAmount: number; // Calculated client-side, converted to display currency before display
   createdAt?: string | Timestamp;
   updatedAt?: string | Timestamp;
 }
@@ -99,21 +99,23 @@ export interface AppUser {
   joinDate?: string; // ISO string date
   isAdmin?: boolean;
   transactionCount?: number;
-  totalSpent?: number;
+  totalSpent?: number; // Assumed to be in DEFAULT_STORED_CURRENCY if aggregated on backend
 }
 
 export const supportedCurrencies = ['USD', 'EUR', 'KES'] as const;
 export type CurrencyCode = typeof supportedCurrencies[number];
 
-// DEFAULT_CURRENCY is the one selected by default in settings if nothing is in localStorage
-export const DEFAULT_CURRENCY: CurrencyCode = 'USD'; 
-// DEFAULT_STORED_CURRENCY is the currency in which all raw numerical amounts are assumed to be stored in Firestore
-export const DEFAULT_STORED_CURRENCY: CurrencyCode = 'USD'; 
+// DEFAULT_DISPLAY_CURRENCY is the one selected by default in settings if nothing is in localStorage for display
+export const DEFAULT_DISPLAY_CURRENCY: CurrencyCode = 'USD';
+// DEFAULT_LOCAL_CURRENCY is the one selected by default in settings if nothing is in localStorage for input
+export const DEFAULT_LOCAL_CURRENCY: CurrencyCode = 'KES'; // Example: Kenyan user might input in KES
+// DEFAULT_STORED_CURRENCY is the currency in which all raw numerical amounts are stored in Firestore
+export const DEFAULT_STORED_CURRENCY: CurrencyCode = 'USD';
 
 export const CurrencyCodeSchema = z.enum(supportedCurrencies);
 
 export type Theme = 'light' | 'dark' | 'system';
 export const DEFAULT_THEME: Theme = 'system';
 
-export type FontThemeId = string; 
+export type FontThemeId = string;
 export const DEFAULT_FONT_THEME_ID_CONST = 'work-sans-dm-serif-display';

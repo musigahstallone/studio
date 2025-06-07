@@ -1,20 +1,20 @@
 
 "use client";
 
-import { useEffect } from 'react'; // For route protection
-import { useRouter } from 'next/navigation'; // For route protection
-import { useAuth } from '@/contexts/AuthContext'; // For route protection
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 
 import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { DollarSign, TrendingUp, TrendingDown, ListChecks, Target, Loader2 } from 'lucide-react'; // Added Loader2
+import { DollarSign, TrendingUp, TrendingDown, ListChecks, Target, Loader2 } from 'lucide-react';
 import { useExpenses, useBudgets } from '@/contexts/ExpenseContext';
 import { useMemo } from 'react';
 import { RecentTransactionsList } from '@/components/dashboard/RecentTransactionsList';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Progress } from "@/components/ui/progress";
-import { useSettings } from '@/contexts/SettingsContext';
+import { useSettings } from '@/contexts/SettingsContext'; // Changed from currency to displayCurrency
 import { formatCurrency } from '@/lib/utils';
 
 
@@ -23,7 +23,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const { expenses, loadingExpenses } = useExpenses();
   const { budgets, loadingBudgets } = useBudgets();
-  const { currency, isMounted: settingsMounted } = useSettings();
+  const { displayCurrency, isMounted: settingsMounted } = useSettings(); // Use displayCurrency
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -34,30 +34,31 @@ export default function DashboardPage() {
   const totalIncome = useMemo(() => {
     return expenses
       .filter(e => e.type === 'income')
-      .reduce((sum, e) => sum + e.amount, 0);
+      .reduce((sum, e) => sum + e.amount, 0); // amount is in base currency
   }, [expenses]);
 
-  const totalExpenses = useMemo(() => {
+  const totalExpensesValue = useMemo(() => { // Renamed to avoid conflict
     return expenses
       .filter(e => e.type === 'expense')
-      .reduce((sum, e) => sum + e.amount, 0);
+      .reduce((sum, e) => sum + e.amount, 0); // amount is in base currency
   }, [expenses]);
 
-  const balance = totalIncome - totalExpenses;
+  const balance = totalIncome - totalExpensesValue; // Use base currency amounts for calculation
 
   const budgetHighlights = useMemo(() => {
     return budgets
       .map(budget => ({
         ...budget,
+        // budget.amount and budget.spentAmount are in base currency
         progress: budget.amount > 0 ? Math.min((budget.spentAmount / budget.amount) * 100, 100) : 0,
         isOverBudget: budget.spentAmount > budget.amount,
         percentageSpent: budget.amount > 0 ? (budget.spentAmount / budget.amount) * 100 : 0,
       }))
-      .sort((a, b) => b.percentageSpent - a.percentageSpent) // Sort by highest percentage spent
+      .sort((a, b) => b.percentageSpent - a.percentageSpent)
       .slice(0, 3);
   }, [budgets]);
 
-  if (authLoading || (!user && !authLoading) || loadingExpenses || loadingBudgets || !settingsMounted) { 
+  if (authLoading || (!user && !authLoading) || loadingExpenses || loadingBudgets || !settingsMounted) {
     return (
       <AppShell>
         <div className="flex flex-col items-center justify-center h-full py-10">
@@ -79,7 +80,7 @@ export default function DashboardPage() {
         </div>
 
         <p className="text-lg text-muted-foreground">
-          Here&apos;s your financial overview. All amounts in {currency}.
+          Here&apos;s your financial overview. All amounts displayed in {displayCurrency}.
         </p>
 
         <div className="grid gap-6 md:grid-cols-3">
@@ -89,7 +90,7 @@ export default function DashboardPage() {
               <TrendingUp className="h-5 w-5 text-green-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-foreground">{formatCurrency(totalIncome, currency)}</div>
+              <div className="text-3xl font-bold text-foreground">{formatCurrency(totalIncome, displayCurrency)}</div>
             </CardContent>
           </Card>
           <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
@@ -98,7 +99,7 @@ export default function DashboardPage() {
               <TrendingDown className="h-5 w-5 text-red-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-foreground">{formatCurrency(totalExpenses, currency)}</div>
+              <div className="text-3xl font-bold text-foreground">{formatCurrency(totalExpensesValue, displayCurrency)}</div>
             </CardContent>
           </Card>
           <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
@@ -107,7 +108,7 @@ export default function DashboardPage() {
               <DollarSign className="h-5 w-5 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-foreground">{formatCurrency(balance, currency)}</div>
+              <div className="text-3xl font-bold text-foreground">{formatCurrency(balance, displayCurrency)}</div>
             </CardContent>
           </Card>
         </div>
@@ -119,7 +120,7 @@ export default function DashboardPage() {
                 <Target className="h-6 w-6 mr-3 text-primary" />
                 Budget Highlights
               </CardTitle>
-              <CardDescription>Your top budgets by spending progress (in {currency}).</CardDescription>
+              <CardDescription>Your top budgets by spending progress (displayed in {displayCurrency}).</CardDescription>
             </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {budgetHighlights.map(budget => (
@@ -132,15 +133,15 @@ export default function DashboardPage() {
                     <Progress value={budget.progress} className={`h-2.5 ${budget.isOverBudget ? "[&>div]:bg-destructive" : ""}`} />
                     <div className="flex justify-between text-sm">
                       <span className={budget.isOverBudget ? "text-destructive font-medium" : "text-muted-foreground"}>
-                        Spent: {formatCurrency(budget.spentAmount, currency)}
+                        Spent: {formatCurrency(budget.spentAmount, displayCurrency)}
                       </span>
                       <span className="text-muted-foreground">
-                        Budget: {formatCurrency(budget.amount, currency)}
+                        Budget: {formatCurrency(budget.amount, displayCurrency)}
                       </span>
                     </div>
                     {budget.isOverBudget && (
                          <p className="text-xs text-destructive text-center">
-                           Over budget by {formatCurrency(budget.spentAmount - budget.amount, currency)}!
+                           Over budget by {formatCurrency(budget.spentAmount - budget.amount, displayCurrency)}!
                          </p>
                     )}
                   </CardContent>
@@ -178,7 +179,7 @@ export default function DashboardPage() {
               <ListChecks className="h-6 w-6 mr-3 text-primary" />
               Recent Transactions
             </CardTitle>
-             <CardDescription>Your latest financial movements (in {currency}).</CardDescription>
+             <CardDescription>Your latest financial movements (displayed in {displayCurrency}).</CardDescription>
           </CardHeader>
           <CardContent>
             <RecentTransactionsList count={5} />

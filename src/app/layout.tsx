@@ -3,8 +3,9 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { AppProviders } from '@/components/layout/AppProviders';
-import { fontPairings, DEFAULT_FONT_THEME_ID } from '@/lib/fonts'; // DEFAULT_FONT_THEME_ID from fonts.ts
-import { DEFAULT_THEME, DEFAULT_CURRENCY } from '@/lib/types'; // Import defaults for theme and currency
+import { fontPairings } from '@/lib/fonts';
+// Import new defaults for currency and font
+import { DEFAULT_THEME, DEFAULT_DISPLAY_CURRENCY, DEFAULT_LOCAL_CURRENCY, DEFAULT_FONT_THEME_ID_CONST } from '@/lib/types';
 
 export const metadata: Metadata = {
   title: 'PennyPincher AI',
@@ -37,16 +38,16 @@ export default function RootLayout({
                     document.documentElement.classList.remove('dark');
                   }
 
-                  var fontTheme = localStorage.getItem('fontTheme') || '${DEFAULT_FONT_THEME_ID}';
+                  var fontTheme = localStorage.getItem('fontTheme') || '${DEFAULT_FONT_THEME_ID_CONST}';
                   var fontThemeClass = 'font-theme-' + fontTheme;
                   
-                  ${fontPairings
-                    .map(fp => `'font-theme-${fp.id}'`)
-                    .join(', ')}.forEach(cls => document.documentElement.classList.remove(cls));
+                  var allFontThemeClasses = [${fontPairings.map(fp => `'font-theme-${fp.id}'`).join(', ')}];
+                  allFontThemeClasses.forEach(cls => document.documentElement.classList.remove(cls));
                   
                   document.documentElement.classList.add(fontThemeClass);
                   
-                  // Currency is handled by context reading from localStorage, no direct class needed on <html>
+                  // Display and Local currency are handled by context reading from localStorage, no direct class needed on <html>
+                  // They default to DEFAULT_DISPLAY_CURRENCY and DEFAULT_LOCAL_CURRENCY respectively if not in localStorage.
                 } catch (e) { console.error('Error applying initial settings:', e); }
               })();
             `,
