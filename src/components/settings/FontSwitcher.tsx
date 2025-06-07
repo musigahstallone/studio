@@ -1,40 +1,43 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { fontPairings, DEFAULT_FONT_THEME_ID, type FontPairing } from '@/lib/fonts';
+import { fontPairings, type FontPairing } from '@/lib/fonts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useSettings } from '@/contexts/SettingsContext'; // Import useSettings
 
 export function FontSwitcher() {
-  const [selectedFontTheme, setSelectedFontTheme] = useState<string>(DEFAULT_FONT_THEME_ID);
+  // Use fontTheme and setFontTheme from SettingsContext
+  const { fontTheme, setFontTheme, isMounted } = useSettings();
 
-  useEffect(() => {
-    const storedFontTheme = localStorage.getItem('fontTheme');
-    if (storedFontTheme && fontPairings.some(fp => fp.id === storedFontTheme)) {
-      setSelectedFontTheme(storedFontTheme);
-      applyFontTheme(storedFontTheme);
-    } else {
-      applyFontTheme(DEFAULT_FONT_THEME_ID); // Apply default if nothing stored or invalid
-    }
-  }, []);
-
-  const applyFontTheme = (fontId: string) => {
-    // Remove all other font theme classes
-    fontPairings.forEach(fp => {
-      document.documentElement.classList.remove(`font-theme-${fp.id}`);
-    });
-    // Add the selected font theme class
-    document.documentElement.classList.add(`font-theme-${fontId}`);
-  };
-
-  const handleThemeChange = (newFontId: string) => {
-    setSelectedFontTheme(newFontId);
-    localStorage.setItem('fontTheme', newFontId);
-    applyFontTheme(newFontId);
-  };
-
+  if (!isMounted) {
+    // Placeholder for SSR or initial load to prevent hydration mismatch
+    return (
+      <Card className="shadow-lg">
+        <CardHeader>
+          <CardTitle>Typography</CardTitle>
+          <CardDescription>Choose the font pairing that best suits your style.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="flex items-start space-x-3 p-3 border rounded-md">
+                <div className="h-5 w-5 rounded-full bg-muted animate-pulse mt-1"></div>
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-3/4 bg-muted animate-pulse rounded"></div>
+                  <div className="h-3 w-1/2 bg-muted animate-pulse rounded"></div>
+                  <div className="h-3 w-full bg-muted animate-pulse rounded"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  // The rest of the component uses fontTheme and setFontTheme from context
   return (
     <Card className="shadow-lg">
       <CardHeader>
@@ -43,8 +46,8 @@ export function FontSwitcher() {
       </CardHeader>
       <CardContent>
         <RadioGroup
-          value={selectedFontTheme}
-          onValueChange={handleThemeChange}
+          value={fontTheme} // Use fontTheme from context
+          onValueChange={setFontTheme} // Use setFontTheme from context
           className="space-y-4"
         >
           {fontPairings.map((pairing: FontPairing) => (

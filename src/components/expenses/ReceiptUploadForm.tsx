@@ -7,9 +7,11 @@ import { useToast } from "@/hooks/use-toast";
 import { FileUpload } from "@/components/shared/FileUpload";
 import { ScanLine, CornerDownLeft } from "lucide-react";
 import { processReceiptExpense, type ProcessedExpenseData } from "@/actions/aiActions";
-import { storage } from "@/lib/firebase"; 
+import { storage } from "@/lib/firebase";
 import { ref, uploadString, getDownloadURL } from "firebase/storage";
 import { useAuth } from "@/contexts/AuthContext"; // Import useAuth
+import { useSettings } from "@/contexts/SettingsContext";
+import { formatCurrency } from "@/lib/utils";
 
 interface ReceiptUploadFormProps {
   onDataExtracted: (data: ProcessedExpenseData & { receiptUrl?: string }) => void;
@@ -18,6 +20,7 @@ interface ReceiptUploadFormProps {
 export function ReceiptUploadForm({ onDataExtracted }: ReceiptUploadFormProps) {
   const { toast } = useToast();
   const { user } = useAuth(); // Get current user
+  const { currency, isMounted: settingsMounted } = useSettings();
   const [isLoading, setIsLoading] = useState(false);
   const [fileDataUri, setFileDataUri] = useState<string | null>(null);
   const [extractedData, setExtractedData] = useState<ProcessedExpenseData & { receiptUrl?: string } | null>(null);
@@ -25,7 +28,7 @@ export function ReceiptUploadForm({ onDataExtracted }: ReceiptUploadFormProps) {
 
   const handleFileChange = (dataUri: string | null) => {
     setFileDataUri(dataUri);
-    setExtractedData(null); 
+    setExtractedData(null);
   };
 
   async function handleSubmit() {
@@ -50,26 +53,25 @@ export function ReceiptUploadForm({ onDataExtracted }: ReceiptUploadFormProps) {
       // Upload to Firebase Storage
       const fileExtension = fileDataUri.substring(fileDataUri.indexOf('/') + 1, fileDataUri.indexOf(';base64'));
       const imageName = `receipt-${Date.now()}.${fileExtension || 'jpg'}`;
-      const storageRef = ref(storage, `users/${user.uid}/receipts/${imageName}`);
-      
-      // Correctly pass the Base64 string part of the data URI
+      const storagePath = `users/${user.uid}/receipts/${imageName}`;
+      const imageStorageRef = ref(storage, storagePath);
+
       const base64String = fileDataUri.split(',')[1];
       if (!base64String) {
         throw new Error("Invalid data URI format for Firebase Storage upload.");
       }
 
-      const snapshot = await uploadString(storageRef, base64String, 'base64');
+      const snapshot = await uploadString(imageStorageRef, base64String, 'base64');
       receiptFirebaseUrl = await getDownloadURL(snapshot.ref);
       toast({ title: "Receipt Image Uploaded", description: "Image saved to your account."});
 
-      // Process with Genkit AI
-      const result = await processReceiptExpense({ photoDataUri: fileDataUri }); // AI still needs full data URI
+      const result = await processReceiptExpense({ photoDataUri: fileDataUri });
       const finalData = { ...result, receiptUrl: receiptFirebaseUrl };
       setExtractedData(finalData);
-      onDataExtracted(finalData); // Pass data with URL to parent
+      onDataExtracted(finalData);
       toast({
         title: "Data Extracted",
-        description: `${result.description} - Amount: $${result.amount.toFixed(2)}`,
+        description: `${result.description} - Amount: ${settingsMounted ? formatCurrency(result.amount, currency) : '$' + result.amount.toFixed(2)}`,
       });
 
     } catch (error: any) {
@@ -106,7 +108,7 @@ export function ReceiptUploadForm({ onDataExtracted }: ReceiptUploadFormProps) {
           <h4 className="font-semibold mb-1 text-foreground">Previously Extracted:</h4>
           <p><span className="font-medium text-muted-foreground">Desc:</span> {extractedData.description}</p>
           <p><span className="font-medium text-muted-foreground">Merchant:</span> {extractedData.merchant || "N/A"}</p>
-          <p><span className="font-medium text-muted-foreground">Amount:</span> ${extractedData.amount.toFixed(2)} ({extractedData.type})</p>
+          <p><span className="font-medium text-muted-foreground">Amount:</span> {settingsMounted ? formatCurrency(extractedData.amount, currency) : '$' + extractedData.amount.toFixed(2)} ({extractedData.type})</p>
           <p><span className="font-medium text-muted-foreground">Date:</span> {extractedData.date}</p>
           <p><span className="font-medium text-muted-foreground">Category:</span> {extractedData.category}</p>
           {extractedData.receiptUrl && <p><span className="font-medium text-muted-foreground">Receipt URL:</span> <a href={extractedData.receiptUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline">View Image</a></p>}

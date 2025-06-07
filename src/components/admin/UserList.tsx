@@ -7,7 +7,9 @@ import { Mail, CalendarDays, DollarSign, ShoppingBag, ChevronLeft, ChevronRight,
 import { Card, CardDescription, CardContent } from "@/components/ui/card";
 import { useState, useEffect } from "react";
 import { format, parseISO } from 'date-fns';
-import Image from "next/image"; 
+import Image from "next/image";
+import { useSettings } from "@/contexts/SettingsContext";
+import { formatCurrency } from "@/lib/utils";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -16,6 +18,7 @@ interface UserListItemProps {
 }
 
 function UserListItem({ user }: UserListItemProps) {
+  const { currency, isMounted: settingsMounted } = useSettings();
   const [formattedJoinDate, setFormattedJoinDate] = useState('');
 
   useEffect(() => {
@@ -33,20 +36,36 @@ function UserListItem({ user }: UserListItemProps) {
     }
   }, [user.joinDate, user.uid]);
 
+  if (!settingsMounted) {
+     return (
+        <div className="p-4 border-b h-20 animate-pulse bg-muted/30 rounded-md my-1 grid grid-cols-1 md:grid-cols-[auto_1fr_auto] gap-4 items-center">
+            <div className="h-10 w-10 rounded-full bg-muted flex-shrink-0"></div>
+            <div className="flex-1 min-w-0 space-y-1">
+                <div className="h-5 w-3/5 bg-muted rounded"></div>
+                <div className="h-3 w-4/5 bg-muted rounded"></div>
+            </div>
+            <div className="flex flex-col items-start md:items-end gap-1">
+                <div className="h-3 w-24 bg-muted rounded"></div>
+                <div className="h-3 w-20 bg-muted rounded"></div>
+            </div>
+        </div>
+    );
+  }
+
   return (
     <div className="p-4 border-b hover:bg-muted/50 transition-colors grid grid-cols-1 md:grid-cols-[auto_1fr_auto] gap-4 items-center">
       <div className="flex items-center gap-3">
         <div className="relative h-10 w-10 rounded-full bg-muted overflow-hidden flex-shrink-0">
-            <Image 
-                src={user.photoURL || `https://placehold.co/40x40.png?text=${user.name ? user.name.charAt(0) : 'U'}`} 
-                alt={`${user.name || 'User'} avatar`} 
+            <Image
+                src={user.photoURL || `https://placehold.co/40x40.png?text=${user.name ? user.name.charAt(0) : 'U'}`}
+                alt={`${user.name || 'User'} avatar`}
                 layout="fill"
                 objectFit="cover"
                 data-ai-hint="avatar profile"
              />
         </div>
       </div>
-      
+
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <p className="font-semibold text-base sm:text-lg text-foreground truncate">{user.name || 'Unnamed User'}</p>
@@ -61,7 +80,7 @@ function UserListItem({ user }: UserListItemProps) {
 
       <div className="flex flex-col items-start md:items-end gap-1 text-xs text-muted-foreground">
         <span className="flex items-center"><ShoppingBag className="h-3 w-3 mr-1 text-primary" />{user.transactionCount || 0} Transactions</span>
-        <span className="flex items-center"><DollarSign className="h-3 w-3 mr-1 text-green-500" />Total Spent: ${user.totalSpent?.toFixed(2) || '0.00'}</span>
+        <span className="flex items-center"><DollarSign className="h-3 w-3 mr-1 text-green-500" />Total Spent: {formatCurrency(user.totalSpent || 0, currency)}</span>
         {/* Add action buttons here if needed in future e.g. View Details, Edit, Make Admin */}
         {/* <Button variant="outline" size="sm" className="mt-2">View Details</Button> */}
       </div>
@@ -75,19 +94,40 @@ interface UserListProps {
 
 export function UserList({ users }: UserListProps) {
   const [currentPage, setCurrentPage] = useState(1);
+  const { isMounted: settingsMounted } = useSettings();
 
   // Users are already sorted by joinDate in the page component if needed
-  const sortedUsers = users; 
+  const sortedUsers = users;
 
   const totalPages = Math.ceil(sortedUsers.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
   const paginatedUsers = sortedUsers.slice(startIndex, endIndex);
 
+  if (!settingsMounted && users.length > 0) {
+    return (
+        <div className="mt-2 space-y-1">
+            {[...Array(Math.min(ITEMS_PER_PAGE, 3))].map((_,i) => (
+                <div key={i} className="p-4 border-b h-20 animate-pulse bg-muted/30 rounded-md grid grid-cols-1 md:grid-cols-[auto_1fr_auto] gap-4 items-center">
+                    <div className="h-10 w-10 rounded-full bg-muted flex-shrink-0"></div>
+                    <div className="flex-1 min-w-0 space-y-1">
+                        <div className="h-5 w-3/5 bg-muted rounded"></div>
+                        <div className="h-3 w-4/5 bg-muted rounded"></div>
+                    </div>
+                    <div className="flex flex-col items-start md:items-end gap-1">
+                        <div className="h-3 w-24 bg-muted rounded"></div>
+                        <div className="h-3 w-20 bg-muted rounded"></div>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+  }
+
   if (users.length === 0) {
     return (
       <Card className="mt-8">
-        <CardContent className="pt-6"> 
+        <CardContent className="pt-6">
           <p className="text-center text-muted-foreground">No users found.</p>
           <CardDescription className="text-center mt-2">This section will display registered platform users once Firebase is connected and users are fetched.</CardDescription>
         </CardContent>
@@ -101,7 +141,7 @@ export function UserList({ users }: UserListProps) {
         <div className="divide-y">
           {paginatedUsers.map((user) => (
             <UserListItem
-              key={user.uid} 
+              key={user.uid}
               user={user}
             />
           ))}

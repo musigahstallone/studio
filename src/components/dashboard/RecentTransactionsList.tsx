@@ -9,12 +9,15 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { format, parseISO } from 'date-fns';
+import { useSettings } from "@/contexts/SettingsContext";
+import { formatCurrency } from "@/lib/utils";
 
 interface RecentTransactionItemProps {
   expense: Expense;
 }
 
 function RecentTransactionItem({ expense }: RecentTransactionItemProps) {
+  const { currency, isMounted: settingsMounted } = useSettings();
   const isIncome = expense.type === 'income';
   const TypeIcon = isIncome ? ArrowUpCircle : ArrowDownCircle;
   const amountColor = isIncome ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
@@ -25,13 +28,28 @@ function RecentTransactionItem({ expense }: RecentTransactionItemProps) {
   useEffect(() => {
     if (expense.date) {
        try {
-        setFormattedDate(format(parseISO(expense.date), 'PP')); 
+        setFormattedDate(format(parseISO(expense.date), 'PP'));
       } catch (e) {
         console.error("Error formatting date:", expense.date, e);
-        setFormattedDate(expense.date); 
+        setFormattedDate(expense.date);
       }
     }
   }, [expense.date]);
+
+  if (!settingsMounted) {
+    return ( // Simple placeholder for list item during loading
+        <div className="flex items-center justify-between p-3 border-b last:border-b-0 h-16 animate-pulse bg-muted/30 rounded-md my-1">
+            <div className="flex items-center gap-3">
+                <div className="h-5 w-5 rounded-full bg-muted"></div>
+                <div className="space-y-1">
+                    <div className="h-4 w-32 bg-muted rounded"></div>
+                    <div className="h-3 w-20 bg-muted rounded"></div>
+                </div>
+            </div>
+            <div className="h-4 w-16 bg-muted rounded"></div>
+        </div>
+    );
+  }
 
   return (
     <div className="flex items-center justify-between p-3 border-b last:border-b-0 hover:bg-muted/50 transition-colors">
@@ -46,7 +64,7 @@ function RecentTransactionItem({ expense }: RecentTransactionItemProps) {
         </div>
       </div>
       <p className={`text-sm font-semibold ${amountColor} whitespace-nowrap`}>
-        {isIncome ? '+' : '-'}${expense.amount.toFixed(2)}
+        {isIncome ? '+' : '-'}{formatCurrency(expense.amount, currency)}
       </p>
     </div>
   );
@@ -60,6 +78,7 @@ interface RecentTransactionsListProps {
 
 export function RecentTransactionsList({ count, expensesData }: RecentTransactionsListProps) {
   const { expenses: userExpenses } = useExpenses(); // These are already filtered for the current user
+  const { isMounted: settingsMounted } = useSettings();
 
   // Use provided expensesData if available (for admin), otherwise use user-scoped expenses
   const sourceExpenses = expensesData || userExpenses;
@@ -67,6 +86,26 @@ export function RecentTransactionsList({ count, expensesData }: RecentTransactio
   const recentExpenses = sourceExpenses
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, count);
+
+  if (!settingsMounted && !expensesData) { // Only show list-level skeleton if not admin view with its own data
+    return (
+      <div className="space-y-2 py-6">
+        {[...Array(Math.min(count, 3))].map((_, i) => (
+          <div key={i} className="flex items-center justify-between p-3 border-b last:border-b-0 h-16 animate-pulse bg-muted/30 rounded-md">
+            <div className="flex items-center gap-3">
+                <div className="h-5 w-5 rounded-full bg-muted"></div>
+                <div className="space-y-1">
+                    <div className="h-4 w-32 bg-muted rounded"></div>
+                    <div className="h-3 w-20 bg-muted rounded"></div>
+                </div>
+            </div>
+            <div className="h-4 w-16 bg-muted rounded"></div>
+        </div>
+        ))}
+      </div>
+    );
+  }
+
 
   if (recentExpenses.length === 0) {
     return (

@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState, useMemo } from 'react'; 
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { AppShell } from '@/components/layout/AppShell';
@@ -10,40 +10,40 @@ import { useExpenses, useBudgets } from '@/contexts/ExpenseContext';
 import { RecentTransactionsList } from '@/components/dashboard/RecentTransactionsList';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Activity, TrendingDown, TrendingUp, Target, Tag, CreditCard, BarChart3, Users, ListChecks, Settings, ArrowRight, Loader2, AlertTriangle, Lock } from 'lucide-react';
-// import type { AppUser } from '@/lib/types'; // No longer directly needed here for admin check
+import { Activity, TrendingDown, TrendingUp, Target, Tag, CreditCard, BarChart3, Users, ListChecks, Settings, ArrowRight, Loader2, Lock } from 'lucide-react';
+import { useSettings } from '@/contexts/SettingsContext';
+import { formatCurrency } from '@/lib/utils';
 
-// Define your admin email or a more robust check here
-const ADMIN_EMAIL = 'admin@example.com'; // Replace with your actual admin email
+const ADMIN_EMAIL = 'admin@example.com';
 
 export default function AdminDashboardPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const { allPlatformExpenses, loadingAllPlatformExpenses } = useExpenses(); 
-  const { allPlatformBudgets, loadingAllPlatformBudgets } = useBudgets(); 
-  
-  const [isAdminUser, setIsAdminUser] = useState(false); 
+  const { allPlatformExpenses, loadingAllPlatformExpenses } = useExpenses();
+  const { allPlatformBudgets, loadingAllPlatformBudgets } = useBudgets(); // Budgets not directly used on this page but good to have if needed
+  const { currency, isMounted: settingsMounted } = useSettings();
+
+  const [isAdminUser, setIsAdminUser] = useState(false);
   const [checkingAdminStatus, setCheckingAdminStatus] = useState(true);
 
   useEffect(() => {
     if (!authLoading && !user) {
       router.push('/login');
-      return; 
+      return;
     }
 
     const verifyAdminStatus = async () => {
       if (user) {
-        // Replace with your actual admin checking logic (e.g., custom claims, Firestore role check)
         setIsAdminUser(user.email === ADMIN_EMAIL);
       } else {
          setIsAdminUser(false);
       }
       setCheckingAdminStatus(false);
     };
-    
+
     if (!authLoading && user) {
        verifyAdminStatus();
-    } else if (!authLoading && !user) { 
+    } else if (!authLoading && !user) {
        setIsAdminUser(false);
        setCheckingAdminStatus(false);
     }
@@ -91,7 +91,7 @@ export default function AdminDashboardPage() {
   }, [allPlatformExpenses]);
 
   const topSpendingCategory = spendingByCategory.length > 0 ? spendingByCategory[0] : { category: "N/A", total: 0 };
-  
+
   const managementLinks = [
     { href: '/expenses', label: 'View My Transactions', icon: ListChecks, description: 'Access your personal transactions.' },
     { href: '/budgets', label: 'View My Budgets', icon: Target, description: 'Access your personal budgets.' },
@@ -99,7 +99,7 @@ export default function AdminDashboardPage() {
     { href: '/settings', label: 'App Settings', icon: Settings, description: 'Configure application-wide settings.' },
   ];
 
-  if (authLoading || checkingAdminStatus || loadingAllPlatformExpenses || loadingAllPlatformBudgets) {
+  if (authLoading || checkingAdminStatus || loadingAllPlatformExpenses || loadingAllPlatformBudgets || !settingsMounted) {
     return (
       <AppShell>
         <div className="flex flex-col items-center justify-center h-full py-10">
@@ -121,7 +121,7 @@ export default function AdminDashboardPage() {
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground text-lg mb-6">
-                You do not have the necessary permissions to view this page. 
+                You do not have the necessary permissions to view this page.
                 This area is restricted to administrators only.
               </p>
               <Button asChild className="w-full sm:w-auto" size="lg">
@@ -147,7 +147,7 @@ export default function AdminDashboardPage() {
           {user && <p className="text-xs text-muted-foreground">Logged in as Admin: {user.email}</p>}
         </div>
         <p className="text-sm text-muted-foreground">
-          Platform analytics and management overview.
+          Platform analytics (all amounts in {currency}) and management overview.
           <span className="italic"> (Data from 'expenses_all' & 'budgets_all' collections. Secure admin access is vital.)</span>
         </p>
 
@@ -168,7 +168,7 @@ export default function AdminDashboardPage() {
               <TrendingDown className="h-5 w-5 text-red-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-foreground">${totalExpenseValue.toFixed(2)}</div>
+              <div className="text-3xl font-bold text-foreground">{formatCurrency(totalExpenseValue, currency)}</div>
                <p className="text-xs text-muted-foreground">Sum from 'expenses_all'</p>
             </CardContent>
           </Card>
@@ -178,7 +178,7 @@ export default function AdminDashboardPage() {
               <TrendingUp className="h-5 w-5 text-green-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-foreground">${totalIncomeValue.toFixed(2)}</div>
+              <div className="text-3xl font-bold text-foreground">{formatCurrency(totalIncomeValue, currency)}</div>
                <p className="text-xs text-muted-foreground">Sum from 'expenses_all'</p>
             </CardContent>
           </Card>
@@ -220,7 +220,7 @@ export default function AdminDashboardPage() {
             ))}
           </CardContent>
         </Card>
-        
+
         <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
            <Card className="shadow-lg">
             <CardHeader>
@@ -241,22 +241,22 @@ export default function AdminDashboardPage() {
                     <BarChart3 className="h-6 w-6 mr-3 text-orange-500" />
                     Highest Spending Platform Category
                 </CardTitle>
-                <CardDescription>Expense category with the highest total spending (from 'expenses_all').</CardDescription>
+                <CardDescription>Expense category with the highest total spending (from 'expenses_all', in {currency}).</CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="text-2xl font-semibold text-foreground">{topSpendingCategory.category}</div>
-                <p className="text-sm text-muted-foreground">Total: ${topSpendingCategory.total.toFixed(2)}</p>
+                <p className="text-sm text-muted-foreground">Total: {formatCurrency(topSpendingCategory.total, currency)}</p>
             </CardContent>
           </Card>
         </div>
-        
+
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center text-xl">
               <CreditCard className="h-6 w-6 mr-3 text-primary" />
               Recent Platform Activity (from 'expenses_all')
             </CardTitle>
-             <CardDescription>Latest transactions recorded across the platform concept collection.</CardDescription>
+             <CardDescription>Latest transactions recorded across the platform (in {currency}).</CardDescription>
           </CardHeader>
           <CardContent>
             <RecentTransactionsList count={10} expensesData={allPlatformExpenses} />

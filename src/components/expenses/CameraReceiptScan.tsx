@@ -9,9 +9,11 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Camera, ScanLine, Maximize, Minimize, RefreshCw, CornerDownLeft, VideoOff, CameraOff, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-import { storage } from "@/lib/firebase"; 
+import { storage } from "@/lib/firebase";
 import { ref, uploadString, getDownloadURL } from "firebase/storage";
-import { useAuth } from "@/contexts/AuthContext"; // Import useAuth
+import { useAuth } from "@/contexts/AuthContext";
+import { useSettings } from "@/contexts/SettingsContext";
+import { formatCurrency } from "@/lib/utils";
 
 interface CameraReceiptScanProps {
   onDataExtracted: (data: ProcessedExpenseData & { receiptUrl?: string }) => void;
@@ -19,7 +21,8 @@ interface CameraReceiptScanProps {
 
 export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
   const { toast } = useToast();
-  const { user } = useAuth(); // Get current user
+  const { user } = useAuth();
+  const { currency, isMounted: settingsMounted } = useSettings();
 
   const [isLoading, setIsLoading] = useState(false);
   const [extractedData, setExtractedData] = useState<ProcessedExpenseData & { receiptUrl?: string } | null>(null);
@@ -30,7 +33,7 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
   const [showCameraFeed, setShowCameraFeed] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null); // Keep the explicit canvas ref
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const stopCameraStream = useCallback(() => {
     if (videoRef.current && videoRef.current.srcObject) {
@@ -106,7 +109,7 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
     }
     if (isFullScreen) {
       setIsFullScreen(false);
-      await new Promise(resolve => setTimeout(resolve, 100)); 
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
 
     if (!videoRef.current || !videoRef.current.srcObject || videoRef.current.videoWidth === 0) {
@@ -124,7 +127,7 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
     const context = canvas.getContext('2d');
     if (!context) {
         toast({ variant: "destructive", title: "Canvas Error", description: "Could not get 2D context from canvas." });
-        return; 
+        return;
     }
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
     const photoDataUri = canvas.toDataURL('image/jpeg');
@@ -136,34 +139,33 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
     let receiptFirebaseUrl: string | undefined = undefined;
 
     try {
-      // Upload to Firebase Storage
       const base64String = photoDataUri.split(',')[1];
       if (!base64String) {
         throw new Error("Invalid data URI format for Firebase Storage upload.");
       }
       const imageName = `receipt-camera-${Date.now()}.jpg`;
-      const storageRef = ref(storage, `users/${user.uid}/receipts/${imageName}`);
-      const snapshot = await uploadString(storageRef, base64String, 'base64');
+      const storagePath = `users/${user.uid}/receipts/${imageName}`;
+      const imageStorageRef = ref(storage, storagePath);
+      const snapshot = await uploadString(imageStorageRef, base64String, 'base64');
       receiptFirebaseUrl = await getDownloadURL(snapshot.ref);
       toast({ title: "Receipt Image Uploaded", description: "Image saved to your account."});
-      
-      // Process with Genkit AI
-      const result = await processReceiptExpense({ photoDataUri }); // AI still needs full data URI
-      
+
+      const result = await processReceiptExpense({ photoDataUri });
+
       if (!result || typeof result.amount !== 'number' || result.amount <= 0 || !result.date || !/^\d{4}-\d{2}-\d{2}$/.test(result.date) || !result.category) {
         toast({
           variant: "destructive",
           title: "Extraction Incomplete",
           description: "AI couldn't extract all necessary details clearly or data is invalid. Please review or re-capture.",
         });
-        setExtractedData({ ...result, receiptUrl: receiptFirebaseUrl }); 
+        setExtractedData({ ...result, receiptUrl: receiptFirebaseUrl });
       } else {
         const finalData = { ...result, receiptUrl: receiptFirebaseUrl };
         setExtractedData(finalData);
         onDataExtracted(finalData);
         toast({
           title: "Data Extracted & Ready",
-          description: `Review in form: ${result.merchant || 'N/A'} - $${result.amount.toFixed(2)}`,
+          description: `Review in form: ${result.merchant || 'N/A'} - ${settingsMounted ? formatCurrency(result.amount, currency) : '$' + result.amount.toFixed(2)}`,
         });
       }
     } catch (error: any) {
@@ -198,15 +200,14 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
 
   const videoContainerClasses = cn(
     "relative bg-muted rounded-md overflow-hidden shadow-inner group",
-    isFullScreen 
-      ? "fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center" 
-      : "w-full aspect-[4/3] h-64 sm:h-80 md:h-96 lg:h-[450px]" 
+    isFullScreen
+      ? "fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center"
+      : "w-full aspect-[4/3] h-64 sm:h-80 md:h-96 lg:h-[450px]"
   );
 
   return (
     <div className="space-y-4">
-      {/* Hidden canvas for image capture */}
-      <canvas ref={canvasRef} style={{ display: 'none' }} /> 
+      <canvas ref={canvasRef} style={{ display: 'none' }} />
 
       <div className={videoContainerClasses}>
         <video
@@ -214,16 +215,16 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
           className={cn(
             "object-contain",
             isFullScreen ? "max-w-full max-h-full" : "w-full h-full",
-            !showCameraFeed && !capturedImageUri ? "hidden" : "" 
+            !showCameraFeed && !capturedImageUri ? "hidden" : ""
           )}
           autoPlay
           playsInline
           muted
         />
-        {capturedImageUri && !showCameraFeed && ( 
-          <Image src={capturedImageUri} alt="Captured receipt" layout="fill" objectFit="contain" data-ai-hint="receipt photo" />
+        {capturedImageUri && !showCameraFeed && (
+          <Image src={capturedImageUri} alt="Captured receipt" layout="fill" objectFit="contain" data-ai-hint="receipt photo"/>
         )}
-        
+
         {!capturedImageUri && !showCameraFeed && !isCameraInitializing && hasCameraPermission !== false && (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4 bg-background/80">
             <CameraOff className="h-12 w-12 text-muted-foreground mb-3" />
@@ -249,7 +250,7 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
           </Alert>
         )}
 
-        {isLoading && capturedImageUri && ( 
+        {isLoading && capturedImageUri && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 z-10">
             <div role="status" className="text-center">
                 <svg aria-hidden="true" className="inline w-10 h-10 text-gray-200 animate-spin dark:text-gray-600 fill-primary" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -274,20 +275,20 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
       </div>
 
       <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
-        {!showCameraFeed && !isLoading && ( 
-           <Button 
-            onClick={startCameraStream} 
-            disabled={isCameraInitializing || !user} 
+        {!showCameraFeed && !isLoading && (
+           <Button
+            onClick={startCameraStream}
+            disabled={isCameraInitializing || !user}
             className="w-full"
           >
             {hasCameraPermission === false ? <RefreshCw className="mr-2 h-4 w-4" /> : <Camera className="mr-2 h-4 w-4" />}
             {hasCameraPermission === false ? "Retry Camera Access" : (capturedImageUri ? "Scan New Receipt" : "Start Camera")}
           </Button>
         )}
-       
-        {showCameraFeed && !isLoading && ( 
-          <Button 
-            onClick={handleCapture} 
+
+        {showCameraFeed && !isLoading && (
+          <Button
+            onClick={handleCapture}
             disabled={isLoading || isCameraInitializing || !hasCameraPermission || !user}
             className="w-full"
           >
@@ -295,10 +296,10 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
           </Button>
         )}
 
-        {showCameraFeed && !isLoading && ( 
-          <Button 
-            onClick={stopCameraStream} 
-            variant="outline" 
+        {showCameraFeed && !isLoading && (
+          <Button
+            onClick={stopCameraStream}
+            variant="outline"
             className="w-full"
           >
             <VideoOff className="mr-2 h-4 w-4" /> Stop Camera
@@ -307,12 +308,12 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
       </div>
       {!user && <p className="text-xs text-destructive text-center">Please log in to use the camera and process receipts.</p>}
 
-      {extractedData && ( 
+      {extractedData && (
          <div className="mt-6 rounded-md border bg-muted/50 p-4 text-sm space-y-2">
           <h4 className="font-semibold mb-1 text-foreground">Previously Extracted Data:</h4>
           <p><span className="font-medium text-muted-foreground">Desc:</span> {extractedData.description}</p>
           <p><span className="font-medium text-muted-foreground">Merchant:</span> {extractedData.merchant || "N/A"}</p>
-          <p><span className="font-medium text-muted-foreground">Amount:</span> ${extractedData.amount.toFixed(2)} ({extractedData.type})</p>
+          <p><span className="font-medium text-muted-foreground">Amount:</span> {settingsMounted ? formatCurrency(extractedData.amount, currency) : '$' + extractedData.amount.toFixed(2)} ({extractedData.type})</p>
           <p><span className="font-medium text-muted-foreground">Date:</span> {extractedData.date}</p>
           <p><span className="font-medium text-muted-foreground">Category:</span> {extractedData.category}</p>
           {extractedData.receiptUrl && <p><span className="font-medium text-muted-foreground">Receipt URL:</span> <a href={extractedData.receiptUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline">View Image</a></p>}

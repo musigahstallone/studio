@@ -7,6 +7,8 @@ import { Trash2, Edit3, ArrowDownCircle, ArrowUpCircle, Tag, CalendarDays, Build
 import { Card, CardContent, CardDescription } from "@/components/ui/card";
 import { useState, useEffect } from "react";
 import { format, parseISO } from 'date-fns';
+import { useSettings } from "@/contexts/SettingsContext";
+import { formatCurrency } from "@/lib/utils";
 
 const ITEMS_PER_PAGE = 5; // Keep this lower for the main expenses page
 
@@ -17,23 +19,46 @@ interface ExpenseListItemProps {
 }
 
 function ExpenseListItem({ expense, onDeleteExpense, onEditExpense }: ExpenseListItemProps) {
+  const { currency, isMounted: settingsMounted } = useSettings();
   const isIncome = expense.type === 'income';
   const TypeIcon = isIncome ? ArrowUpCircle : ArrowDownCircle;
   const amountColor = isIncome ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
   const iconColor = isIncome ? 'text-green-500' : 'text-red-500';
-  
+
   const [formattedDate, setFormattedDate] = useState('');
 
   useEffect(() => {
     if (expense.date) {
       try {
-        setFormattedDate(format(parseISO(expense.date), 'PP')); 
+        setFormattedDate(format(parseISO(expense.date), 'PP'));
       } catch (e) {
         console.error("Error formatting date:", expense.date, e);
-        setFormattedDate(expense.date); 
+        setFormattedDate(expense.date);
       }
     }
   }, [expense.date]);
+
+  if (!settingsMounted) {
+     return (
+        <div className="p-4 border-b h-24 animate-pulse bg-muted/30 rounded-md my-1 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4 sm:gap-6 items-center">
+            <div className="flex items-start gap-3">
+                <div className="h-6 w-6 mt-1 rounded-full bg-muted"></div>
+                <div className="flex-1 min-w-0 space-y-1">
+                    <div className="h-5 w-3/4 bg-muted rounded"></div>
+                    <div className="h-3 w-1/2 bg-muted rounded"></div>
+                     <div className="h-3 w-1/3 bg-muted rounded"></div>
+                </div>
+            </div>
+            <div className="flex sm:flex-col items-end sm:items-end justify-between sm:justify-center gap-2 sm:gap-3">
+                <div className="h-6 w-20 bg-muted rounded"></div>
+                <div className="flex gap-2">
+                    <div className="h-8 w-16 bg-muted rounded-md"></div>
+                    <div className="h-8 w-16 bg-muted rounded-md"></div>
+                </div>
+            </div>
+        </div>
+    );
+  }
 
   return (
     <div className="p-4 border-b hover:bg-muted/50 transition-colors grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4 sm:gap-6 items-center">
@@ -53,7 +78,7 @@ function ExpenseListItem({ expense, onDeleteExpense, onEditExpense }: ExpenseLis
 
       <div className="flex sm:flex-col items-end sm:items-end justify-between sm:justify-center gap-2 sm:gap-3">
         <p className={`text-lg sm:text-xl font-bold ${amountColor} text-right sm:text-left`}>
-          {isIncome ? '+' : '-'}${expense.amount.toFixed(2)}
+          {isIncome ? '+' : '-'}{formatCurrency(expense.amount, currency)}
         </p>
 
         <div className="flex gap-2">
@@ -91,6 +116,7 @@ interface ExpenseListProps {
 
 export function ExpenseList({ expenses, onDeleteExpense, onEditExpense }: ExpenseListProps) {
   const [currentPage, setCurrentPage] = useState(1);
+  const { isMounted: settingsMounted } = useSettings();
 
   const sortedExpenses = expenses.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
@@ -98,6 +124,32 @@ export function ExpenseList({ expenses, onDeleteExpense, onEditExpense }: Expens
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
   const paginatedExpenses = sortedExpenses.slice(startIndex, endIndex);
+
+  if (!settingsMounted && expenses.length > 0) {
+     return (
+      <div className="mt-6 space-y-2">
+        {[...Array(Math.min(ITEMS_PER_PAGE, 3))].map((_, i) => (
+         <div key={i} className="p-4 border-b h-24 animate-pulse bg-muted/30 rounded-md grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4 sm:gap-6 items-center">
+            <div className="flex items-start gap-3">
+                <div className="h-6 w-6 mt-1 rounded-full bg-muted"></div>
+                <div className="flex-1 min-w-0 space-y-1">
+                    <div className="h-5 w-3/4 bg-muted rounded"></div>
+                    <div className="h-3 w-1/2 bg-muted rounded"></div>
+                     <div className="h-3 w-1/3 bg-muted rounded"></div>
+                </div>
+            </div>
+            <div className="flex sm:flex-col items-end sm:items-end justify-between sm:justify-center gap-2 sm:gap-3">
+                <div className="h-6 w-20 bg-muted rounded"></div>
+                <div className="flex gap-2">
+                    <div className="h-8 w-16 bg-muted rounded-md"></div>
+                    <div className="h-8 w-16 bg-muted rounded-md"></div>
+                </div>
+            </div>
+        </div>
+        ))}
+      </div>
+    );
+  }
 
   if (expenses.length === 0) {
     return (

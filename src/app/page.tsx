@@ -14,6 +14,8 @@ import { RecentTransactionsList } from '@/components/dashboard/RecentTransaction
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Progress } from "@/components/ui/progress";
+import { useSettings } from '@/contexts/SettingsContext';
+import { formatCurrency } from '@/lib/utils';
 
 
 export default function DashboardPage() {
@@ -21,6 +23,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const { expenses, loadingExpenses } = useExpenses();
   const { budgets, loadingBudgets } = useBudgets();
+  const { currency, isMounted: settingsMounted } = useSettings();
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -54,7 +57,7 @@ export default function DashboardPage() {
       .slice(0, 3);
   }, [budgets]);
 
-  if (authLoading || (!user && !authLoading) || loadingExpenses || loadingBudgets) { // Check if user is loaded but not present
+  if (authLoading || (!user && !authLoading) || loadingExpenses || loadingBudgets || !settingsMounted) { 
     return (
       <AppShell>
         <div className="flex flex-col items-center justify-center h-full py-10">
@@ -76,7 +79,7 @@ export default function DashboardPage() {
         </div>
 
         <p className="text-lg text-muted-foreground">
-          Here&apos;s your financial overview.
+          Here&apos;s your financial overview. All amounts in {currency}.
         </p>
 
         <div className="grid gap-6 md:grid-cols-3">
@@ -86,7 +89,7 @@ export default function DashboardPage() {
               <TrendingUp className="h-5 w-5 text-green-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-foreground">${totalIncome.toFixed(2)}</div>
+              <div className="text-3xl font-bold text-foreground">{formatCurrency(totalIncome, currency)}</div>
             </CardContent>
           </Card>
           <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
@@ -95,7 +98,7 @@ export default function DashboardPage() {
               <TrendingDown className="h-5 w-5 text-red-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-foreground">${totalExpenses.toFixed(2)}</div>
+              <div className="text-3xl font-bold text-foreground">{formatCurrency(totalExpenses, currency)}</div>
             </CardContent>
           </Card>
           <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
@@ -104,7 +107,7 @@ export default function DashboardPage() {
               <DollarSign className="h-5 w-5 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-foreground">${balance.toFixed(2)}</div>
+              <div className="text-3xl font-bold text-foreground">{formatCurrency(balance, currency)}</div>
             </CardContent>
           </Card>
         </div>
@@ -116,7 +119,7 @@ export default function DashboardPage() {
                 <Target className="h-6 w-6 mr-3 text-primary" />
                 Budget Highlights
               </CardTitle>
-              <CardDescription>Your top budgets by spending progress.</CardDescription>
+              <CardDescription>Your top budgets by spending progress (in {currency}).</CardDescription>
             </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {budgetHighlights.map(budget => (
@@ -129,15 +132,15 @@ export default function DashboardPage() {
                     <Progress value={budget.progress} className={`h-2.5 ${budget.isOverBudget ? "[&>div]:bg-destructive" : ""}`} />
                     <div className="flex justify-between text-sm">
                       <span className={budget.isOverBudget ? "text-destructive font-medium" : "text-muted-foreground"}>
-                        Spent: ${budget.spentAmount.toFixed(2)}
+                        Spent: {formatCurrency(budget.spentAmount, currency)}
                       </span>
                       <span className="text-muted-foreground">
-                        Budget: ${budget.amount.toFixed(2)}
+                        Budget: {formatCurrency(budget.amount, currency)}
                       </span>
                     </div>
                     {budget.isOverBudget && (
                          <p className="text-xs text-destructive text-center">
-                           Over budget by ${(budget.spentAmount - budget.amount).toFixed(2)}!
+                           Over budget by {formatCurrency(budget.spentAmount - budget.amount, currency)}!
                          </p>
                     )}
                   </CardContent>
@@ -158,7 +161,7 @@ export default function DashboardPage() {
             )}
              {budgets.length === 0 && (
                 <CardContent>
-                    <p className="text-muted-foreground text-center">No budgets set yet. 
+                    <p className="text-muted-foreground text-center">No budgets set yet.
                         <Button variant="link" asChild className="p-1 h-auto text-sm">
                            <Link href="/budgets">Create one</Link>
                         </Button>
@@ -175,7 +178,7 @@ export default function DashboardPage() {
               <ListChecks className="h-6 w-6 mr-3 text-primary" />
               Recent Transactions
             </CardTitle>
-             <CardDescription>Your latest financial movements.</CardDescription>
+             <CardDescription>Your latest financial movements (in {currency}).</CardDescription>
           </CardHeader>
           <CardContent>
             <RecentTransactionsList count={5} />

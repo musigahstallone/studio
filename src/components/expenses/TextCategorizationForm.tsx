@@ -11,6 +11,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Wand2, CornerDownLeft } from "lucide-react";
 import { useState } from "react";
 import { processTextExpense, type ProcessedExpenseData } from "@/actions/aiActions";
+import { useSettings } from "@/contexts/SettingsContext";
+import { formatCurrency } from "@/lib/utils";
 
 const TextCategorizationSchema = z.object({
   description: z.string().min(5, { message: "Please enter a more detailed description." }).max(200, { message: "Description must be 200 characters or less."}),
@@ -22,6 +24,7 @@ interface TextCategorizationFormProps {
 
 export function TextCategorizationForm({ onDataExtracted }: TextCategorizationFormProps) {
   const { toast } = useToast();
+  const { currency, isMounted: settingsMounted } = useSettings();
   const [isLoading, setIsLoading] = useState(false);
   const [extractedData, setExtractedData] = useState<ProcessedExpenseData | null>(null);
 
@@ -36,12 +39,15 @@ export function TextCategorizationForm({ onDataExtracted }: TextCategorizationFo
     setIsLoading(true);
     setExtractedData(null);
     try {
+      // Here, you could potentially pass the current currency to the AI if the prompt supports it,
+      // e.g., processTextExpense({ description: values.description, targetCurrency: currency });
+      // For now, AI extracts a raw number, and formatting happens on display.
       const result = await processTextExpense({ description: values.description });
       setExtractedData(result);
       onDataExtracted(result);
       toast({
         title: "Data Extracted",
-        description: `${result.description} - Amount: $${result.amount.toFixed(2)}`,
+        description: `${result.description} - Amount: ${settingsMounted ? formatCurrency(result.amount, currency) : '$' + result.amount.toFixed(2)}`,
       });
       form.reset();
     } catch (error) {
@@ -93,7 +99,7 @@ export function TextCategorizationForm({ onDataExtracted }: TextCategorizationFo
           <h4 className="font-semibold mb-1 text-foreground">Previously Extracted:</h4>
           <p><span className="font-medium text-muted-foreground">Desc:</span> {extractedData.description}</p>
           <p><span className="font-medium text-muted-foreground">Merchant:</span> {extractedData.merchant || "N/A"}</p>
-          <p><span className="font-medium text-muted-foreground">Amount:</span> ${extractedData.amount.toFixed(2)} ({extractedData.type})</p>
+          <p><span className="font-medium text-muted-foreground">Amount:</span> {settingsMounted ? formatCurrency(extractedData.amount, currency) : '$' + extractedData.amount.toFixed(2)} ({extractedData.type})</p>
           <p><span className="font-medium text-muted-foreground">Date:</span> {extractedData.date}</p>
           <p><span className="font-medium text-muted-foreground">Category:</span> {extractedData.category}</p>
           <Button onClick={handleUseExtractedData} variant="outline" size="sm" className="w-full mt-2">

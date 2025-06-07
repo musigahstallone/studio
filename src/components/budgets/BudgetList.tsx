@@ -7,6 +7,8 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Trash2, Edit3, Target, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
+import { useSettings } from "@/contexts/SettingsContext";
+import { formatCurrency } from "@/lib/utils";
 
 const ITEMS_PER_PAGE = 5;
 
@@ -17,9 +19,36 @@ interface BudgetListItemProps {
 }
 
 function BudgetListItem({ budget, onDeleteBudget, onEditBudget }: BudgetListItemProps) {
+  const { currency, isMounted: settingsMounted } = useSettings();
   const progress = budget.amount > 0 ? (budget.spentAmount / budget.amount) * 100 : 0;
   const remaining = budget.amount - budget.spentAmount;
   const isOverBudget = budget.spentAmount > budget.amount;
+
+  if (!settingsMounted) {
+    return (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border-b h-28 animate-pulse bg-muted/30 rounded-md my-1">
+            <div className="flex items-start space-x-3 flex-grow mb-3 sm:mb-0">
+                <div className="h-6 w-6 sm:h-5 sm:w-5 mt-1 sm:mt-0 rounded-full bg-muted"></div>
+                <div className="flex-grow space-y-1">
+                    <div className="h-5 w-32 bg-muted rounded"></div>
+                    <div className="h-3 w-24 bg-muted rounded"></div>
+                    <div className="w-full max-w-xs mt-1 space-y-1">
+                        <div className="h-2 w-full bg-muted rounded-full"></div>
+                        <div className="flex justify-between">
+                            <div className="h-3 w-16 bg-muted rounded"></div>
+                            <div className="h-3 w-16 bg-muted rounded"></div>
+                        </div>
+                        <div className="h-3 w-20 bg-muted rounded"></div>
+                    </div>
+                </div>
+            </div>
+            <div className="flex gap-2 self-end sm:self-center mt-2 sm:mt-0">
+                <div className="h-8 w-16 bg-muted rounded-md"></div>
+                <div className="h-8 w-16 bg-muted rounded-md"></div>
+            </div>
+        </div>
+    );
+  }
 
   return (
     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border-b hover:bg-muted/50 transition-colors">
@@ -31,13 +60,13 @@ function BudgetListItem({ budget, onDeleteBudget, onEditBudget }: BudgetListItem
           <div className="w-full max-w-xs mt-1">
             <Progress value={Math.min(progress, 100)} className={`h-2 ${isOverBudget ? "[&>div]:bg-destructive" : ""}`} />
             <div className="flex justify-between text-xs text-muted-foreground mt-1">
-              <span>Spent: ${budget.spentAmount.toFixed(2)}</span>
-              <span>Budget: ${budget.amount.toFixed(2)}</span>
+              <span>Spent: {formatCurrency(budget.spentAmount, currency)}</span>
+              <span>Budget: {formatCurrency(budget.amount, currency)}</span>
             </div>
             <p className={`text-xs mt-0.5 ${isOverBudget ? 'text-destructive' : 'text-muted-foreground'}`}>
               {isOverBudget
-                ? `Over by $${Math.abs(remaining).toFixed(2)}`
-                : `$${remaining.toFixed(2)} remaining`}
+                ? `Over by ${formatCurrency(Math.abs(remaining), currency)}`
+                : `${formatCurrency(remaining, currency)} remaining`}
             </p>
           </div>
         </div>
@@ -63,6 +92,7 @@ interface BudgetListProps {
 
 export function BudgetList({ budgets, onDeleteBudget, onEditBudget }: BudgetListProps) {
   const [currentPage, setCurrentPage] = useState(1);
+  const { isMounted: settingsMounted } = useSettings();
 
   const sortedBudgets = budgets.sort((a,b) => a.name.localeCompare(b.name));
 
@@ -70,6 +100,36 @@ export function BudgetList({ budgets, onDeleteBudget, onEditBudget }: BudgetList
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
   const paginatedBudgets = sortedBudgets.slice(startIndex, endIndex);
+
+  if (!settingsMounted && budgets.length > 0) {
+    return (
+      <div className="mt-6 space-y-2">
+        {[...Array(Math.min(ITEMS_PER_PAGE, 2))].map((_, i) => (
+             <div key={i} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border-b h-28 animate-pulse bg-muted/30 rounded-md">
+                <div className="flex items-start space-x-3 flex-grow mb-3 sm:mb-0">
+                    <div className="h-6 w-6 sm:h-5 sm:w-5 mt-1 sm:mt-0 rounded-full bg-muted"></div>
+                    <div className="flex-grow space-y-1">
+                        <div className="h-5 w-32 bg-muted rounded"></div>
+                        <div className="h-3 w-24 bg-muted rounded"></div>
+                        <div className="w-full max-w-xs mt-1 space-y-1">
+                            <div className="h-2 w-full bg-muted rounded-full"></div>
+                            <div className="flex justify-between">
+                                <div className="h-3 w-16 bg-muted rounded"></div>
+                                <div className="h-3 w-16 bg-muted rounded"></div>
+                            </div>
+                            <div className="h-3 w-20 bg-muted rounded"></div>
+                        </div>
+                    </div>
+                </div>
+                <div className="flex gap-2 self-end sm:self-center mt-2 sm:mt-0">
+                    <div className="h-8 w-16 bg-muted rounded-md"></div>
+                    <div className="h-8 w-16 bg-muted rounded-md"></div>
+                </div>
+            </div>
+        ))}
+      </div>
+    );
+  }
 
   if (budgets.length === 0) {
     return (

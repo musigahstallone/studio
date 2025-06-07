@@ -3,7 +3,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { AppProviders } from '@/components/layout/AppProviders';
-import { DEFAULT_FONT_THEME_ID, fontPairings } from '@/lib/fonts';
+import { fontPairings, DEFAULT_FONT_THEME_ID } from '@/lib/fonts'; // DEFAULT_FONT_THEME_ID from fonts.ts
+import { DEFAULT_THEME, DEFAULT_CURRENCY } from '@/lib/types'; // Import defaults for theme and currency
 
 export const metadata: Metadata = {
   title: 'PennyPincher AI',
@@ -21,7 +22,6 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        {/* Include all font links needed for the selectable themes */}
         {fontPairings.map(fp => (
           fp.googleFontLink && <link key={fp.id} href={fp.googleFontLink} rel="stylesheet" />
         ))}
@@ -30,8 +30,8 @@ export default function RootLayout({
             __html: `
               (function() {
                 try {
-                  var theme = localStorage.getItem('theme');
-                  if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                  var theme = localStorage.getItem('theme') || '${DEFAULT_THEME}';
+                  if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
                     document.documentElement.classList.add('dark');
                   } else {
                     document.documentElement.classList.remove('dark');
@@ -40,22 +40,20 @@ export default function RootLayout({
                   var fontTheme = localStorage.getItem('fontTheme') || '${DEFAULT_FONT_THEME_ID}';
                   var fontThemeClass = 'font-theme-' + fontTheme;
                   
-                  // Remove any other font theme classes first to avoid conflicts
                   ${fontPairings
                     .map(fp => `'font-theme-${fp.id}'`)
                     .join(', ')}.forEach(cls => document.documentElement.classList.remove(cls));
                   
-                  // Add the selected/default font theme class
                   document.documentElement.classList.add(fontThemeClass);
                   
-                } catch (e) { console.error('Error applying initial theme/font:', e); }
+                  // Currency is handled by context reading from localStorage, no direct class needed on <html>
+                } catch (e) { console.error('Error applying initial settings:', e); }
               })();
             `,
           }}
         />
       </head>
       <body className="font-body antialiased bg-background text-foreground">
-        {/* AppProviders now wraps the children directly, AppShell is inside children for conditional rendering */}
         <AppProviders>
           {children}
           <Toaster />

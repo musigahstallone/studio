@@ -1,70 +1,64 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Moon, Sun } from 'lucide-react';
+import { Moon, Sun, Laptop } from 'lucide-react'; // Added Laptop for system theme
 import { Label } from '@/components/ui/label';
+import { useSettings } from '@/contexts/SettingsContext';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import type { Theme } from '@/lib/types';
 
 export function ThemeSwitcher() {
-  const [theme, setTheme] = useState('light'); // Default to light
+  const { theme, setTheme, isMounted } = useSettings();
 
-  // Effect to read theme from localStorage and apply it
-  useEffect(() => {
-    const storedTheme = localStorage.getItem('theme');
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    
-    if (storedTheme) {
-      setTheme(storedTheme);
-      if (storedTheme === 'dark') {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-    } else {
-      // If no stored theme, use system preference
-      if (prefersDark) {
-        setTheme('dark');
-        document.documentElement.classList.add('dark');
-      } else {
-        setTheme('light');
-        document.documentElement.classList.remove('dark');
-      }
-    }
-  }, []);
-
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
-    if (newTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  };
+  if (!isMounted) {
+    // Render a placeholder or null during server rendering/initial hydration
+    return (
+        <div className="flex flex-col space-y-2">
+            <Label htmlFor="theme-select" className="text-sm font-medium">
+                Theme
+            </Label>
+            <div className="h-10 w-full sm:w-auto bg-muted rounded-md animate-pulse" />
+            <p className="text-xs text-muted-foreground">Loading theme...</p>
+        </div>
+    );
+  }
 
   return (
     <div className="flex flex-col space-y-2">
-      <Label htmlFor="theme-toggle" className="text-sm font-medium">
+      <Label htmlFor="theme-select" className="text-sm font-medium">
         Theme
       </Label>
-      <Button
-        id="theme-toggle"
-        variant="outline"
-        onClick={toggleTheme}
-        className="w-full sm:w-auto justify-start"
-        aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-      >
-        {theme === 'light' ? (
-          <Sun className="mr-2 h-4 w-4" />
-        ) : (
-          <Moon className="mr-2 h-4 w-4" />
-        )}
-        <span>{theme === 'light' ? 'Light Mode' : 'Dark Mode'}</span>
-      </Button>
+      <Select value={theme} onValueChange={(value) => setTheme(value as Theme)}>
+        <SelectTrigger className="w-full sm:w-auto" id="theme-select" aria-label="Select theme">
+          <SelectValue placeholder="Select theme" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="light">
+            <div className="flex items-center">
+              <Sun className="mr-2 h-4 w-4" /> Light
+            </div>
+          </SelectItem>
+          <SelectItem value="dark">
+            <div className="flex items-center">
+              <Moon className="mr-2 h-4 w-4" /> Dark
+            </div>
+          </SelectItem>
+          <SelectItem value="system">
+            <div className="flex items-center">
+              <Laptop className="mr-2 h-4 w-4" /> System
+            </div>
+          </SelectItem>
+        </SelectContent>
+      </Select>
        <p className="text-xs text-muted-foreground">
-        Current theme: {theme === 'light' ? 'Light' : 'Dark'}.
+        Current theme: {theme.charAt(0).toUpperCase() + theme.slice(1)}.
       </p>
     </div>
   );

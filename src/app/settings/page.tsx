@@ -8,7 +8,8 @@ import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ThemeSwitcher } from '@/components/settings/ThemeSwitcher';
 import { Loader2 } from 'lucide-react';
-// import { FontSwitcher } from '@/components/settings/FontSwitcher'; // Font switcher is temporarily disabled
+import { FontSwitcher } from '@/components/settings/FontSwitcher'; // Re-enable FontSwitcher
+import { CurrencySwitcher } from '@/components/settings/CurrencySwitcher'; // Import CurrencySwitcher
 
 export default function SettingsPage() {
   const { user, loading: authLoading } = useAuth();
@@ -47,10 +48,10 @@ export default function SettingsPage() {
             <ThemeSwitcher />
           </CardContent>
         </Card>
-
-        {/* 
-        <FontSwitcher /> 
-        */}
+ 
+        <FontSwitcher />
+        
+        <CurrencySwitcher />
 
         {/* Add more settings sections here as needed */}
         {/* 
