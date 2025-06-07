@@ -7,9 +7,11 @@ import { useToast } from "@/hooks/use-toast";
 import { FileUpload } from "@/components/shared/FileUpload";
 import { ScanLine, CornerDownLeft } from "lucide-react";
 import { processReceiptExpense, type ProcessedExpenseData } from "@/actions/aiActions";
+// import { storage } from "@/lib/firebase"; // Step 1 for Firebase Storage
+// import { ref, uploadString, getDownloadURL } from "firebase/storage"; // Step 1 for Firebase Storage
 
 interface ReceiptUploadFormProps {
-  onDataExtracted: (data: ProcessedExpenseData) => void;
+  onDataExtracted: (data: ProcessedExpenseData & { receiptUrl?: string }) => void;
 }
 
 export function ReceiptUploadForm({ onDataExtracted }: ReceiptUploadFormProps) {
@@ -36,10 +38,31 @@ export function ReceiptUploadForm({ onDataExtracted }: ReceiptUploadFormProps) {
 
     setIsLoading(true);
     setExtractedData(null);
+
+    // --- Placeholder for Firebase Storage Upload ---
+    let receiptFirebaseUrl: string | undefined = undefined;
+    // if (fileDataUri) {
+    //   try {
+    //     console.log("Attempting to upload to Firebase Storage...");
+    //     const userId = "some_user_id"; // Replace with actual user ID from auth
+    //     const imageName = `receipt-upload-${Date.now()}.${fileDataUri.substring(fileDataUri.indexOf('/') + 1, fileDataUri.indexOf(';'))}`;
+    //     const storageRef = ref(storage, `receipts/${userId}/${imageName}`);
+    //     const snapshot = await uploadString(storageRef, fileDataUri, 'data_url');
+    //     receiptFirebaseUrl = await getDownloadURL(snapshot.ref);
+    //     console.log('Uploaded file available at', receiptFirebaseUrl);
+    //     toast({ title: "Receipt Image Uploaded (Simulated)", description: "Image would be stored in Firebase."});
+    //   } catch (uploadError) {
+    //     console.error("Error uploading to Firebase Storage: ", uploadError);
+    //     toast({ variant: "destructive", title: "Image Upload Failed", description: "Could not save receipt image." });
+    //   }
+    // }
+    // --- End Placeholder ---
+
     try {
       const result = await processReceiptExpense({ photoDataUri: fileDataUri });
-      setExtractedData(result);
-      onDataExtracted(result);
+      const finalData = { ...result, receiptUrl: receiptFirebaseUrl };
+      setExtractedData(finalData);
+      onDataExtracted(finalData);
       toast({
         title: "Data Extracted",
         description: `${result.description} - Amount: $${result.amount.toFixed(2)}`,
@@ -75,6 +98,7 @@ export function ReceiptUploadForm({ onDataExtracted }: ReceiptUploadFormProps) {
           <p><span className="font-medium text-muted-foreground">Amount:</span> ${extractedData.amount.toFixed(2)} ({extractedData.type})</p>
           <p><span className="font-medium text-muted-foreground">Date:</span> {extractedData.date}</p>
           <p><span className="font-medium text-muted-foreground">Category:</span> {extractedData.category}</p>
+          {extractedData.receiptUrl && <p><span className="font-medium text-muted-foreground">Receipt URL:</span> <a href={extractedData.receiptUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline">View Image</a></p>}
           <Button onClick={handleUseExtractedData} variant="outline" size="sm" className="w-full mt-2">
             <CornerDownLeft className="mr-2 h-4 w-4" /> Use This Data Again
           </Button>

@@ -23,14 +23,12 @@ function RecentTransactionItem({ expense }: RecentTransactionItemProps) {
   const [formattedDate, setFormattedDate] = useState('');
 
   useEffect(() => {
-    // Ensure date formatting happens only on client-side to avoid hydration mismatch
     if (expense.date) {
        try {
-        // Assuming expense.date is YYYY-MM-DD
-        setFormattedDate(format(parseISO(expense.date), 'PP')); // e.g., Jul 20, 2024
+        setFormattedDate(format(parseISO(expense.date), 'PP')); 
       } catch (e) {
         console.error("Error formatting date:", expense.date, e);
-        setFormattedDate(expense.date); // Fallback to original date string
+        setFormattedDate(expense.date); 
       }
     }
   }, [expense.date]);
@@ -57,12 +55,16 @@ function RecentTransactionItem({ expense }: RecentTransactionItemProps) {
 
 interface RecentTransactionsListProps {
   count: number;
+  expensesData?: Expense[]; // Optional prop to pass specific expenses (e.g., for admin)
 }
 
-export function RecentTransactionsList({ count }: RecentTransactionsListProps) {
-  const { expenses } = useExpenses();
+export function RecentTransactionsList({ count, expensesData }: RecentTransactionsListProps) {
+  const { expenses: userExpenses } = useExpenses(); // These are already filtered for the current user
 
-  const recentExpenses = expenses
+  // Use provided expensesData if available (for admin), otherwise use user-scoped expenses
+  const sourceExpenses = expensesData || userExpenses;
+
+  const recentExpenses = sourceExpenses
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, count);
 
@@ -70,12 +72,14 @@ export function RecentTransactionsList({ count }: RecentTransactionsListProps) {
     return (
       <div className="text-center text-muted-foreground py-6">
         <p>No transactions recorded yet.</p>
-        <CardDescription className="mt-1">
-          <Button variant="link" asChild className="p-0 h-auto">
-            <Link href="/expenses">Add your first transaction</Link>
-          </Button>
-           to see it here.
-        </CardDescription>
+        {!expensesData && ( // Show "Add transaction" link only if not admin view
+          <CardDescription className="mt-1">
+            <Button variant="link" asChild className="p-0 h-auto">
+              <Link href="/expenses">Add your first transaction</Link>
+            </Button>
+            to see it here.
+          </CardDescription>
+        )}
       </div>
     );
   }
@@ -87,10 +91,10 @@ export function RecentTransactionsList({ count }: RecentTransactionsListProps) {
           <RecentTransactionItem key={expense.id} expense={expense} />
         ))}
       </div>
-      {expenses.length > count && (
+      {sourceExpenses.length > count && !expensesData && ( // Show "View All" only if not admin view using its own data
         <div className="mt-4 text-center">
           <Button variant="outline" asChild size="sm">
-            <Link href="/expenses">View All Transactions</Link>
+            <Link href="/expenses">View All My Transactions</Link>
           </Button>
         </div>
       )}

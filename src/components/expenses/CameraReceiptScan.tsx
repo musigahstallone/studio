@@ -6,26 +6,28 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { processReceiptExpense, type ProcessedExpenseData } from "@/actions/aiActions";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Camera, ScanLine, Maximize, Minimize, RefreshCw, CornerDownLeft, VideoOff, CameraOff, UploadCloud, Zap } from "lucide-react";
+import { Camera, ScanLine, Maximize, Minimize, RefreshCw, CornerDownLeft, VideoOff, CameraOff, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+// import { storage } from "@/lib/firebase"; // Step 1 for Firebase Storage
+// import { ref, uploadString, getDownloadURL } from "firebase/storage"; // Step 1 for Firebase Storage
 
 interface CameraReceiptScanProps {
-  onDataExtracted: (data: ProcessedExpenseData) => void;
+  onDataExtracted: (data: ProcessedExpenseData & { receiptUrl?: string }) => void;
 }
 
 export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [extractedData, setExtractedData] = useState<ProcessedExpenseData | null>(null);
-  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null); // null = undetermined, true = granted, false = denied
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [isCameraInitializing, setIsCameraInitializing] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [capturedImageUri, setCapturedImageUri] = useState<string | null>(null);
-  const [showCameraFeed, setShowCameraFeed] = useState(false); // Controls if video feed is active
+  const [showCameraFeed, setShowCameraFeed] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null); // Changed initialization
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const stopCameraStream = useCallback(() => {
     if (videoRef.current && videoRef.current.srcObject) {
@@ -33,14 +35,14 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
       stream.getTracks().forEach(track => track.stop());
       videoRef.current.srcObject = null;
     }
-    setShowCameraFeed(false); // Explicitly set that feed is off
+    setShowCameraFeed(false);
   }, []);
 
   const startCameraStream = useCallback(async () => {
     setIsCameraInitializing(true);
-    setHasCameraPermission(null); // Reset permission status
-    setCapturedImageUri(null);    // Clear previous capture
-    setExtractedData(null);       // Clear previous AI data
+    setHasCameraPermission(null);
+    setCapturedImageUri(null);
+    setExtractedData(null);
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       setHasCameraPermission(false);
@@ -60,19 +62,19 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play().catch(err => console.error("Video play failed:", err));
       }
-      setShowCameraFeed(true); // Feed is now active
+      setShowCameraFeed(true);
     } catch (error) {
       console.error('Error accessing camera:', error);
-      setShowCameraFeed(false); // Ensure feed is marked off on error
+      setShowCameraFeed(false);
       if (error instanceof Error && (error.name === "NotAllowedError" || error.name === "PermissionDeniedError")) {
-        setHasCameraPermission(false); // Explicitly set denied
+        setHasCameraPermission(false);
         toast({
           variant: 'destructive',
           title: 'Camera Access Denied',
           description: 'Please enable camera permissions in your browser settings and try again.',
         });
       } else {
-        setHasCameraPermission(false); // Other error, treat as denied for UI
+        setHasCameraPermission(false);
         toast({
           variant: 'destructive',
           title: 'Camera Error',
@@ -86,14 +88,13 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
 
   useEffect(() => {
     return () => {
-      stopCameraStream(); // Cleanup on unmount
+      stopCameraStream();
     };
   }, [stopCameraStream]);
 
   const handleCapture = async () => {
     if (isFullScreen) {
       setIsFullScreen(false);
-      // Give UI a moment to exit fullscreen before capture
       await new Promise(resolve => setTimeout(resolve, 100)); 
     }
 
@@ -121,24 +122,44 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
     const photoDataUri = canvas.toDataURL('image/jpeg');
 
     setCapturedImageUri(photoDataUri);
-    stopCameraStream(); // Important: stop feed after capture
+    stopCameraStream();
     setIsLoading(true);
     setExtractedData(null);
+
+    // --- Placeholder for Firebase Storage Upload ---
+    let receiptFirebaseUrl: string | undefined = undefined;
+    // if (photoDataUri) {
+    //   try {
+    //     console.log("Attempting to upload to Firebase Storage...");
+    //     const userId = "some_user_id"; // Replace with actual user ID from auth
+    //     const imageName = `receipt-${Date.now()}.jpg`;
+    //     const storageRef = ref(storage, `receipts/${userId}/${imageName}`);
+    //     const snapshot = await uploadString(storageRef, photoDataUri, 'data_url');
+    //     receiptFirebaseUrl = await getDownloadURL(snapshot.ref);
+    //     console.log('File available at', receiptFirebaseUrl);
+    //     toast({ title: "Receipt Image Uploaded (Simulated)", description: "Image would be stored in Firebase."});
+    //   } catch (uploadError) {
+    //     console.error("Error uploading to Firebase Storage: ", uploadError);
+    //     toast({ variant: "destructive", title: "Image Upload Failed", description: "Could not save receipt image." });
+    //   }
+    // }
+    // --- End Placeholder ---
+
 
     try {
       const result = await processReceiptExpense({ photoDataUri });
       
-      // Client-side validation of essential fields
       if (!result || typeof result.amount !== 'number' || result.amount <= 0 || !result.date || !/^\d{4}-\d{2}-\d{2}$/.test(result.date) || !result.category) {
         toast({
           variant: "destructive",
           title: "Extraction Incomplete",
           description: "AI couldn't extract all necessary details clearly or data is invalid. Please review or re-capture.",
         });
-        setExtractedData(result); // Still show what was extracted for "Use this data"
+        setExtractedData(result); 
       } else {
-        setExtractedData(result);
-        onDataExtracted(result);
+        const finalData = { ...result, receiptUrl: receiptFirebaseUrl };
+        setExtractedData(finalData);
+        onDataExtracted(finalData);
         toast({
           title: "Data Extracted & Ready",
           description: `Review in form: ${result.merchant || 'N/A'} - $${result.amount.toFixed(2)}`,
@@ -157,7 +178,7 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
 
   const handleUseExtractedData = () => {
     if (extractedData) {
-      if (!extractedData || typeof extractedData.amount !== 'number' || extractedData.amount <= 0 || !extractedData.date || !/^\d{4}-\d{2}-\d{2}$/.test(extractedData.date) || !extractedData.category) {
+      if (typeof extractedData.amount !== 'number' || extractedData.amount <= 0 || !extractedData.date || !/^\d{4}-\d{2}-\d{2}$/.test(extractedData.date) || !extractedData.category) {
          toast({
           variant: "destructive",
           title: "Invalid Data",
@@ -182,21 +203,20 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
 
   return (
     <div className="space-y-4">
-      <canvas ref={canvasRef} style={{ display: 'none' }} /> {/* Added hidden canvas */}
+      <canvas ref={canvasRef} style={{ display: 'none' }} />
       <div className={videoContainerClasses}>
-        {/* Always render video tag for ref, but conditionally show content */}
         <video
           ref={videoRef}
           className={cn(
             "object-contain",
             isFullScreen ? "max-w-full max-h-full" : "w-full h-full",
-            !showCameraFeed && !capturedImageUri ? "hidden" : "" // Hide if no feed and no capture
+            !showCameraFeed && !capturedImageUri ? "hidden" : "" 
           )}
           autoPlay
           playsInline
           muted
         />
-        {capturedImageUri && !showCameraFeed && ( // Show captured image if feed is off
+        {capturedImageUri && !showCameraFeed && ( 
           <Image src={capturedImageUri} alt="Captured receipt" layout="fill" objectFit="contain" data-ai-hint="receipt photo" />
         )}
         
@@ -225,7 +245,7 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
           </Alert>
         )}
 
-        {isLoading && capturedImageUri && ( // Loading overlay
+        {isLoading && capturedImageUri && ( 
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 z-10">
             <div role="status" className="text-center">
                 <svg aria-hidden="true" className="inline w-10 h-10 text-gray-200 animate-spin dark:text-gray-600 fill-primary" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -236,7 +256,6 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
             </div>
           </div>
         )}
-        {/* Fullscreen Toggle - show if feed is active OR a captured image is displayed */}
         {(showCameraFeed || capturedImageUri) && !isLoading && (
            <Button
             variant="ghost"
@@ -251,7 +270,7 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
       </div>
 
       <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
-        {!showCameraFeed && !isLoading && ( // Show Start/Retry or Scan New
+        {!showCameraFeed && !isLoading && ( 
            <Button 
             onClick={startCameraStream} 
             disabled={isCameraInitializing} 
@@ -262,7 +281,7 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
           </Button>
         )}
        
-        {showCameraFeed && !isLoading && ( // Show Capture & Extract
+        {showCameraFeed && !isLoading && ( 
           <Button 
             onClick={handleCapture} 
             disabled={isLoading || isCameraInitializing || !hasCameraPermission}
@@ -272,7 +291,7 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
           </Button>
         )}
 
-        {showCameraFeed && !isLoading && ( // Show Stop Camera if feed is active
+        {showCameraFeed && !isLoading && ( 
           <Button 
             onClick={stopCameraStream} 
             variant="outline" 
@@ -283,7 +302,7 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
         )}
       </div>
 
-      {extractedData && ( // Display previously extracted data
+      {extractedData && ( 
          <div className="mt-6 rounded-md border bg-muted/50 p-4 text-sm space-y-2">
           <h4 className="font-semibold mb-1 text-foreground">Previously Extracted Data:</h4>
           <p><span className="font-medium text-muted-foreground">Desc:</span> {extractedData.description}</p>
@@ -299,5 +318,3 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
     </div>
   );
 }
-
-    
