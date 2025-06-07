@@ -7,8 +7,9 @@ import { useToast } from "@/hooks/use-toast";
 import { FileUpload } from "@/components/shared/FileUpload";
 import { ScanLine, CornerDownLeft } from "lucide-react";
 import { processReceiptExpense, type ProcessedExpenseData } from "@/actions/aiActions";
-// import { storage } from "@/lib/firebase"; // Step 1 for Firebase Storage
-// import { ref, uploadString, getDownloadURL } from "firebase/storage"; // Step 1 for Firebase Storage
+import { storage } from "@/lib/firebase"; 
+import { ref, uploadString, getDownloadURL } from "firebase/storage";
+import { useAuth } from "@/contexts/AuthContext"; // Import useAuth
 
 interface ReceiptUploadFormProps {
   onDataExtracted: (data: ProcessedExpenseData & { receiptUrl?: string }) => void;
@@ -16,9 +17,10 @@ interface ReceiptUploadFormProps {
 
 export function ReceiptUploadForm({ onDataExtracted }: ReceiptUploadFormProps) {
   const { toast } = useToast();
+  const { user } = useAuth(); // Get current user
   const [isLoading, setIsLoading] = useState(false);
   const [fileDataUri, setFileDataUri] = useState<string | null>(null);
-  const [extractedData, setExtractedData] = useState<ProcessedExpenseData | null>(null);
+  const [extractedData, setExtractedData] = useState<ProcessedExpenseData & { receiptUrl?: string } | null>(null);
 
 
   const handleFileChange = (dataUri: string | null) => {
@@ -35,44 +37,48 @@ export function ReceiptUploadForm({ onDataExtracted }: ReceiptUploadFormProps) {
       });
       return;
     }
+    if (!user) {
+      toast({ variant: "destructive", title: "Not Authenticated", description: "Please log in to upload receipts." });
+      return;
+    }
 
     setIsLoading(true);
     setExtractedData(null);
-
-    // --- Placeholder for Firebase Storage Upload ---
     let receiptFirebaseUrl: string | undefined = undefined;
-    // if (fileDataUri) {
-    //   try {
-    //     console.log("Attempting to upload to Firebase Storage...");
-    //     const userId = "some_user_id"; // Replace with actual user ID from auth
-    //     const imageName = `receipt-upload-${Date.now()}.${fileDataUri.substring(fileDataUri.indexOf('/') + 1, fileDataUri.indexOf(';'))}`;
-    //     const storageRef = ref(storage, `receipts/${userId}/${imageName}`);
-    //     const snapshot = await uploadString(storageRef, fileDataUri, 'data_url');
-    //     receiptFirebaseUrl = await getDownloadURL(snapshot.ref);
-    //     console.log('Uploaded file available at', receiptFirebaseUrl);
-    //     toast({ title: "Receipt Image Uploaded (Simulated)", description: "Image would be stored in Firebase."});
-    //   } catch (uploadError) {
-    //     console.error("Error uploading to Firebase Storage: ", uploadError);
-    //     toast({ variant: "destructive", title: "Image Upload Failed", description: "Could not save receipt image." });
-    //   }
-    // }
-    // --- End Placeholder ---
 
     try {
-      const result = await processReceiptExpense({ photoDataUri: fileDataUri });
+      // Upload to Firebase Storage
+      const fileExtension = fileDataUri.substring(fileDataUri.indexOf('/') + 1, fileDataUri.indexOf(';base64'));
+      const imageName = `receipt-${Date.now()}.${fileExtension || 'jpg'}`;
+      const storageRef = ref(storage, `users/${user.uid}/receipts/${imageName}`);
+      
+      // Correctly pass the Base64 string part of the data URI
+      const base64String = fileDataUri.split(',')[1];
+      if (!base64String) {
+        throw new Error("Invalid data URI format for Firebase Storage upload.");
+      }
+
+      const snapshot = await uploadString(storageRef, base64String, 'base64');
+      receiptFirebaseUrl = await getDownloadURL(snapshot.ref);
+      toast({ title: "Receipt Image Uploaded", description: "Image saved to your account."});
+
+      // Process with Genkit AI
+      const result = await processReceiptExpense({ photoDataUri: fileDataUri }); // AI still needs full data URI
       const finalData = { ...result, receiptUrl: receiptFirebaseUrl };
       setExtractedData(finalData);
-      onDataExtracted(finalData);
+      onDataExtracted(finalData); // Pass data with URL to parent
       toast({
         title: "Data Extracted",
         description: `${result.description} - Amount: $${result.amount.toFixed(2)}`,
       });
-    } catch (error) {
+
+    } catch (error: any) {
        toast({
         variant: "destructive",
-        title: "AI Error",
-        description: error instanceof Error ? error.message : "Could not process receipt.",
+        title: "Error",
+        description: error.message || "Could not process or upload receipt.",
       });
+      console.error("Receipt processing/upload error:", error);
     } finally {
       setIsLoading(false);
     }
@@ -81,15 +87,20 @@ export function ReceiptUploadForm({ onDataExtracted }: ReceiptUploadFormProps) {
   const handleUseExtractedData = () => {
     if (extractedData) {
       onDataExtracted(extractedData);
+       toast({
+          title: "Using Previous Data",
+          description: "Form pre-filled with previously extracted details.",
+        });
     }
   };
 
   return (
     <div className="space-y-4">
       <FileUpload onFileChange={handleFileChange} />
-      <Button onClick={handleSubmit} disabled={isLoading || !fileDataUri} className="w-full">
+      <Button onClick={handleSubmit} disabled={isLoading || !fileDataUri || !user} className="w-full">
         <ScanLine className="mr-2 h-4 w-4" /> {isLoading ? "Processing..." : "Extract Data"}
       </Button>
+      {!user && <p className="text-xs text-destructive text-center">Please log in to upload and process receipts.</p>}
       {extractedData && (
          <div className="mt-6 rounded-md border bg-muted/50 p-4 text-sm space-y-2">
           <h4 className="font-semibold mb-1 text-foreground">Previously Extracted:</h4>

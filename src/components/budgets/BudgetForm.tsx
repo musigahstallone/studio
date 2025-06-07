@@ -24,19 +24,22 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import type { Budget } from "@/lib/types";
 import { expenseCategories } from "@/lib/types"; 
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Save } from "lucide-react"; // Added Save icon
 
+// Schema matches data structure expected by Firestore add/update in context
+// id, userId, spentAmount, createdAt, updatedAt are handled by context or calculated
 const BudgetFormSchema = z.object({
   id: z.string().optional(), // For identifying budget to update
   name: z.string().min(1, { message: "Budget name is required." }).max(50, { message: "Name must be 50 characters or less."}),
-  category: z.string().min(1, { message: "Category is required." }),
+  category: z.string().min(1, { message: "Category is required." }), // Will be validated against expenseCategories
   amount: z.number().positive({ message: "Budget amount must be positive." }),
 });
 
 type BudgetFormData = z.infer<typeof BudgetFormSchema>;
 
 interface BudgetFormProps {
-  onSaveBudget: (budget: Budget) => void;
+  // onSaveBudget now expects data matching what addBudget/updateBudget in context need
+  onSaveBudget: (budgetData: Omit<Budget, 'id' | 'userId' | 'spentAmount' | 'createdAt' | 'updatedAt'>, id?: string) => void;
   existingBudgets: Budget[]; 
   initialData?: Partial<Budget>;
   onSubmissionDone?: () => void;
@@ -47,7 +50,10 @@ export function BudgetForm({ onSaveBudget, existingBudgets, initialData, onSubmi
   const isEditing = !!initialData?.id;
 
   const form = useForm<BudgetFormData>({
-    resolver: zodResolver(BudgetFormSchema),
+    resolver: zodResolver(BudgetFormSchema.refine(data => expenseCategories.includes(data.category as any), {
+        message: "Category must be one of the predefined expense categories.",
+        path: ["category"],
+    })),
     defaultValues: {
       id: initialData?.id || undefined,
       name: initialData?.name || "",
@@ -57,26 +63,24 @@ export function BudgetForm({ onSaveBudget, existingBudgets, initialData, onSubmi
   });
 
   function onSubmit(values: BudgetFormData) {
-    // Check if another budget (not the one being edited) already uses this name
     if (existingBudgets.some(b => b.name.toLowerCase() === values.name.toLowerCase() && b.id !== values.id)) {
       form.setError("name", { type: "manual", message: "This budget name already exists." });
       return;
     }
-    // Check if another budget (not the one being edited) already uses this category
     if (existingBudgets.some(b => b.category === values.category && b.id !== values.id)) {
          form.setError("category", { type: "manual", message: "A budget for this category already exists. Edit the existing one or choose a different category." });
         return;
     }
     
-    const budgetToSave: Budget = {
-      id: values.id || crypto.randomUUID(),
+    // Data prepared for context functions. `id` is passed separately for `onSaveBudget`.
+    const budgetDataForContext: Omit<Budget, 'id' | 'userId' | 'spentAmount' | 'createdAt' | 'updatedAt'> = {
       name: values.name,
       category: values.category as any, 
       amount: values.amount,
-      spentAmount: initialData?.spentAmount || (existingBudgets.find(b => b.category === values.category)?.spentAmount || 0),
     };
 
-    onSaveBudget(budgetToSave);
+    onSaveBudget(budgetDataForContext, values.id); // Pass ID if editing
+
     toast({
       title: isEditing ? "Budget Updated" : "Budget Set",
       description: `${values.name} (${values.category}): $${values.amount.toFixed(2)}`,
@@ -148,7 +152,6 @@ export function BudgetForm({ onSaveBudget, existingBudgets, initialData, onSubmi
                     {...field} 
                     onChange={e => {
                       const val = e.target.value;
-                      // Allow empty string for clearing, otherwise parse as float
                       if (val === "") {
                         field.onChange(val); 
                       } else {
@@ -163,7 +166,8 @@ export function BudgetForm({ onSaveBudget, existingBudgets, initialData, onSubmi
           )}
         />
         <Button type="submit" className="w-full">
-          <PlusCircle className="mr-2 h-4 w-4" /> {isEditing ? "Update Budget" : "Set Budget"}
+          {isEditing ? <Save className="mr-2 h-4 w-4" /> : <PlusCircle className="mr-2 h-4 w-4" />}
+          {isEditing ? "Update Budget" : "Set Budget"}
         </Button>
       </form>
     </Form>

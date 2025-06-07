@@ -35,6 +35,7 @@ export interface ProcessedExpenseData {
   category: Category;
   description: string; 
   type: "expense" | "income";
+  receiptUrl?: string; // Added for consistency with Camera/Upload forms
 }
 
 export async function processTextExpense(input: CategorizeExpenseInput): Promise<ProcessedExpenseData> {
@@ -45,7 +46,7 @@ export async function processTextExpense(input: CategorizeExpenseInput): Promise
       amount: result.amount,
       date: result.date, 
       category: mapAiCategory(result.category),
-      description: input.description, // For text input, the user's description is kept.
+      description: input.description,
       type: result.type,
     };
   } catch (error) {
@@ -63,12 +64,12 @@ export async function processReceiptExpense(input: ExtractExpenseDataInput): Pro
       amount: result.amount,
       date: result.date, 
       category: mapAiCategory(result.category),
-      description: result.description || `${result.type === 'income' ? 'Income from' : 'Receipt from'} ${merchantName}`, // Use AI description or fallback
+      description: result.description || `${result.type === 'income' ? 'Income from' : 'Receipt from'} ${merchantName}`,
       type: result.type,
+      // receiptUrl is handled by the calling component after upload, not directly by AI flow
     };
   } catch (error) {
     console.error("Error processing receipt expense:", error);
     throw new Error("Failed to extract transaction data from receipt. Please try entering manually.");
   }
 }
-

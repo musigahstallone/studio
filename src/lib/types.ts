@@ -1,5 +1,6 @@
 
 import { z } from 'zod';
+import type { Timestamp } from 'firebase/firestore';
 
 export type Category =
   | 'Food & Drink'
@@ -51,7 +52,7 @@ export const expenseCategories: Category[] = [
   'Healthcare',
   'Education',
   'Gifts & Donations',
-  'Investments', // Can be an expense (e.g. brokerage fees) or outflow
+  'Investments',
   'Bills & Fees',
   'Personal Care',
   'Groceries',
@@ -60,42 +61,45 @@ export const expenseCategories: Category[] = [
 
 export const incomeCategories: Category[] = [
   'Salary',
-  'Investments', // Can be income (e.g. dividends)
+  'Investments',
   'Gifts & Donations',
   'Other',
 ];
 
 export interface Expense {
   id: string;
-  userId: string; // Added for user association
+  userId: string;
   description: string;
   amount: number;
-  date: string; // YYYY-MM-DD
+  date: string; // YYYY-MM-DD (keep as string for form consistency, convert from/to Timestamp for Firestore)
   category: Category;
   merchant?: string;
   type: 'expense' | 'income';
-  receiptUrl?: string; // Optional: For storing Firebase Storage URL
+  receiptUrl?: string | null; // Firebase Storage URL
+  createdAt?: string | Timestamp; // ISO string or Firestore Timestamp
+  updatedAt?: string | Timestamp; // ISO string or Firestore Timestamp
 }
 
 export interface Budget {
   id: string;
-  userId: string; // Added for user association
+  userId: string;
   name: string;
   category: Category;
-  amount: number; // Target budget amount
-  spentAmount: number; // Actual amount spent in this category for the period
+  amount: number; 
+  spentAmount: number; // Calculated client-side
+  createdAt?: string | Timestamp;
+  updatedAt?: string | Timestamp;
 }
 
-// Updated User type, more aligned with potential Firebase Auth structure
-export interface User {
-  uid: string; // Firebase User ID
-  name?: string | null; // Display name
+// This is the app's internal User type, could store more profile info from Firestore
+export interface AppUser { 
+  uid: string; 
+  name?: string | null; 
   email?: string | null;
-  photoURL?: string | null; // Profile picture URL
-  joinDate?: string; // YYYY-MM-DD - App specific
-  // For mock data consistency on admin page
+  photoURL?: string | null; 
+  joinDate?: string; 
+  isAdmin?: boolean; // This would ideally come from custom claims or a roles collection
+  // For mock data consistency on admin page if needed, but ideally fetched
   transactionCount?: number;
   totalSpent?: number;
-  // In a real system, roles would be managed via custom claims or a roles collection
-  isAdmin?: boolean; 
 }

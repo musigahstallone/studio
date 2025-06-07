@@ -1,10 +1,10 @@
 
 "use client";
 
-import type { User } from "@/lib/types";
+import type { AppUser } from "@/lib/types"; // Changed to AppUser
 import { Button } from "@/components/ui/button";
-import { User as UserIcon, Mail, CalendarDays, DollarSign, ShoppingBag, ChevronLeft, ChevronRight, ShieldCheck, ShieldAlert } from "lucide-react";
-import { Card, CardDescription, CardContent } from "@/components/ui/card"; // Added CardContent
+import { Mail, CalendarDays, DollarSign, ShoppingBag, ChevronLeft, ChevronRight, ShieldCheck, ShieldAlert } from "lucide-react";
+import { Card, CardDescription, CardContent } from "@/components/ui/card";
 import { useState, useEffect } from "react";
 import { format, parseISO } from 'date-fns';
 import Image from "next/image"; 
@@ -12,7 +12,7 @@ import Image from "next/image";
 const ITEMS_PER_PAGE = 10;
 
 interface UserListItemProps {
-  user: User;
+  user: AppUser; // Changed to AppUser
 }
 
 function UserListItem({ user }: UserListItemProps) {
@@ -21,14 +21,17 @@ function UserListItem({ user }: UserListItemProps) {
   useEffect(() => {
     if (user.joinDate) {
       try {
-        setFormattedJoinDate(format(parseISO(user.joinDate), 'PP'));
+        // Ensure joinDate is a string before parsing
+        const dateToParse = typeof user.joinDate === 'string' ? user.joinDate : String(user.joinDate);
+        setFormattedJoinDate(format(parseISO(dateToParse), 'PP'));
       } catch (e) {
-        setFormattedJoinDate(user.joinDate);
+        console.error("Error formatting join date for user:", user.uid, user.joinDate, e);
+        setFormattedJoinDate(String(user.joinDate)); // Fallback to string representation
       }
     } else {
       setFormattedJoinDate('N/A');
     }
-  }, [user.joinDate]);
+  }, [user.joinDate, user.uid]);
 
   return (
     <div className="p-4 border-b hover:bg-muted/50 transition-colors grid grid-cols-1 md:grid-cols-[auto_1fr_auto] gap-4 items-center">
@@ -67,14 +70,14 @@ function UserListItem({ user }: UserListItemProps) {
 }
 
 interface UserListProps {
-  users: User[];
+  users: AppUser[]; // Changed to AppUser
 }
 
 export function UserList({ users }: UserListProps) {
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Users are already sorted by joinDate in the page component
-  const sortedUsers = users; // Assuming users prop is already sorted if needed
+  // Users are already sorted by joinDate in the page component if needed
+  const sortedUsers = users; 
 
   const totalPages = Math.ceil(sortedUsers.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -84,9 +87,9 @@ export function UserList({ users }: UserListProps) {
   if (users.length === 0) {
     return (
       <Card className="mt-8">
-        <CardContent className="pt-6"> {/* Ensure CardContent is imported and used */}
+        <CardContent className="pt-6"> 
           <p className="text-center text-muted-foreground">No users found.</p>
-          <CardDescription className="text-center mt-2">This section will display registered platform users once Firebase is connected.</CardDescription>
+          <CardDescription className="text-center mt-2">This section will display registered platform users once Firebase is connected and users are fetched.</CardDescription>
         </CardContent>
       </Card>
     );
@@ -98,7 +101,7 @@ export function UserList({ users }: UserListProps) {
         <div className="divide-y">
           {paginatedUsers.map((user) => (
             <UserListItem
-              key={user.uid} // Changed key to uid
+              key={user.uid} 
               user={user}
             />
           ))}

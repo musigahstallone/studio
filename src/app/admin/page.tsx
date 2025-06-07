@@ -3,30 +3,64 @@
 
 import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useExpenses, useBudgets } from '@/contexts/ExpenseContext'; // Now useBudgets is also from ExpenseContext
-import { useMemo, useEffect } from 'react'; // Added useEffect
+import { useExpenses, useBudgets } from '@/contexts/ExpenseContext';
+import { useAuth } from '@/contexts/AuthContext'; // Import useAuth
+import { useMemo, useEffect, useState } from 'react';
 import { RecentTransactionsList } from '@/components/dashboard/RecentTransactionsList';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Activity, TrendingDown, TrendingUp, Target, Tag, CreditCard, BarChart3, Users, ListChecks, Settings, ArrowRight } from 'lucide-react';
-// import { useRouter } from 'next/navigation'; // For potential redirect
+import { Activity, TrendingDown, TrendingUp, Target, Tag, CreditCard, BarChart3, Users, ListChecks, Settings, ArrowRight, Loader2, AlertTriangle } from 'lucide-react';
+// import { db } from '@/lib/firebase'; // For fetching user profile if needed for isAdmin
+// import { doc, getDoc } from 'firebase/firestore';
+// import type { AppUser } from '@/lib/types';
 
-// Placeholder for admin check. In a real app, this would come from an auth context/hook.
-const IS_ADMIN_DEMO = true; 
+// For demo: this would come from custom claims or a roles collection in a real app
+// You could fetch the AppUser profile here and check an `isAdmin` field.
+// const checkIsAdmin = async (userId: string): Promise<boolean> => {
+//   if (!userId) return false;
+//   const userDocRef = doc(db, 'users', userId); // Assuming you have a 'users' collection for profiles
+//   const userDocSnap = await getDoc(userDocRef);
+//   if (userDocSnap.exists()) {
+//     const userData = userDocSnap.data() as AppUser;
+//     return userData.isAdmin === true;
+//   }
+//   return false; 
+// };
+
+// Simplified admin check for now
+const IS_ADMIN_DEMO_FLAG = true; // Set this to false to test the access denied view.
 
 export default function AdminDashboardPage() {
-  // const router = useRouter(); // For potential redirect
-  const { allPlatformExpenses } = useExpenses(); // Use allPlatformExpenses for admin view
-  const { allPlatformBudgets } = useBudgets(); // Use allPlatformBudgets for admin view
+  const { user, loading: authLoading } = useAuth();
+  const { allPlatformExpenses, loadingAllPlatformExpenses } = useExpenses(); 
+  const { allPlatformBudgets, loadingAllPlatformBudgets } = useBudgets(); 
+  
+  const [isAdmin, setIsAdmin] = useState(false); // Placeholder for real admin check
+  const [checkingAdminStatus, setCheckingAdminStatus] = useState(true);
 
   useEffect(() => {
-    if (!IS_ADMIN_DEMO) {
-      console.warn("Access Denied: User is not an admin (demo). This page would be restricted.");
-      // router.push('/'); // Example: redirect non-admins
-      // For now, we'll just log and allow content for demonstration
+    // Simulate admin check. In a real app, this would involve checking claims or a roles DB.
+    // For now, we'll use the IS_ADMIN_DEMO_FLAG if a user is logged in.
+    if (!authLoading) {
+      if (user && IS_ADMIN_DEMO_FLAG) { // User must be logged in AND demo flag true
+        setIsAdmin(true); 
+      } else {
+        setIsAdmin(false);
+      }
+      setCheckingAdminStatus(false);
     }
-  }, []);
-
+    // Example of how you might fetch admin status from a user profile:
+    // const verifyAdmin = async () => {
+    //   if (user?.uid) {
+    //     const adminStatus = await checkIsAdmin(user.uid);
+    //     setIsAdmin(adminStatus);
+    //   } else {
+    //     setIsAdmin(false);
+    //   }
+    //   setCheckingAdminStatus(false);
+    // };
+    // if (!authLoading) verifyAdmin();
+  }, [user, authLoading]);
 
   const totalTransactions = allPlatformExpenses.length;
 
@@ -72,10 +106,9 @@ export default function AdminDashboardPage() {
 
   const topSpendingCategory = spendingByCategory.length > 0 ? spendingByCategory[0] : { category: "N/A", total: 0 };
   
-  // For now, mock user count as it's not implemented
-  // In a real app, this would come from a users collection in Firestore.
-  const mockUserCount = 53; // Kept for display, real count would be dynamic
-
+  // Mock user count is now dynamic from UserList page (though UserList itself is mock)
+  // For a real count, you'd query your 'users' collection in Firestore.
+  // const mockUserCount = 53; 
 
   const managementLinks = [
     { href: '/expenses', label: 'View My Transactions', icon: ListChecks, description: 'Access your personal transactions.' },
@@ -84,18 +117,30 @@ export default function AdminDashboardPage() {
     { href: '/settings', label: 'App Settings', icon: Settings, description: 'Configure application-wide settings.' },
   ];
 
-  if (!IS_ADMIN_DEMO) {
+  if (authLoading || checkingAdminStatus || loadingAllPlatformExpenses || loadingAllPlatformBudgets) {
     return (
       <AppShell>
-        <div className="flex flex-col items-center justify-center h-full">
+        <div className="flex flex-col items-center justify-center h-full py-10">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <p className="mt-4 text-muted-foreground">Loading Admin Dashboard...</p>
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <AppShell>
+        <div className="flex flex-col items-center justify-center h-full py-10">
           <Card className="w-full max-w-md p-8 text-center">
             <CardHeader>
+              <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
               <CardTitle className="text-2xl">Access Denied</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">You do not have permission to view this page.</p>
+              <p className="text-muted-foreground">You do not have permission to view this page. Please log in with an admin account.</p>
               <Button asChild className="mt-6">
-                <Link href="/">Go to Dashboard</Link>
+                <Link href="/">Go to My Dashboard</Link>
               </Button>
             </CardContent>
           </Card>
@@ -111,10 +156,11 @@ export default function AdminDashboardPage() {
           <h1 className="font-headline text-3xl font-semibold text-foreground">
             Admin Dashboard
           </h1>
+          {user && <p className="text-xs text-muted-foreground">Logged in as: {user.email}</p>}
         </div>
         <p className="text-sm text-muted-foreground">
           Platform analytics and management overview.
-          <span className="italic"> (Note: Data reflects combined mock data. Real multi-user backend & advanced analytics would require further Firebase integration.)</span>
+          <span className="italic"> (Note: "Platform" data currently reflects all data in local Firestore cache for expenses_all/budgets_all collections. True multi-user analytics and secure admin data fetching require robust Firebase Rules and potentially Cloud Functions.)</span>
         </p>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -125,7 +171,7 @@ export default function AdminDashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-foreground">{totalTransactions}</div>
-              <p className="text-xs text-muted-foreground">Across all users (mock)</p>
+              <p className="text-xs text-muted-foreground">Across 'expenses_all' collection</p>
             </CardContent>
           </Card>
           <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
@@ -135,7 +181,7 @@ export default function AdminDashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-foreground">${totalExpenseValue.toFixed(2)}</div>
-               <p className="text-xs text-muted-foreground">Sum of all expenses (mock)</p>
+               <p className="text-xs text-muted-foreground">Sum from 'expenses_all'</p>
             </CardContent>
           </Card>
           <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
@@ -145,7 +191,7 @@ export default function AdminDashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-foreground">${totalIncomeValue.toFixed(2)}</div>
-               <p className="text-xs text-muted-foreground">Sum of all income (mock)</p>
+               <p className="text-xs text-muted-foreground">Sum from 'expenses_all'</p>
             </CardContent>
           </Card>
           <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
@@ -154,8 +200,8 @@ export default function AdminDashboardPage() {
               <Users className="h-5 w-5 text-purple-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-foreground">{mockUserCount}</div>
-              <p className="text-xs text-muted-foreground">(Mock data - from user list page)</p>
+              <div className="text-3xl font-bold text-foreground">N/A</div>
+              <p className="text-xs text-muted-foreground">(Requires 'users' collection query)</p>
             </CardContent>
           </Card>
         </div>
@@ -194,7 +240,7 @@ export default function AdminDashboardPage() {
                     <Tag className="h-6 w-6 mr-3 text-purple-500" />
                     Most Common Platform Category
                 </CardTitle>
-                <CardDescription>Expense category with the highest number of transactions (all mock users).</CardDescription>
+                <CardDescription>Expense category with the highest number of transactions (from 'expenses_all').</CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="text-2xl font-semibold text-foreground">{mostCommonCategory.category}</div>
@@ -207,7 +253,7 @@ export default function AdminDashboardPage() {
                     <BarChart3 className="h-6 w-6 mr-3 text-orange-500" />
                     Highest Spending Platform Category
                 </CardTitle>
-                <CardDescription>Expense category with the highest total spending (all mock users).</CardDescription>
+                <CardDescription>Expense category with the highest total spending (from 'expenses_all').</CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="text-2xl font-semibold text-foreground">{topSpendingCategory.category}</div>
@@ -220,18 +266,11 @@ export default function AdminDashboardPage() {
           <CardHeader>
             <CardTitle className="flex items-center text-xl">
               <CreditCard className="h-6 w-6 mr-3 text-primary" />
-              Recent Platform Activity (All Mock Users)
+              Recent Platform Activity (from 'expenses_all')
             </CardTitle>
-             <CardDescription>Latest transactions recorded across the platform.</CardDescription>
+             <CardDescription>Latest transactions recorded across the platform concept collection.</CardDescription>
           </CardHeader>
           <CardContent>
-            {/* The RecentTransactionsList internally uses useExpenses, which is now user-scoped.
-                We need to pass allPlatformExpenses to it for the admin view.
-                Or, create a version of RecentTransactionsList for admin.
-                For now, let's use count=0 to avoid showing user-specific data here if RecentTransactionsList
-                is not modified to accept an explicit list.
-                A better solution would be to make RecentTransactionsList accept an optional 'expenses' prop.
-            */}
             <RecentTransactionsList count={10} expensesData={allPlatformExpenses} />
           </CardContent>
         </Card>
@@ -240,14 +279,14 @@ export default function AdminDashboardPage() {
                 <CardTitle className="flex items-center text-xl">
                     Future Admin Analytics
                 </CardTitle>
-                <CardDescription>Placeholders for more advanced analytics that would require full Firebase integration and backend logic.</CardDescription>
+                <CardDescription>Placeholders for more advanced analytics that would require full Firebase integration and backend logic (e.g., Cloud Functions, secure aggregation).</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2 text-muted-foreground">
                 <p>- Most active users by transaction volume.</p>
                 <p>- Total transaction amounts per client (daily, weekly, monthly).</p>
                 <p>- Collective client transaction statistics (this month, week, day).</p>
                 <p>- Average transactions per hour.</p>
-                <p>- Real-time data streams.</p>
+                <p>- Real-time data streams for key metrics.</p>
             </CardContent>
           </Card>
         

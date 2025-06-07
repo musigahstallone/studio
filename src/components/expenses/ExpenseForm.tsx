@@ -13,21 +13,25 @@ import { ExpenseFormFields } from "./ExpenseFormFields";
 import { PlusCircle, Save } from "lucide-react";
 import { useState, useEffect } from "react";
 
+// Schema now matches the data structure expected by Firestore add/update functions in context
+// id, userId, createdAt, updatedAt are handled by the context
 export const ExpenseFormSchema = z.object({
-  id: z.string().optional(),
+  id: z.string().optional(), // Only present for updates
   type: z.enum(["expense", "income"]),
   description: z.string().min(2, { message: "Description must be at least 2 characters." }),
   amount: z.number().positive({ message: "Amount must be positive." }),
   date: z.string().refine((date) => !isNaN(Date.parse(date)), { message: "Invalid date format." }),
   category: z.string().min(1, { message: "Category is required." }),
   merchant: z.string().optional(),
+  receiptUrl: z.string().url().optional().nullable(), // Add receiptUrl
 });
 
 export type ExpenseFormData = z.infer<typeof ExpenseFormSchema>;
 
 interface ExpenseFormProps {
-  onAddExpense: (expenseData: Omit<Expense, 'id'>) => void;
-  onUpdateExpense: (expense: Expense) => void;
+  // These now expect the full Expense object without system-managed fields
+  onAddExpense: (expenseData: Omit<Expense, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => void;
+  onUpdateExpense: (expense: Expense) => void; // Expects full Expense object for update
   initialData?: Partial<Expense>; 
   formId?: string;
   onSubmissionDone?: () => void; 
@@ -47,13 +51,14 @@ export function ExpenseForm({ onAddExpense, onUpdateExpense, initialData, formId
         path: ["category"],
     })),
     defaultValues: {
-      id: undefined, // Initialize id as undefined
+      id: undefined,
       type: "expense",
       description: "",
       amount: 0,
       date: new Date().toISOString().split("T")[0],
       category: "",
       merchant: "",
+      receiptUrl: null,
     },
   });
 
@@ -66,6 +71,7 @@ export function ExpenseForm({ onAddExpense, onUpdateExpense, initialData, formId
       date: initialData?.date || new Date().toISOString().split("T")[0],
       category: initialData?.category || "",
       merchant: initialData?.merchant || "",
+      receiptUrl: initialData?.receiptUrl || null,
     });
     setFormType(initialData?.type || "expense");
   }, [initialData, form]);
@@ -79,15 +85,16 @@ export function ExpenseForm({ onAddExpense, onUpdateExpense, initialData, formId
   }, [formType, form]);
 
   function onSubmit(values: ExpenseFormData) {
-    if (values.id) { 
+    // Remove id from values if it's not an edit, as Firestore generates it
+    const { id, ...dataForContext } = values;
+
+    if (isEditing && initialData?.id) { 
+      // For update, we need to pass the full initialData structure + form changes
+      // The context's updateExpense expects an object that includes the ID.
       const expenseToUpdate: Expense = {
-        id: values.id,
-        type: values.type,
-        description: values.description,
-        amount: values.amount,
-        date: values.date,
-        category: values.category as any,
-        merchant: values.merchant,
+        ...(initialData as Expense), // Base with original id, userId, timestamps
+        ...dataForContext, // Overlay with form values
+        id: initialData.id, // Ensure ID is present
       };
       onUpdateExpense(expenseToUpdate);
       toast({
@@ -95,23 +102,24 @@ export function ExpenseForm({ onAddExpense, onUpdateExpense, initialData, formId
         description: `${values.description} - $${values.amount.toFixed(2)}`,
       });
     } else { 
-      const { id, ...expenseData } = values; 
-      onAddExpense(expenseData as Omit<Expense, 'id'>);
+      // For add, pass data without id. userId, createdAt, updatedAt are handled by context.
+      onAddExpense(dataForContext as Omit<Expense, 'id' | 'userId' | 'createdAt' | 'updatedAt'>);
       toast({
         title: `${formType === 'expense' ? 'Transaction' : 'Income'} Added`,
         description: `${values.description} - $${values.amount.toFixed(2)}`,
       });
     }
     form.reset({
-        type: "expense", // Reset to default expense type
+        type: "expense",
         description: "",
         amount: 0,
         date: new Date().toISOString().split("T")[0],
         category: "",
         merchant: "",
         id: undefined,
+        receiptUrl: null,
     });
-    setFormType("expense"); // Reset formType state as well
+    setFormType("expense");
     if (onSubmissionDone) {
         onSubmissionDone();
     }
@@ -128,6 +136,8 @@ export function ExpenseForm({ onAddExpense, onUpdateExpense, initialData, formId
                 form.setValue("type", newType);
             }}
         />
+        {/* You might want to add a hidden field for receiptUrl if it's part of the form explicitly */}
+        {/* <FormField control={form.control} name="receiptUrl" render={({ field }) => <Input type="hidden" {...field} />} /> */}
         <Button type="submit" className="w-full">
           {isEditing ? <Save className="mr-2 h-4 w-4" /> : <PlusCircle className="mr-2 h-4 w-4" />}
           {isEditing ? `Save Changes` : `Add Transaction`}
