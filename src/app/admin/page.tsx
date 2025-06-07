@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState, useMemo } from 'react'; // Added useMemo
+import { useEffect, useState, useMemo } from 'react'; 
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { AppShell } from '@/components/layout/AppShell';
@@ -10,28 +10,11 @@ import { useExpenses, useBudgets } from '@/contexts/ExpenseContext';
 import { RecentTransactionsList } from '@/components/dashboard/RecentTransactionsList';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Activity, TrendingDown, TrendingUp, Target, Tag, CreditCard, BarChart3, Users, ListChecks, Settings, ArrowRight, Loader2, AlertTriangle } from 'lucide-react';
-import type { AppUser } from '@/lib/types'; // Ensure AppUser is imported if needed for admin checks
-// For demo: this would come from custom claims or a roles collection in a real app
-// You could fetch the AppUser profile here and check an `isAdmin` field.
-// import { doc, getDoc } from 'firebase/firestore';
-// import { db } from '@/lib/firebase';
+import { Activity, TrendingDown, TrendingUp, Target, Tag, CreditCard, BarChart3, Users, ListChecks, Settings, ArrowRight, Loader2, AlertTriangle, Lock } from 'lucide-react';
+// import type { AppUser } from '@/lib/types'; // No longer directly needed here for admin check
 
-
-// Simplified admin check for now - this logic needs to be robust in a real app (e.g., custom claims)
-// const IS_ADMIN_DEMO_FLAG = true; // Set this to false to test the access denied view for non-admins.
-// For a real app, you'd fetch user profile and check an `isAdmin` field after auth.
-// const checkIsAdmin = async (userId: string): Promise<boolean> => {
-//   if (!userId) return false;
-//   const userDocRef = doc(db, 'users', userId);
-//   const userDocSnap = await getDoc(userDocRef);
-//   if (userDocSnap.exists()) {
-//     const userData = userDocSnap.data() as AppUser;
-//     return userData.isAdmin === true; // Ensure your AppUser type and Firestore doc have 'isAdmin'
-//   }
-//   return false; 
-// };
-
+// Define your admin email or a more robust check here
+const ADMIN_EMAIL = 'admin@example.com'; // Replace with your actual admin email
 
 export default function AdminDashboardPage() {
   const { user, loading: authLoading } = useAuth();
@@ -39,40 +22,29 @@ export default function AdminDashboardPage() {
   const { allPlatformExpenses, loadingAllPlatformExpenses } = useExpenses(); 
   const { allPlatformBudgets, loadingAllPlatformBudgets } = useBudgets(); 
   
-  const [isAdmin, setIsAdmin] = useState(false); 
+  const [isAdminUser, setIsAdminUser] = useState(false); 
   const [checkingAdminStatus, setCheckingAdminStatus] = useState(true);
 
   useEffect(() => {
     if (!authLoading && !user) {
       router.push('/login');
-      return; // Early return if not authenticated
+      return; 
     }
 
     const verifyAdminStatus = async () => {
-      if (user?.uid) {
-        // In a real app, fetch the user's profile from Firestore
-        // and check their 'isAdmin' status.
-        // For this demo, we'll use a hardcoded list or a simple flag.
-        // const adminStatus = await checkIsAdmin(user.uid);
-        // setIsAdmin(adminStatus);
-
-        // For this example, let's assume the first registered user or a specific email is admin.
-        // THIS IS NOT SECURE FOR PRODUCTION. Use Custom Claims or a roles collection.
-        if (user.email === 'admin@example.com' || user.uid === 'YOUR_ADMIN_UID_HERE') { // Replace with actual logic
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-        }
+      if (user) {
+        // Replace with your actual admin checking logic (e.g., custom claims, Firestore role check)
+        setIsAdminUser(user.email === ADMIN_EMAIL);
       } else {
-         setIsAdmin(false);
+         setIsAdminUser(false);
       }
       setCheckingAdminStatus(false);
     };
     
     if (!authLoading && user) {
        verifyAdminStatus();
-    } else if (!authLoading && !user) { // Explicitly set if no user after loading
-       setIsAdmin(false);
+    } else if (!authLoading && !user) { 
+       setIsAdminUser(false);
        setCheckingAdminStatus(false);
     }
 
@@ -91,8 +63,6 @@ export default function AdminDashboardPage() {
       .filter(e => e.type === 'income')
       .reduce((sum, e) => sum + e.amount, 0);
   }, [allPlatformExpenses]);
-
-  // const activeBudgetsCount = allPlatformBudgets.length; // This was unused
 
   const categoryCounts = useMemo(() => {
     const counts: { [key: string]: number } = {};
@@ -123,7 +93,6 @@ export default function AdminDashboardPage() {
   const topSpendingCategory = spendingByCategory.length > 0 ? spendingByCategory[0] : { category: "N/A", total: 0 };
   
   const managementLinks = [
-    // Updated links for admin context if needed, or keep them as is
     { href: '/expenses', label: 'View My Transactions', icon: ListChecks, description: 'Access your personal transactions.' },
     { href: '/budgets', label: 'View My Budgets', icon: Target, description: 'Access your personal budgets.' },
     { href: '/admin/users', label: 'Manage Users', icon: Users, description: 'View platform users.' },
@@ -141,21 +110,27 @@ export default function AdminDashboardPage() {
     );
   }
 
-  if (!isAdmin) {
+  if (!isAdminUser) {
     return (
       <AppShell>
         <div className="flex flex-col items-center justify-center h-full py-10">
-          <Card className="w-full max-w-md p-8 text-center">
+          <Card className="w-full max-w-md p-8 text-center shadow-xl">
             <CardHeader>
-              <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
-              <CardTitle className="text-2xl">Access Denied</CardTitle>
+              <Lock className="h-16 w-16 text-destructive mx-auto mb-6" />
+              <CardTitle className="text-3xl font-headline">Access Denied</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">You do not have permission to view this page.</p>
-              <Button asChild className="mt-6">
+              <p className="text-muted-foreground text-lg mb-6">
+                You do not have the necessary permissions to view this page. 
+                This area is restricted to administrators only.
+              </p>
+              <Button asChild className="w-full sm:w-auto" size="lg">
                 <Link href="/">Go to My Dashboard</Link>
               </Button>
             </CardContent>
+             <CardDescription className="mt-4 text-xs text-muted-foreground">
+                If you believe this is an error, please contact support.
+             </CardDescription>
           </Card>
         </div>
       </AppShell>
@@ -169,11 +144,11 @@ export default function AdminDashboardPage() {
           <h1 className="font-headline text-3xl font-semibold text-foreground">
             Admin Dashboard
           </h1>
-          {user && <p className="text-xs text-muted-foreground">Logged in as: {user.email}</p>}
+          {user && <p className="text-xs text-muted-foreground">Logged in as Admin: {user.email}</p>}
         </div>
         <p className="text-sm text-muted-foreground">
           Platform analytics and management overview.
-          <span className="italic"> (Note: "Platform" data uses Firestore collections `expenses_all` and `budgets_all`. Secure admin data fetching requires robust Firebase Rules and potentially Cloud Functions for true multi-user analytics.)</span>
+          <span className="italic"> (Data from 'expenses_all' & 'budgets_all' collections. Secure admin access is vital.)</span>
         </p>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -184,7 +159,7 @@ export default function AdminDashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-foreground">{totalTransactions}</div>
-              <p className="text-xs text-muted-foreground">From 'expenses_all' collection</p>
+              <p className="text-xs text-muted-foreground">From 'expenses_all'</p>
             </CardContent>
           </Card>
           <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
@@ -213,8 +188,8 @@ export default function AdminDashboardPage() {
               <Users className="h-5 w-5 text-purple-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-foreground">N/A</div>
-              <p className="text-xs text-muted-foreground">(Requires live 'users' collection query)</p>
+              <div className="text-3xl font-bold text-foreground">N/A</div> {/* Update this if user count is fetched */}
+              <p className="text-xs text-muted-foreground">(See 'Manage Users')</p>
             </CardContent>
           </Card>
         </div>

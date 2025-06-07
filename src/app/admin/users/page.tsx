@@ -8,25 +8,21 @@ import { AppShell } from '@/components/layout/AppShell';
 import { UserList } from '@/components/admin/UserList';
 import type { AppUser } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, AlertTriangle } from 'lucide-react';
+import { Loader2, AlertTriangle, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { db } from '@/lib/firebase'; // Import db
-import { collection, getDocs, query, orderBy, Timestamp } from 'firebase/firestore'; // Import Firestore functions
+import { db } from '@/lib/firebase'; 
+import { collection, getDocs, query, orderBy, Timestamp } from 'firebase/firestore';
 
-// Mock data generation function - REMOVED as we will fetch from Firestore
-// const generateMockUsers = (count: number): AppUser[] => { ... };
-
-// Simplified admin check - this should be more robust in production
-// For now, use the same logic as admin/page.tsx or implement checkIsAdmin from Firestore
-// const IS_ADMIN_DEMO_FLAG = true; 
+// Define your admin email or a more robust check here
+const ADMIN_EMAIL = 'admin@example.com'; // Replace with your actual admin email
 
 export default function AdminUsersPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [fetchedUsers, setFetchedUsers] = useState<AppUser[]>([]);
-  const [isLoadingUsers, setIsLoadingUsers] = useState(true); // Renamed for clarity
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
+  const [isAdminUser, setIsAdminUser] = useState(false);
   const [checkingAdminStatus, setCheckingAdminStatus] = useState(true);
 
   useEffect(() => {
@@ -34,17 +30,13 @@ export default function AdminUsersPage() {
       router.push('/login');
       return;
     }
-    // Admin status check (mirroring admin/page.tsx logic for consistency)
+    
     const verifyAdminStatus = async () => {
-      if (user?.uid) {
-        // Example admin check: Replace with your actual logic (e.g., custom claims or Firestore role)
-        if (user.email === 'admin@example.com' || user.uid === 'YOUR_ADMIN_UID_HERE') { 
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-        }
+      if (user) {
+        // Replace with your actual admin checking logic
+        setIsAdminUser(user.email === ADMIN_EMAIL);
       } else {
-         setIsAdmin(false);
+         setIsAdminUser(false);
       }
       setCheckingAdminStatus(false);
     };
@@ -52,42 +44,43 @@ export default function AdminUsersPage() {
     if (!authLoading && user) {
        verifyAdminStatus();
     } else if (!authLoading && !user) {
-       setIsAdmin(false);
+       setIsAdminUser(false);
        setCheckingAdminStatus(false);
     }
   }, [user, authLoading, router]);
 
   useEffect(() => {
-    if (isAdmin && !authLoading) { // Only fetch if admin and auth is resolved
+    if (isAdminUser && !authLoading && !checkingAdminStatus) { 
       const fetchUsers = async () => {
         setIsLoadingUsers(true);
         try {
           const usersCol = collection(db, 'users');
-          const q = query(usersCol, orderBy('joinDate', 'desc')); // Assuming joinDate is a Timestamp
+          // Consider adding isAdmin field to AppUser and sorting/filtering by it if needed
+          const q = query(usersCol, orderBy('joinDate', 'desc')); 
           const userSnapshot = await getDocs(q);
           const userList = userSnapshot.docs.map(doc => {
             const data = doc.data();
             return { 
               uid: doc.id, 
               ...data,
-              // Convert Firestore Timestamp to ISO string for joinDate if necessary
               joinDate: (data.joinDate as Timestamp)?.toDate ? (data.joinDate as Timestamp).toDate().toISOString().split('T')[0] : data.joinDate as string,
+              // isAdmin might be part of the user doc, or determined by claims (more advanced)
+              isAdmin: data.isAdmin === true || data.email === ADMIN_EMAIL, // Example: admin status from doc OR email match
             } as AppUser;
           });
           setFetchedUsers(userList);
         } catch (error) {
           console.error("Error fetching users:", error);
-          setFetchedUsers([]); // Set to empty on error
-          // Optionally, show a toast message
+          setFetchedUsers([]);
         } finally {
           setIsLoadingUsers(false);
         }
       };
       fetchUsers();
-    } else if (!checkingAdminStatus && !authLoading && !isAdmin) {
-        setIsLoadingUsers(false); // Stop loading if not admin
+    } else if (!checkingAdminStatus && !authLoading && !isAdminUser) {
+        setIsLoadingUsers(false); 
     }
-  }, [isAdmin, authLoading, checkingAdminStatus]);
+  }, [isAdminUser, authLoading, checkingAdminStatus]);
 
 
   if (authLoading || checkingAdminStatus) {
@@ -101,21 +94,26 @@ export default function AdminUsersPage() {
     );
   }
 
-  if (!isAdmin) {
+  if (!isAdminUser) {
      return (
       <AppShell>
         <div className="flex flex-col items-center justify-center h-full py-10">
-          <Card className="w-full max-w-md p-8 text-center">
+          <Card className="w-full max-w-md p-8 text-center shadow-xl">
             <CardHeader>
-              <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
-              <CardTitle className="text-2xl">Access Denied</CardTitle>
+              <Lock className="h-16 w-16 text-destructive mx-auto mb-6" />
+              <CardTitle className="text-3xl font-headline">Access Denied</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">You do not have permission to view this page.</p>
-              <Button asChild className="mt-6">
+              <p className="text-muted-foreground text-lg mb-6">
+                You do not have the necessary permissions to view this page.
+              </p>
+              <Button asChild className="w-full sm:w-auto" size="lg">
                 <Link href="/admin">Back to Admin Dashboard</Link>
               </Button>
             </CardContent>
+             <CardDescription className="mt-4 text-xs text-muted-foreground">
+                This section is restricted to administrators.
+             </CardDescription>
           </Card>
         </div>
       </AppShell>
@@ -155,3 +153,4 @@ export default function AdminUsersPage() {
     </AppShell>
   );
 }
+```

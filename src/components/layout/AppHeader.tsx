@@ -2,15 +2,15 @@
 "use client";
 
 import Link from 'next/link';
-import { PiggyBank, Menu, X, ShieldCheck, LogIn, LogOut, UserCircle } from 'lucide-react';
-import { usePathname, useRouter } from 'next/navigation'; // Added useRouter
+import { PiggyBank, Menu, X, ShieldCheck, LogIn, LogOut, UserCircle, Settings as CogIcon } from 'lucide-react'; // Renamed Settings to CogIcon
+import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { AppSidebarNav } from './AppSidebarNav'; 
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useAuth } from '@/contexts/AuthContext'; // Import useAuth
-import { auth } from '@/lib/firebase'; // Import auth for signOut
+import { useAuth } from '@/contexts/AuthContext';
+import { auth } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -22,24 +22,25 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-
-const navLinks = [
-  { href: '/', label: 'Dashboard' },
-  { href: '/expenses', label: 'Expenses' },
-  { href: '/budgets', label: 'Budgets' },
-];
-
-// Admin and Settings links will be conditional or in user menu
-// const adminNavLink = { href: '/admin', label: 'Admin', icon: ShieldCheck };
-// const settingsNavLink = { href: '/settings', label: 'Settings' };
-
+// Define your admin email or a more robust check here
+const ADMIN_EMAIL = 'admin@example.com'; // Replace with your actual admin email
 
 export function AppHeader() {
   const pathname = usePathname();
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
-  const { user, loading } = useAuth(); // Get user and loading state
+  const { user, loading } = useAuth();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      // Replace with your actual admin checking logic (e.g., custom claims, Firestore role check)
+      setIsAdmin(user.email === ADMIN_EMAIL);
+    } else {
+      setIsAdmin(false);
+    }
+  }, [user]);
 
   const handleMobileLinkClick = () => {
     setIsMobileMenuOpen(false);
@@ -48,21 +49,21 @@ export function AppHeader() {
   const handleLogout = async () => {
     try {
       await auth.signOut();
-      router.push('/login'); // Redirect to login after logout
+      router.push('/login'); 
+      setIsMobileMenuOpen(false); // Close menu on logout
     } catch (error) {
       console.error("Logout error:", error);
       // Handle logout error (e.g., display a toast)
     }
   };
   
-  // Prevent rendering auth-dependent parts during initial auth load to avoid flicker/hydration issues
   const [hasMounted, setHasMounted] = useState(false);
   useEffect(() => {
     setHasMounted(true);
   }, []);
 
 
-  if (pathname === '/login') { // Don't render AppHeader on the login page
+  if (pathname === '/login') {
     return null;
   }
 
@@ -78,18 +79,15 @@ export function AppHeader() {
           </Link>
         </div>
 
-        {/* Desktop Navigation - Only shown if user is logged in */}
         {hasMounted && user && (
           <nav className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => (
-              <ButtonLink key={link.href} href={link.href} isActive={pathname === link.href}>
-                {link.label}
-              </ButtonLink>
-            ))}
+            {/* Main nav links can be dynamically generated or kept static if they don't change based on role */}
+            <ButtonLink href="/" isActive={pathname === '/'}>Dashboard</ButtonLink>
+            <ButtonLink href="/expenses" isActive={pathname === '/expenses'}>Transactions</ButtonLink>
+            <ButtonLink href="/budgets" isActive={pathname === '/budgets'}>Budgets</ButtonLink>
           </nav>
         )}
 
-        {/* Auth controls and User Menu */}
         <div className="flex items-center gap-3">
           {hasMounted && !loading && !user && (
             <Button asChild variant="outline" size="sm">
@@ -124,14 +122,13 @@ export function AppHeader() {
                 <DropdownMenuItem asChild>
                   <Link href="/settings"><CogIcon className="mr-2 h-4 w-4" /> Settings</Link>
                 </DropdownMenuItem>
-                {/* Conceptual Admin Link - would check role here */}
-                {/* {IS_ADMIN_DEMO && ( */}
+                {isAdmin && (
                   <DropdownMenuItem asChild>
                     <Link href="/admin"><ShieldCheck className="mr-2 h-4 w-4" /> Admin Panel</Link>
                   </DropdownMenuItem>
-                {/* )} */}
+                )}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:bg-destructive/10 focus:text-destructive">
+                <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer">
                   <LogOut className="mr-2 h-4 w-4" />
                   Logout
                 </DropdownMenuItem>
@@ -139,8 +136,7 @@ export function AppHeader() {
             </DropdownMenu>
           )}
 
-          {/* Mobile Menu Button */}
-          {user && ( // Only show mobile menu if logged in
+          {user && ( 
             <div className="md:hidden">
               <button
                 onClick={() => setIsMobileMenuOpen(true)}
@@ -154,7 +150,6 @@ export function AppHeader() {
         </div>
       </header>
 
-      {/* Mobile Navigation Drawer - Only shown if user is logged in */}
       {isMobile && user && (
         <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
           <SheetContent side="left" className="w-72 p-0 flex flex-col bg-background">
@@ -165,8 +160,7 @@ export function AppHeader() {
               </SheetTitle>
             </SheetHeader>
             <div className="flex-grow overflow-y-auto">
-              {/* Pass user to AppSidebarNav if it needs it for conditional links */}
-              <AppSidebarNav onLinkClick={handleMobileLinkClick} isMobileLayout={true} />
+              <AppSidebarNav onLinkClick={handleMobileLinkClick} isMobileLayout={true} isAdmin={isAdmin} />
             </div>
              <button
                 onClick={() => setIsMobileMenuOpen(false)}
@@ -204,35 +198,5 @@ function ButtonLink({ href, isActive, children }: ButtonLinkProps) {
   );
 }
 
-// Dummy CogIcon, replace with actual Lucide import if needed elsewhere
-function CogIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z" />
-      <path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />
-      <path d="M12 2v2" />
-      <path d="M12 22v-2" />
-      <path d="m17 20.66-1-1.73" />
-      <path d="M11 10.27 7 3.34" />
-      <path d="m20.66 17-1.73-1" />
-      <path d="m3.34 7 1.73 1" />
-      <path d="M14 12h8" />
-      <path d="M2 12h2" />
-      <path d="m20.66 7-1.73 1" />
-      <path d="m3.34 17 1.73-1" />
-      <path d="m17 3.34-1 1.73" />
-      <path d="m11 13.73 4 6.93" />
-    </svg>
-  )
-}
+// CogIcon is now imported from lucide-react as Settings, then renamed.
+// If you have a custom SVG for CogIcon, it's no longer used here unless you re-add it.

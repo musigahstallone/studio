@@ -8,26 +8,28 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
-import { LayoutDashboard, CreditCard, Target, Cog, ShieldCheck } from 'lucide-react'; // Added ShieldCheck
+import { LayoutDashboard, CreditCard, Target, Settings as CogIcon, ShieldCheck } from 'lucide-react'; // Renamed Settings to CogIcon
 import { cn } from '@/lib/utils';
 
-const mainNavItems = [
+const baseNavItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/expenses', label: 'Expenses', icon: CreditCard },
+  { href: '/expenses', label: 'Transactions', icon: CreditCard },
   { href: '/budgets', label: 'Budgets', icon: Target },
-  { href: '/admin', label: 'Admin', icon: ShieldCheck }, // Added Admin link
 ];
 
+const adminNavItem = { href: '/admin', label: 'Admin Panel', icon: ShieldCheck };
+
 const footerNavItems = [
-  { href: '/settings', label: 'Settings', icon: Cog },
+  { href: '/settings', label: 'Settings', icon: CogIcon },
 ];
 
 interface AppSidebarNavProps {
   onLinkClick?: () => void; 
   isMobileLayout?: boolean; 
+  isAdmin?: boolean; // Added isAdmin prop
 }
 
-export function AppSidebarNav({ onLinkClick, isMobileLayout = false }: AppSidebarNavProps) {
+export function AppSidebarNav({ onLinkClick, isMobileLayout = false, isAdmin = false }: AppSidebarNavProps) {
   const pathname = usePathname();
 
   const handleLinkClick = () => {
@@ -35,6 +37,8 @@ export function AppSidebarNav({ onLinkClick, isMobileLayout = false }: AppSideba
       onLinkClick();
     }
   };
+
+  const mainNavItems = isAdmin ? [...baseNavItems, adminNavItem] : baseNavItems;
 
   const renderNavItem = (item: typeof mainNavItems[0]) => (
     <SidebarMenuItem key={item.href} className={isMobileLayout ? "px-2 py-1" : ""}>
