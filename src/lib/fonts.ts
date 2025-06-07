@@ -65,4 +65,4 @@ export const fontPairings: FontPairing[] = [
   },
 ];
 
-export const DEFAULT_FONT_THEME_ID = 'space-grotesk-eb-garamond';
+export const DEFAULT_FONT_THEME_ID = 'work-sans-dm-serif-display';
