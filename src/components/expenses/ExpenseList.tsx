@@ -5,7 +5,8 @@ import type { Expense } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Trash2, Edit3, ArrowDownCircle, ArrowUpCircle, Tag, CalendarDays, Building, ChevronLeft, ChevronRight } from "lucide-react";
 import { Card, CardContent, CardDescription } from "@/components/ui/card";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { format, parseISO } from 'date-fns';
 
 const ITEMS_PER_PAGE = 5;
 
@@ -20,6 +21,21 @@ function ExpenseListItem({ expense, onDeleteExpense, onEditExpense }: ExpenseLis
   const TypeIcon = isIncome ? ArrowUpCircle : ArrowDownCircle;
   const amountColor = isIncome ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
   const iconColor = isIncome ? 'text-green-500' : 'text-red-500';
+  
+  const [formattedDate, setFormattedDate] = useState('');
+
+  useEffect(() => {
+    // Ensure date formatting happens only on client-side to avoid hydration mismatch
+    if (expense.date) {
+      try {
+        // Assuming expense.date is YYYY-MM-DD
+        setFormattedDate(format(parseISO(expense.date), 'PP')); // e.g., Jul 20, 2024
+      } catch (e) {
+        console.error("Error formatting date:", expense.date, e);
+        setFormattedDate(expense.date); // Fallback to original date string if parsing fails
+      }
+    }
+  }, [expense.date]);
 
   return (
     <div className="p-4 border-b hover:bg-muted/50 transition-colors grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4 sm:gap-6 items-center">
@@ -30,7 +46,7 @@ function ExpenseListItem({ expense, onDeleteExpense, onEditExpense }: ExpenseLis
           <p className="font-semibold text-base sm:text-lg text-foreground truncate">{expense.description}</p>
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground mt-1">
             <span className="flex items-center"><Tag className="h-3 w-3 mr-1" />{expense.category}</span>
-            <span className="flex items-center"><CalendarDays className="h-3 w-3 mr-1" />{new Date(expense.date).toLocaleDateString()}</span>
+            <span className="flex items-center"><CalendarDays className="h-3 w-3 mr-1" />{formattedDate || 'Loading date...'}</span>
             {expense.merchant && (
               <span className="flex items-center"><Building className="h-3 w-3 mr-1" />{expense.merchant}</span>
             )}

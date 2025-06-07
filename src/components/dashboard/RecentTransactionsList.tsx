@@ -7,6 +7,8 @@ import { ArrowDownCircle, ArrowUpCircle, Tag, CalendarDays } from "lucide-react"
 import { Card, CardDescription } from "@/components/ui/card";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { useState, useEffect } from "react";
+import { format, parseISO } from 'date-fns';
 
 interface RecentTransactionItemProps {
   expense: Expense;
@@ -18,6 +20,21 @@ function RecentTransactionItem({ expense }: RecentTransactionItemProps) {
   const amountColor = isIncome ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
   const iconColor = isIncome ? 'text-green-500' : 'text-red-500';
 
+  const [formattedDate, setFormattedDate] = useState('');
+
+  useEffect(() => {
+    // Ensure date formatting happens only on client-side to avoid hydration mismatch
+    if (expense.date) {
+       try {
+        // Assuming expense.date is YYYY-MM-DD
+        setFormattedDate(format(parseISO(expense.date), 'PP')); // e.g., Jul 20, 2024
+      } catch (e) {
+        console.error("Error formatting date:", expense.date, e);
+        setFormattedDate(expense.date); // Fallback to original date string
+      }
+    }
+  }, [expense.date]);
+
   return (
     <div className="flex items-center justify-between p-3 border-b last:border-b-0 hover:bg-muted/50 transition-colors">
       <div className="flex items-center gap-3">
@@ -26,7 +43,7 @@ function RecentTransactionItem({ expense }: RecentTransactionItemProps) {
           <p className="font-medium text-sm text-foreground truncate" title={expense.description}>{expense.description}</p>
           <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
             <span className="flex items-center"><Tag className="h-3 w-3 mr-1" />{expense.category}</span>
-            <span className="hidden sm:flex items-center"><CalendarDays className="h-3 w-3 mr-1" />{new Date(expense.date).toLocaleDateString()}</span>
+            <span className="hidden sm:flex items-center"><CalendarDays className="h-3 w-3 mr-1" />{formattedDate || 'Loading date...'}</span>
           </div>
         </div>
       </div>

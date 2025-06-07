@@ -3,9 +3,9 @@
 
 import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { DollarSign, TrendingUp, TrendingDown, ListChecks, PlusCircle, Target } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, ListChecks, Target } from 'lucide-react';
 import { useExpenses } from '@/contexts/ExpenseContext'; 
-import { useBudgets } from '@/contexts/ExpenseContext'; // Corrected import
+import { useBudgets } from '@/contexts/ExpenseContext';
 import { useMemo } from 'react';
 import { RecentTransactionsList } from '@/components/dashboard/RecentTransactionsList';
 import { Button } from '@/components/ui/button';
@@ -32,13 +32,14 @@ export default function DashboardPage() {
   const balance = totalIncome - totalExpenses;
 
   const budgetHighlights = useMemo(() => {
-    // The budgets from useBudgets already have spentAmount calculated
     return budgets 
       .map(budget => ({
         ...budget,
-        progress: budget.amount > 0 ? (budget.spentAmount / budget.amount) * 100 : 0,
+        progress: budget.amount > 0 ? Math.min((budget.spentAmount / budget.amount) * 100, 100) : 0, // Cap progress at 100% for display
+        isOverBudget: budget.spentAmount > budget.amount,
+        percentageSpent: budget.amount > 0 ? (budget.spentAmount / budget.amount) * 100 : 0,
       }))
-      .sort((a, b) => b.progress - a.progress) 
+      .sort((a, b) => b.percentageSpent - a.percentageSpent) // Sort by highest percentage spent first
       .slice(0, 3); 
   }, [budgets]);
 
@@ -49,11 +50,7 @@ export default function DashboardPage() {
           <h1 className="font-headline text-3xl font-semibold text-foreground">
             Welcome Back!
           </h1>
-          <Button asChild className="w-full sm:w-auto">
-            <Link href="/expenses">
-              <PlusCircle className="mr-2 h-4 w-4" /> Add New Transaction
-            </Link>
-          </Button>
+          {/* "Add New Transaction" button removed from here */}
         </div>
 
         <p className="text-lg text-muted-foreground">
@@ -97,26 +94,46 @@ export default function DashboardPage() {
                 <Target className="h-6 w-6 mr-3 text-primary" />
                 Budget Highlights
               </CardTitle>
-              <CardDescription>A quick look at your top budgets.</CardDescription>
+              <CardDescription>Your top budgets by spending progress.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {budgetHighlights.map(budget => (
-                <div key={budget.id}>
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-sm font-medium text-foreground">{budget.name} ({budget.category})</span>
-                    <span className={budget.spentAmount > budget.amount ? "text-xs text-destructive" : "text-xs text-muted-foreground"}>
-                      ${budget.spentAmount.toFixed(2)} / ${budget.amount.toFixed(2)}
-                    </span>
+                <Card key={budget.id} className="flex flex-col">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg">{budget.name}</CardTitle>
+                    <CardDescription>{budget.category}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex-grow space-y-2">
+                    <Progress value={budget.progress} className={`h-2.5 ${budget.isOverBudget ? "[&>div]:bg-destructive" : ""}`} />
+                    <div className="flex justify-between text-sm">
+                      <span className={budget.isOverBudget ? "text-destructive font-medium" : "text-muted-foreground"}>
+                        Spent: ${budget.spentAmount.toFixed(2)}
+                      </span>
+                      <span className="text-muted-foreground">
+                        Budget: ${budget.amount.toFixed(2)}
+                      </span>
+                    </div>
+                    {budget.isOverBudget && (
+                         <p className="text-xs text-destructive text-center">
+                           Over budget by ${(budget.spentAmount - budget.amount).toFixed(2)}!
+                         </p>
+                    )}
+                  </CardContent>
+                  <div className="p-4 pt-0 text-right">
+                     <Button variant="link" asChild size="sm" className="text-xs">
+                        <Link href="/budgets">Manage Budgets</Link>
+                    </Button>
                   </div>
-                  <Progress value={Math.min(budget.progress, 100)} className={`h-2 ${budget.spentAmount > budget.amount ? "[&>div]:bg-destructive" : ""}`} />
-                </div>
+                </Card>
               ))}
-              <div className="mt-4 text-right">
-                 <Button variant="link" asChild size="sm">
+            </CardContent>
+             {budgets.length > 3 && (
+              <div className="p-4 pt-0 text-center">
+                 <Button variant="outline" asChild size="sm">
                     <Link href="/budgets">View All Budgets</Link>
                 </Button>
               </div>
-            </CardContent>
+            )}
           </Card>
         )}
         
@@ -126,6 +143,7 @@ export default function DashboardPage() {
               <ListChecks className="h-6 w-6 mr-3 text-primary" />
               Recent Transactions
             </CardTitle>
+             <CardDescription>Your latest financial movements.</CardDescription>
           </CardHeader>
           <CardContent>
             <RecentTransactionsList count={5} />
