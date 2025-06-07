@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { processReceiptExpense, type ProcessedExpenseData } from "@/actions/aiActions";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Camera, ScanLine, Zap, Maximize, Minimize, RefreshCw, CornerDownLeft } from "lucide-react";
+import { Camera, ScanLine, Zap, Maximize, Minimize, RefreshCw, CornerDownLeft, VideoOff, CameraOff, UploadCloud } from "lucide-react";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface CameraReceiptScanProps {
   onDataExtracted: (data: ProcessedExpenseData) => void;
@@ -15,13 +17,16 @@ interface CameraReceiptScanProps {
 
 export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // For AI processing
   const [extractedData, setExtractedData] = useState<ProcessedExpenseData | null>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
-  const [isCameraInitializing, setIsCameraInitializing] = useState(true);
+  const [isCameraInitializing, setIsCameraInitializing] = useState(false); // Different from isLoading
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const [capturedImageUri, setCapturedImageUri] = useState<string | null>(null);
+  const [showCameraFeed, setShowCameraFeed] = useState(false);
+
   const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(document.createElement('canvas')); 
+  const canvasRef = useRef<HTMLCanvasElement>(() => document.createElement('canvas')); // Lazy init
 
   const stopCameraStream = useCallback(() => {
     if (videoRef.current && videoRef.current.srcObject) {
@@ -29,205 +34,275 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
       stream.getTracks().forEach(track => track.stop());
       videoRef.current.srcObject = null;
     }
+    setShowCameraFeed(false);
   }, []);
 
   const startCameraStream = useCallback(async () => {
     setIsCameraInitializing(true);
-    setHasCameraPermission(null); 
-    setExtractedData(null); // Clear previous extracted data
+    setHasCameraPermission(null);
+    setCapturedImageUri(null);
+    setExtractedData(null);
+
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       setHasCameraPermission(false);
       setIsCameraInitializing(false);
+      setShowCameraFeed(false);
       toast({
         variant: 'destructive',
         title: 'Camera Not Supported',
         description: 'Your browser does not support camera access.',
       });
-      return false;
+      return;
     }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
       setHasCameraPermission(true);
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        // Ensure video plays - useful for some browsers
+        await videoRef.current.play().catch(err => console.error("Video play failed:", err));
       }
-      return true;
+      setShowCameraFeed(true);
     } catch (error) {
       console.error('Error accessing camera:', error);
       setHasCameraPermission(false);
+      setShowCameraFeed(false);
       if (error instanceof Error && error.name === "NotAllowedError") {
-          toast({
-              variant: 'destructive',
-              title: 'Camera Access Denied',
-              description: 'Please enable camera permissions in your browser settings and try again.',
-          });
+        toast({
+          variant: 'destructive',
+          title: 'Camera Access Denied',
+          description: 'Please enable camera permissions in your browser settings and try again.',
+        });
       } else {
-          toast({
-              variant: 'destructive',
-              title: 'Camera Error',
-              description: 'Could not access the camera. Ensure it is not in use by another app.',
-          });
+        toast({
+          variant: 'destructive',
+          title: 'Camera Error',
+          description: 'Could not access the camera. Ensure it is not in use by another app or try a different camera.',
+        });
       }
-      return false;
     } finally {
       setIsCameraInitializing(false);
     }
   }, [toast]);
 
+  // Cleanup stream on unmount
   useEffect(() => {
-    startCameraStream();
     return () => {
       stopCameraStream();
     };
-  }, [startCameraStream, stopCameraStream]);
+  }, [stopCameraStream]);
 
   const handleCapture = async () => {
     if (isFullScreen) {
-      setIsFullScreen(false); 
-      await new Promise(resolve => setTimeout(resolve, 50)); 
+      setIsFullScreen(false);
+      // Allow a brief moment for UI to update out of fullscreen before capture
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
 
-    if (!videoRef.current || !hasCameraPermission) {
-      toast({
-        variant: "destructive",
-        title: "Camera Not Ready",
-        description: "Please ensure camera permission is granted and the video feed is active.",
-      });
+    if (!videoRef.current || !videoRef.current.srcObject) {
+      toast({ variant: "destructive", title: "Camera Not Active", description: "Please start the camera first." });
       return;
     }
-
+    
     const video = videoRef.current;
     if (video.readyState < HTMLMediaElement.HAVE_METADATA || video.videoWidth === 0 || video.videoHeight === 0) {
       toast({ variant: "destructive", title: "Capture Error", description: "Video stream not ready or dimensions are zero."});
       return;
     }
-    
+
     const canvas = canvasRef.current;
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     const context = canvas.getContext('2d');
     if (!context) {
-        toast({ variant: "destructive", title: "Capture Error", description: "Could not get canvas context." });
-        return;
+      toast({ variant: "destructive", title: "Capture Error", description: "Could not get canvas context." });
+      return;
     }
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    
     const photoDataUri = canvas.toDataURL('image/jpeg');
 
+    setCapturedImageUri(photoDataUri);
+    stopCameraStream(); // Stop feed after capture
     setIsLoading(true);
     setExtractedData(null);
+
     try {
       const result = await processReceiptExpense({ photoDataUri });
-      setExtractedData(result);
-      onDataExtracted(result);
-      toast({
-        title: "Data Extracted",
-        description: `${result.description} - Amount: $${result.amount.toFixed(2)}`,
-      });
-    } catch (error) {
-       toast({
-        variant: "destructive",
-        title: "AI Error",
-        description: error instanceof Error ? error.message : "Could not process receipt image.",
-      });
-    } finally {
       setIsLoading(false);
+
+      if (!result || typeof result.amount !== 'number' || result.amount <= 0 || !result.date || !/^\d{4}-\d{2}-\d{2}$/.test(result.date) || !result.category) {
+        toast({
+          variant: "destructive",
+          title: "Extraction Incomplete",
+          description: "AI couldn't extract all necessary details clearly or data is invalid. Please review or re-capture.",
+        });
+        setExtractedData(result); // Store potentially partial data for "Use this data" button, but don't auto-fill main form.
+      } else {
+        setExtractedData(result);
+        onDataExtracted(result); // Pre-fills the main expense form
+        toast({
+          title: "Data Extracted & Ready",
+          description: `Review in form: ${result.merchant || 'N/A'} - $${result.amount.toFixed(2)}`,
+        });
+      }
+    } catch (error) {
+      setIsLoading(false);
+      toast({
+        variant: "destructive",
+        title: "AI Processing Error",
+        description: error instanceof Error ? error.message : "Could not process the receipt image.",
+      });
     }
   };
 
   const handleUseExtractedData = () => {
     if (extractedData) {
-      onDataExtracted(extractedData);
+      // Perform the same validation before calling onDataExtracted
+      if (!extractedData || typeof extractedData.amount !== 'number' || extractedData.amount <= 0 || !extractedData.date || !/^\d{4}-\d{2}-\d{2}$/.test(extractedData.date) || !extractedData.category) {
+         toast({
+          variant: "destructive",
+          title: "Invalid Data",
+          description: "The previously extracted data is incomplete or invalid. Please scan again.",
+        });
+      } else {
+        onDataExtracted(extractedData);
+         toast({
+          title: "Using Previous Data",
+          description: "Form pre-filled with previously extracted details.",
+        });
+      }
     }
   };
 
+  const handlePrimaryAction = () => {
+    if (capturedImageUri && !isLoading) { // "Scan New Receipt"
+      startCameraStream();
+    } else if (showCameraFeed && !capturedImageUri) { // "Capture & Extract"
+      handleCapture();
+    } else if (!showCameraFeed && !capturedImageUri && hasCameraPermission !== false) { // "Start Camera"
+      startCameraStream();
+    } else if (hasCameraPermission === false) { // "Grant Permission & Start"
+        startCameraStream(); // Attempt to re-request
+    }
+  };
+
+  const getPrimaryActionText = () => {
+    if (capturedImageUri && !isLoading) return "Scan New Receipt";
+    if (showCameraFeed && !capturedImageUri) return "Capture & Extract";
+    if (isCameraInitializing) return "Initializing...";
+    if (hasCameraPermission === false) return "Retry Camera Access";
+    return "Start Camera";
+  };
+
+  const isPrimaryActionDisabled = isLoading || isCameraInitializing;
+  
+  const videoContainerClasses = cn(
+    "relative bg-muted rounded-md overflow-hidden shadow-inner group",
+    isFullScreen 
+      ? "fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center" 
+      : "w-full aspect-[4/3] h-64 sm:h-80 md:h-96 lg:h-[450px]" // Increased default height
+  );
+
   return (
     <div className="space-y-4">
-      <div className={cn(
-        "relative bg-muted rounded-md overflow-hidden shadow-inner group",
-        isFullScreen ? "fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center" : "w-full aspect-[4/3] sm:aspect-video md:h-96 lg:h-[500px]"
-      )}>
-        <video 
-            ref={videoRef} 
-            className={cn("object-contain", isFullScreen ? "max-w-full max-h-full" : "w-full h-full" )}
-            autoPlay 
-            playsInline 
-            muted 
-        />
-        { isCameraInitializing && (
-             <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4 bg-background/80">
-                <Camera className="h-12 w-12 text-muted-foreground mb-3 animate-pulse" />
-                <p className="text-muted-foreground">Initializing camera...</p>
-            </div>
+      <div className={videoContainerClasses}>
+        {capturedImageUri ? (
+          <Image src={capturedImageUri} alt="Captured receipt" layout="fill" objectFit="contain" data-ai-hint="receipt photo" />
+        ) : showCameraFeed ? (
+          <video
+            ref={videoRef}
+            className={cn("object-contain", isFullScreen ? "max-w-full max-h-full" : "w-full h-full")}
+            autoPlay
+            playsInline
+            muted
+          />
+        ) : isCameraInitializing ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4 bg-background/80">
+            <Camera className="h-12 w-12 text-muted-foreground mb-3 animate-pulse" />
+            <p className="text-muted-foreground">Initializing camera...</p>
+          </div>
+        ) : hasCameraPermission === false ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4 bg-background/80">
+            <Zap className="h-12 w-12 text-destructive mb-3" />
+            <p className="text-destructive-foreground mb-1">Camera Access Denied</p>
+            <p className="text-xs text-muted-foreground mb-3">Please enable camera permissions in your browser.</p>
+          </div>
+        ) : (
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4 bg-background/80">
+            <CameraOff className="h-12 w-12 text-muted-foreground mb-3" />
+            <p className="text-muted-foreground">Camera is off.</p>
+            <p className="text-xs text-muted-foreground mt-1">Click &quot;Start Camera&quot; below.</p>
+          </div>
         )}
-        { hasCameraPermission === false && !isCameraInitializing && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4 bg-background/80">
-                <Zap className="h-12 w-12 text-destructive mb-3" />
-                <p className="text-destructive-foreground mb-3">Camera Access Denied</p>
-                <Button onClick={startCameraStream} variant="outline" size="sm">
-                    <RefreshCw className="mr-2 h-4 w-4" /> Try Again
-                </Button>
+
+        {isLoading && capturedImageUri && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 z-10">
+            <div role="status" className="text-center">
+                <svg aria-hidden="true" className="inline w-10 h-10 text-gray-200 animate-spin dark:text-gray-600 fill-primary" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor"/>
+                    <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0492C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill"/>
+                </svg>
+                <p className="text-white text-sm mt-2">Analyzing receipt...</p>
             </div>
+          </div>
         )}
-         <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => setIsFullScreen(!isFullScreen)} 
+
+        {(showCameraFeed || capturedImageUri) && ( // Show fullscreen only if camera is active or image shown
+           <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsFullScreen(!isFullScreen)}
             className="absolute top-2 right-2 z-20 bg-black/30 hover:bg-black/50 text-white"
             aria-label={isFullScreen ? "Exit Fullscreen" : "Enter Fullscreen"}
             title={isFullScreen ? "Exit Fullscreen" : "Enter Fullscreen"}
-            >
+          >
             {isFullScreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
-        </Button>
-        {isFullScreen && hasCameraPermission && !isCameraInitializing && (
-             <Button 
-                onClick={handleCapture} 
-                disabled={isLoading} 
-                className="absolute bottom-5 left-1/2 -translate-x-1/2 z-20 bg-primary/80 hover:bg-primary text-primary-foreground px-6 py-3"
-                size="lg"
-                aria-label="Capture and Extract"
-             >
-                <ScanLine className="mr-2 h-5 w-5" /> 
-                {isLoading ? "Processing..." : "Capture"}
-            </Button>
+          </Button>
         )}
       </div>
-      
-      { hasCameraPermission === false && !isCameraInitializing && (
-          <Alert variant="destructive">
-              <Zap className="h-4 w-4" />
-              <AlertTitle>Camera Access Required</AlertTitle>
-              <AlertDescription>
-                  Camera access is denied or not available. Please enable permissions in your browser settings. If the issue persists, ensure your browser supports camera access and no other app is using the camera.
-              </AlertDescription>
-          </Alert>
-      )}
 
-      {!isFullScreen && ( 
+      <div className="mt-4 space-y-2">
         <Button 
-            onClick={handleCapture} 
-            disabled={isLoading || !hasCameraPermission || isCameraInitializing} 
-            className="w-full"
+          onClick={handlePrimaryAction} 
+          disabled={isPrimaryActionDisabled} 
+          className="w-full"
         >
-          <ScanLine className="mr-2 h-4 w-4" /> 
-          {isLoading ? "Processing..." : "Capture & Extract"}
+          {getPrimaryActionText() === "Capture & Extract" && <ScanLine className="mr-2 h-4 w-4" />}
+          {getPrimaryActionText() === "Start Camera" && <Camera className="mr-2 h-4 w-4" />}
+          {getPrimaryActionText() === "Scan New Receipt" && <RefreshCw className="mr-2 h-4 w-4" />}
+          {getPrimaryActionText() === "Retry Camera Access" && <RefreshCw className="mr-2 h-4 w-4" />}
+          {getPrimaryActionText()}
         </Button>
-      )}
+
+        {showCameraFeed && !capturedImageUri && !isLoading && !isCameraInitializing && (
+          <Button 
+            onClick={() => { stopCameraStream();}} 
+            variant="outline" 
+            className="w-full"
+          >
+            <VideoOff className="mr-2 h-4 w-4" /> Stop Camera
+          </Button>
+        )}
+      </div>
 
       {extractedData && (
          <div className="mt-6 rounded-md border bg-muted/50 p-4 text-sm space-y-2">
-          <h4 className="font-semibold mb-1 text-foreground">Previously Extracted:</h4>
+          <h4 className="font-semibold mb-1 text-foreground">Previously Extracted Data:</h4>
           <p><span className="font-medium text-muted-foreground">Desc:</span> {extractedData.description}</p>
           <p><span className="font-medium text-muted-foreground">Merchant:</span> {extractedData.merchant || "N/A"}</p>
           <p><span className="font-medium text-muted-foreground">Amount:</span> ${extractedData.amount.toFixed(2)} ({extractedData.type})</p>
           <p><span className="font-medium text-muted-foreground">Date:</span> {extractedData.date}</p>
           <p><span className="font-medium text-muted-foreground">Category:</span> {extractedData.category}</p>
           <Button onClick={handleUseExtractedData} variant="outline" size="sm" className="w-full mt-2">
-            <CornerDownLeft className="mr-2 h-4 w-4" /> Use This Data Again
+            <CornerDownLeft className="mr-2 h-4 w-4" /> Use This Extracted Data
           </Button>
-          <p className="mt-1 text-xs text-muted-foreground/80 text-center pt-1">This data was used to pre-fill the form.</p>
+          <p className="mt-1 text-xs text-muted-foreground/80 text-center pt-1">This will pre-fill the transaction form.</p>
         </div>
       )}
     </div>
   );
 }
+
+
+    
