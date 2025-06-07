@@ -65,4 +65,4 @@ export const fontPairings: FontPairing[] = [
   },
 ];
 
-export const DEFAULT_FONT_THEME_ID = 'manrope-lora';
+export const DEFAULT_FONT_THEME_ID = 'space-grotesk-eb-garamond';

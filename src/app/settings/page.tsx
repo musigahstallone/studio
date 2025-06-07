@@ -3,7 +3,7 @@
 import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ThemeSwitcher } from '@/components/settings/ThemeSwitcher';
-import { FontSwitcher } from '@/components/settings/FontSwitcher'; // Import the new component
+// import { FontSwitcher } from '@/components/settings/FontSwitcher'; // Font switcher is temporarily disabled
 
 export default function SettingsPage() {
   return (
@@ -23,7 +23,9 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
+        {/* 
         <FontSwitcher /> 
+        */}
 
         {/* Add more settings sections here as needed */}
         {/* 
