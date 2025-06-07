@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useSettings } from "@/contexts/SettingsContext";
-import { supportedCurrencies, type CurrencyCode } from "@/lib/types";
+import { supportedCurrencies, type CurrencyCode, DEFAULT_STORED_CURRENCY } from "@/lib/types"; // Added import
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DollarSign, Euro, HandCoins, Palette } from "lucide-react";
 
