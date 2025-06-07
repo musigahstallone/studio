@@ -13,9 +13,8 @@ import { ExpenseFormFields } from "./ExpenseFormFields";
 import { PlusCircle, Save } from "lucide-react";
 import { useState, useEffect } from "react";
 
-// Schema now includes an optional ID for updates
 export const ExpenseFormSchema = z.object({
-  id: z.string().optional(), // For identifying expense to update
+  id: z.string().optional(),
   type: z.enum(["expense", "income"]),
   description: z.string().min(2, { message: "Description must be at least 2 characters." }),
   amount: z.number().positive({ message: "Amount must be positive." }),
@@ -29,9 +28,9 @@ export type ExpenseFormData = z.infer<typeof ExpenseFormSchema>;
 interface ExpenseFormProps {
   onAddExpense: (expenseData: Omit<Expense, 'id'>) => void;
   onUpdateExpense: (expense: Expense) => void;
-  initialData?: Partial<Expense>; // Can be full Expense for editing, or ProcessedExpenseData for AI
+  initialData?: Partial<Expense>; 
   formId?: string;
-  onSubmissionDone?: () => void; // Callback to clear editing state in parent
+  onSubmissionDone?: () => void; 
 }
 
 export function ExpenseForm({ onAddExpense, onUpdateExpense, initialData, formId = "expense-form", onSubmissionDone }: ExpenseFormProps) {
@@ -48,13 +47,13 @@ export function ExpenseForm({ onAddExpense, onUpdateExpense, initialData, formId
         path: ["category"],
     })),
     defaultValues: {
-      id: initialData?.id || undefined,
-      type: initialData?.type || "expense",
-      description: initialData?.description || "",
-      amount: initialData?.amount || 0,
-      date: initialData?.date || new Date().toISOString().split("T")[0],
-      category: initialData?.category || "",
-      merchant: initialData?.merchant || "",
+      id: undefined, // Initialize id as undefined
+      type: "expense",
+      description: "",
+      amount: 0,
+      date: new Date().toISOString().split("T")[0],
+      category: "",
+      merchant: "",
     },
   });
 
@@ -80,31 +79,31 @@ export function ExpenseForm({ onAddExpense, onUpdateExpense, initialData, formId
   }, [formType, form]);
 
   function onSubmit(values: ExpenseFormData) {
-    if (values.id) { // Update existing expense
+    if (values.id) { 
       const expenseToUpdate: Expense = {
         id: values.id,
         type: values.type,
         description: values.description,
         amount: values.amount,
         date: values.date,
-        category: values.category as any, // Zod refine handles validation
+        category: values.category as any,
         merchant: values.merchant,
       };
       onUpdateExpense(expenseToUpdate);
       toast({
-        title: `${formType === 'expense' ? 'Expense' : 'Income'} Updated`,
+        title: `${formType === 'expense' ? 'Transaction' : 'Income'} Updated`,
         description: `${values.description} - $${values.amount.toFixed(2)}`,
       });
-    } else { // Add new expense
-      const { id, ...expenseData } = values; // Exclude id if present but not for new
+    } else { 
+      const { id, ...expenseData } = values; 
       onAddExpense(expenseData as Omit<Expense, 'id'>);
       toast({
-        title: `${formType === 'expense' ? 'Expense' : 'Income'} Added`,
+        title: `${formType === 'expense' ? 'Transaction' : 'Income'} Added`,
         description: `${values.description} - $${values.amount.toFixed(2)}`,
       });
     }
     form.reset({
-        type: formType,
+        type: "expense", // Reset to default expense type
         description: "",
         amount: 0,
         date: new Date().toISOString().split("T")[0],
@@ -112,6 +111,7 @@ export function ExpenseForm({ onAddExpense, onUpdateExpense, initialData, formId
         merchant: "",
         id: undefined,
     });
+    setFormType("expense"); // Reset formType state as well
     if (onSubmissionDone) {
         onSubmissionDone();
     }
@@ -128,9 +128,9 @@ export function ExpenseForm({ onAddExpense, onUpdateExpense, initialData, formId
                 form.setValue("type", newType);
             }}
         />
-        <Button type="submit" className="w-full sm:w-auto">
+        <Button type="submit" className="w-full">
           {isEditing ? <Save className="mr-2 h-4 w-4" /> : <PlusCircle className="mr-2 h-4 w-4" />}
-          {isEditing ? `Save ${formType}` : `Add ${formType}`}
+          {isEditing ? `Save Changes` : `Add Transaction`}
         </Button>
       </form>
     </Form>
