@@ -1,4 +1,6 @@
 
+import { z } from 'zod';
+
 export type Category =
   | 'Food & Drink'
   | 'Transportation'
@@ -35,6 +37,8 @@ export const allCategories: Category[] = [
   'Groceries',
   'Other',
 ];
+
+export const CategoryEnumSchema = z.enum(allCategories);
 
 export const expenseCategories: Category[] = [
   'Food & Drink',
@@ -73,9 +77,8 @@ export interface Expense {
 
 export interface Budget {
   id: string;
-  name: string; // Added budget name
+  name: string; 
   category: Category;
   amount: number; // Target budget amount
   spentAmount: number; // Actual amount spent in this category for the period
-  // month and year can be added if budgets are periodic
 }

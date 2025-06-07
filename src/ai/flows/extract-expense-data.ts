@@ -11,6 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { CategoryEnumSchema } from '@/lib/types';
 
 const ExtractExpenseDataInputSchema = z.object({
   photoDataUri: z
@@ -25,7 +26,7 @@ const ExtractExpenseDataOutputSchema = z.object({
   merchant: z.string().describe('The name of the merchant.'),
   amount: z.number().describe('The total amount of the transaction.'),
   date: z.string().describe('The date of the transaction in ISO 8601 format (YYYY-MM-DD).'),
-  category: z.string().describe('The budget category of the transaction (e.g., Food & Drink, Shopping).'),
+  category: CategoryEnumSchema.describe('The budget category of the transaction.'),
   type: z.enum(["expense", "income"]).describe('Whether the transaction is an expense or income.'),
   description: z.string().describe('A concise and engaging description of the transaction derived from the receipt (e.g., "Lunch at The Grand Cafe including appetizers and drinks", or "Salary deposit from Acme Corp"). If it is an income type, it should reflect that e.g. "Payment received from [Client/Source]" or "Refund from [Merchant]"'),
 });
@@ -42,7 +43,7 @@ const prompt = ai.definePrompt({
   prompt: `You are an expert financial assistant specializing in extracting information from receipts or financial documents.
 
 You will use the provided image to extract the merchant, total amount, date, budget category, determine if it's an expense or income, and generate a concise, engaging description of the transaction.
-
+The category should be one of the following: ${CategoryEnumSchema.options.join(', ')}.
 Return the date in ISO 8601 format (YYYY-MM-DD). If the date is not clearly visible, assume the current date.
 Based on the items, merchant, and total, classify this as 'expense' or 'income'. For example, a typical store receipt is an 'expense'. If the document indicates money received (e.g. a payment confirmation, a refund slip), classify it as 'income'.
 The description should summarize what was purchased or the nature of the income (e.g., "Groceries from SuperMart including fresh produce and dairy" for an expense, or "Refund for returned item at TechStore" for income).
@@ -65,7 +66,6 @@ const extractExpenseDataFlow = ai.defineFlow(
       output.date = new Date().toISOString().split('T')[0];
     }
     if (!output.type) {
-      // Basic fallback based on common receipt scenarios or if category suggests income
       output.type = (output.category === 'Salary' || (output.merchant && output.merchant.toLowerCase().includes('refund'))) ? 'income' : 'expense';
     }
     if (!output.description) {
@@ -74,4 +74,3 @@ const extractExpenseDataFlow = ai.defineFlow(
     return output;
   }
 );
-

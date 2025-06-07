@@ -27,7 +27,7 @@ import { format } from "date-fns";
 import type { Category } from "@/lib/types";
 import { expenseCategories, incomeCategories } from "@/lib/types";
 import type { z } from "zod";
-import type { ExpenseFormSchema } from "./ExpenseForm"; // Assuming schema is defined here
+import type { ExpenseFormSchema } from "./ExpenseForm"; 
 
 interface ExpenseFormFieldsProps {
   control: Control<z.infer<typeof ExpenseFormSchema>>;
@@ -51,7 +51,7 @@ export function ExpenseFormFields({ control, formType, onFormTypeChange }: Expen
                 field.onChange(value);
                 onFormTypeChange(value as "expense" | "income");
               }}
-              defaultValue={field.value}
+              value={field.value} // Changed from defaultValue
             >
               <FormControl>
                 <SelectTrigger>
@@ -92,11 +92,12 @@ export function ExpenseFormFields({ control, formType, onFormTypeChange }: Expen
               <Input type="number" placeholder="0.00" {...field} 
                 onChange={e => {
                   const val = e.target.value;
-                  const num = parseFloat(val);
-                  if (isNaN(num)) {
-                    field.onChange(val); // Pass the original string if NaN (e.g., "" or "abc")
+                  // Allow empty string for clearing, otherwise parse as float
+                  if (val === "") {
+                    field.onChange(val); 
                   } else {
-                    field.onChange(num); // Pass the parsed number
+                    const num = parseFloat(val);
+                    field.onChange(isNaN(num) ? val : num);
                   }
                 }}
               />
@@ -168,7 +169,10 @@ export function ExpenseFormFields({ control, formType, onFormTypeChange }: Expen
         render={({ field }) => (
           <FormItem>
             <FormLabel>Category</FormLabel>
-            <Select onValueChange={field.onChange} defaultValue={field.value}>
+            <Select 
+              onValueChange={field.onChange} 
+              value={field.value} // Changed from defaultValue
+            >
               <FormControl>
                 <SelectTrigger>
                   <SelectValue placeholder={`Select a ${formType} category`} />

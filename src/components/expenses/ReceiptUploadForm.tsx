@@ -5,11 +5,11 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { FileUpload } from "@/components/shared/FileUpload";
-import { ScanLine } from "lucide-react";
+import { ScanLine, CornerDownLeft } from "lucide-react";
 import { processReceiptExpense, type ProcessedExpenseData } from "@/actions/aiActions";
 
 interface ReceiptUploadFormProps {
-  onDataExtracted: (data: ProcessedExpenseData) => void; // Type is now part of ProcessedExpenseData
+  onDataExtracted: (data: ProcessedExpenseData) => void;
 }
 
 export function ReceiptUploadForm({ onDataExtracted }: ReceiptUploadFormProps) {
@@ -39,7 +39,7 @@ export function ReceiptUploadForm({ onDataExtracted }: ReceiptUploadFormProps) {
     try {
       const result = await processReceiptExpense({ photoDataUri: fileDataUri });
       setExtractedData(result);
-      onDataExtracted(result); // Type is now included in result
+      onDataExtracted(result);
       toast({
         title: "Data Extracted",
         description: `${result.description} - Amount: $${result.amount.toFixed(2)}`,
@@ -55,6 +55,12 @@ export function ReceiptUploadForm({ onDataExtracted }: ReceiptUploadFormProps) {
     }
   }
 
+  const handleUseExtractedData = () => {
+    if (extractedData) {
+      onDataExtracted(extractedData);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <FileUpload onFileChange={handleFileChange} />
@@ -62,18 +68,19 @@ export function ReceiptUploadForm({ onDataExtracted }: ReceiptUploadFormProps) {
         <ScanLine className="mr-2 h-4 w-4" /> {isLoading ? "Processing..." : "Extract Data"}
       </Button>
       {extractedData && (
-         <div className="mt-4 rounded-md border bg-muted/50 p-4 text-sm">
-          <h4 className="font-semibold mb-2 text-foreground">Extracted Data:</h4>
-          <p><span className="font-medium text-muted-foreground">Description:</span> {extractedData.description}</p>
+         <div className="mt-6 rounded-md border bg-muted/50 p-4 text-sm space-y-2">
+          <h4 className="font-semibold mb-1 text-foreground">Previously Extracted:</h4>
+          <p><span className="font-medium text-muted-foreground">Desc:</span> {extractedData.description}</p>
           <p><span className="font-medium text-muted-foreground">Merchant:</span> {extractedData.merchant || "N/A"}</p>
-          <p><span className="font-medium text-muted-foreground">Amount:</span> ${extractedData.amount.toFixed(2)}</p>
+          <p><span className="font-medium text-muted-foreground">Amount:</span> ${extractedData.amount.toFixed(2)} ({extractedData.type})</p>
           <p><span className="font-medium text-muted-foreground">Date:</span> {extractedData.date}</p>
           <p><span className="font-medium text-muted-foreground">Category:</span> {extractedData.category}</p>
-          <p><span className="font-medium text-muted-foreground">Type:</span> {extractedData.type}</p>
-          <p className="mt-3 text-xs text-muted-foreground">This data has been used to pre-fill the manual entry form. Please review and submit.</p>
+          <Button onClick={handleUseExtractedData} variant="outline" size="sm" className="w-full mt-2">
+            <CornerDownLeft className="mr-2 h-4 w-4" /> Use This Data Again
+          </Button>
+          <p className="mt-1 text-xs text-muted-foreground/80 text-center pt-1">This data was used to pre-fill the form.</p>
         </div>
       )}
     </div>
   );
 }
-

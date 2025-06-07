@@ -11,6 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { CategoryEnumSchema } from '@/lib/types';
 
 const CategorizeExpenseInputSchema = z.object({
   description: z
@@ -20,30 +21,11 @@ const CategorizeExpenseInputSchema = z.object({
 
 export type CategorizeExpenseInput = z.infer<typeof CategorizeExpenseInputSchema>;
 
-const CategorySchema = z.enum([
-  'Food & Drink',
-  'Transportation',
-  'Entertainment',
-  'Shopping',
-  'Travel',
-  'Utilities',
-  'Rent',
-  'Salary',
-  'Healthcare',
-  'Education',
-  'Gifts & Donations',
-  'Investments',
-  'Bills & Fees',
-  'Personal Care',
-  'Groceries',
-  'Other',
-]);
-
 const CategorizeExpenseOutputSchema = z.object({
   merchant: z.string().optional().describe('The name of the merchant, if identifiable.'),
   amount: z.number().describe('The amount of the transaction.'),
   date: z.string().describe('The date of the transaction in ISO format (YYYY-MM-DD). If not specified, use the current date.'),
-  category: CategorySchema.describe('The budget category of the transaction.'),
+  category: CategoryEnumSchema.describe('The budget category of the transaction.'),
   type: z.enum(["expense", "income"]).describe('Whether the transaction is an expense or income.'),
 });
 
@@ -68,7 +50,7 @@ const prompt = ai.definePrompt({
   Description: {{{description}}}
 
   Return the data in JSON format.
-  The category should be one of the following: ${CategorySchema.options.join(', ')}.
+  The category should be one of the following: ${CategoryEnumSchema.options.join(', ')}.
   The date should be formatted as YYYY-MM-DD.
   The amount should be a number.
   If a merchant name is clearly identifiable, include it. Otherwise, omit the merchant field or set it to an empty string.
@@ -90,9 +72,8 @@ const categorizeExpenseFlow = ai.defineFlow(
       output.date = new Date().toISOString().split('T')[0];
     }
     if (!output.type) {
-        // Basic fallback if AI misses type, though prompt guides it.
         const descriptionLower = input.description.toLowerCase();
-        if (descriptionLower.includes('salary') || descriptionLower.includes('received') || descriptionLower.includes('deposit')) {
+        if (descriptionLower.includes('salary') || descriptionLower.includes('received') || descriptionLower.includes('deposit') || descriptionLower.includes('income')) {
             output.type = 'income';
         } else {
             output.type = 'expense';
@@ -101,4 +82,3 @@ const categorizeExpenseFlow = ai.defineFlow(
     return output;
   }
 );
-

@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { processReceiptExpense, type ProcessedExpenseData } from "@/actions/aiActions";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Camera, ScanLine, Zap, Maximize, Minimize, RefreshCw } from "lucide-react";
+import { Camera, ScanLine, Zap, Maximize, Minimize, RefreshCw, CornerDownLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CameraReceiptScanProps {
-  onDataExtracted: (data: ProcessedExpenseData) => void; // Type is now part of ProcessedExpenseData
+  onDataExtracted: (data: ProcessedExpenseData) => void;
 }
 
 export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
@@ -34,6 +34,7 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
   const startCameraStream = useCallback(async () => {
     setIsCameraInitializing(true);
     setHasCameraPermission(null); 
+    setExtractedData(null); // Clear previous extracted data
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       setHasCameraPermission(false);
       setIsCameraInitializing(false);
@@ -82,8 +83,7 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
 
   const handleCapture = async () => {
     if (isFullScreen) {
-      setIsFullScreen(false); // Minimize first if in fullscreen
-      // Adding a very brief pause to allow UI to redraw before capturing canvas might be beneficial on some systems
+      setIsFullScreen(false); 
       await new Promise(resolve => setTimeout(resolve, 50)); 
     }
 
@@ -119,7 +119,7 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
     try {
       const result = await processReceiptExpense({ photoDataUri });
       setExtractedData(result);
-      onDataExtracted(result); // Type is now included in result
+      onDataExtracted(result);
       toast({
         title: "Data Extracted",
         description: `${result.description} - Amount: $${result.amount.toFixed(2)}`,
@@ -135,10 +135,16 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
     }
   };
 
+  const handleUseExtractedData = () => {
+    if (extractedData) {
+      onDataExtracted(extractedData);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className={cn(
-        "relative bg-muted rounded-md overflow-hidden shadow-inner group", // Added group for button visibility
+        "relative bg-muted rounded-md overflow-hidden shadow-inner group",
         isFullScreen ? "fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center" : "w-full aspect-[4/3] sm:aspect-video md:h-96 lg:h-[500px]"
       )}>
         <video 
@@ -167,7 +173,7 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
             variant="ghost" 
             size="icon" 
             onClick={() => setIsFullScreen(!isFullScreen)} 
-            className="absolute top-2 right-2 z-20 bg-black/30 hover:bg-black/50 text-white" // z-index increased
+            className="absolute top-2 right-2 z-20 bg-black/30 hover:bg-black/50 text-white"
             aria-label={isFullScreen ? "Exit Fullscreen" : "Enter Fullscreen"}
             title={isFullScreen ? "Exit Fullscreen" : "Enter Fullscreen"}
             >
@@ -197,7 +203,7 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
           </Alert>
       )}
 
-      {!isFullScreen && ( // Only show the main button if not in fullscreen
+      {!isFullScreen && ( 
         <Button 
             onClick={handleCapture} 
             disabled={isLoading || !hasCameraPermission || isCameraInitializing} 
@@ -208,20 +214,20 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
         </Button>
       )}
 
-
       {extractedData && (
-         <div className="mt-4 rounded-md border bg-muted/50 p-4 text-sm">
-          <h4 className="font-semibold mb-2 text-foreground">Extracted Data:</h4>
-          <p><span className="font-medium text-muted-foreground">Description:</span> {extractedData.description}</p>
+         <div className="mt-6 rounded-md border bg-muted/50 p-4 text-sm space-y-2">
+          <h4 className="font-semibold mb-1 text-foreground">Previously Extracted:</h4>
+          <p><span className="font-medium text-muted-foreground">Desc:</span> {extractedData.description}</p>
           <p><span className="font-medium text-muted-foreground">Merchant:</span> {extractedData.merchant || "N/A"}</p>
-          <p><span className="font-medium text-muted-foreground">Amount:</span> ${extractedData.amount.toFixed(2)}</p>
+          <p><span className="font-medium text-muted-foreground">Amount:</span> ${extractedData.amount.toFixed(2)} ({extractedData.type})</p>
           <p><span className="font-medium text-muted-foreground">Date:</span> {extractedData.date}</p>
           <p><span className="font-medium text-muted-foreground">Category:</span> {extractedData.category}</p>
-          <p><span className="font-medium text-muted-foreground">Type:</span> {extractedData.type}</p>
-          <p className="mt-3 text-xs text-muted-foreground">This data has been used to pre-fill the manual entry form. Please review and submit.</p>
+          <Button onClick={handleUseExtractedData} variant="outline" size="sm" className="w-full mt-2">
+            <CornerDownLeft className="mr-2 h-4 w-4" /> Use This Data Again
+          </Button>
+          <p className="mt-1 text-xs text-muted-foreground/80 text-center pt-1">This data was used to pre-fill the form.</p>
         </div>
       )}
     </div>
   );
 }
-
