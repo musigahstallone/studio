@@ -117,7 +117,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             {chartData.length > 0 ? (
-               <ChartContainer config={chartConfigBase} className="h-[300px] w-full">
+               <ChartContainer config={chartConfigBase} className="min-h-[250px] h-[300px] w-full">
                 <BarChart data={chartData} accessibilityLayer>
                   <CartesianGrid vertical={false} />
                   <XAxis
