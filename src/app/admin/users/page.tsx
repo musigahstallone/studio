@@ -14,58 +14,50 @@ import { Button } from '@/components/ui/button';
 import { db } from '@/lib/firebase'; 
 import { collection, getDocs, query, orderBy, Timestamp } from 'firebase/firestore';
 
-// Define your admin email or a more robust check here
-const ADMIN_EMAIL = 'admin@example.com'; // Replace with your actual admin email
 
 export default function AdminUsersPage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, isAdminUser, loading: authLoading } = useAuth(); // Use isAdminUser
   const router = useRouter();
   const [fetchedUsers, setFetchedUsers] = useState<AppUser[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
-  const [isAdminUser, setIsAdminUser] = useState(false);
-  const [checkingAdminStatus, setCheckingAdminStatus] = useState(true);
 
   useEffect(() => {
      if (!authLoading && !user) {
       router.push('/login');
       return;
     }
-    
-    const verifyAdminStatus = async () => {
-      if (user) {
-        // Replace with your actual admin checking logic
-        setIsAdminUser(user.email === ADMIN_EMAIL);
-      } else {
-         setIsAdminUser(false);
-      }
-      setCheckingAdminStatus(false);
-    };
-    
-    if (!authLoading && user) {
-       verifyAdminStatus();
-    } else if (!authLoading && !user) {
-       setIsAdminUser(false);
-       setCheckingAdminStatus(false);
+    // If auth has loaded, user is present, but not an admin
+    if (!authLoading && user && !isAdminUser) {
+      // Let the UI below handle "Access Denied"
     }
-  }, [user, authLoading, router]);
+  }, [user, isAdminUser, authLoading, router]);
 
   useEffect(() => {
-    if (isAdminUser && !authLoading && !checkingAdminStatus) { 
+    // Fetch users only if auth has loaded and the current user is an admin
+    if (!authLoading && isAdminUser) { 
       const fetchUsers = async () => {
         setIsLoadingUsers(true);
         try {
           const usersCol = collection(db, 'users');
-          // Consider adding isAdmin field to AppUser and sorting/filtering by it if needed
           const q = query(usersCol, orderBy('joinDate', 'desc')); 
           const userSnapshot = await getDocs(q);
           const userList = userSnapshot.docs.map(doc => {
             const data = doc.data();
+            // Convert Firestore Timestamp to ISO string for joinDate
+            let joinDateStr: string | undefined = undefined;
+            if (data.joinDate && (data.joinDate as Timestamp).toDate) {
+                joinDateStr = (data.joinDate as Timestamp).toDate().toISOString().split('T')[0];
+            } else if (typeof data.joinDate === 'string') {
+                joinDateStr = data.joinDate;
+            }
+
             return { 
               uid: doc.id, 
-              ...data,
-              joinDate: (data.joinDate as Timestamp)?.toDate ? (data.joinDate as Timestamp).toDate().toISOString().split('T')[0] : data.joinDate as string,
-              // isAdmin might be part of the user doc, or determined by claims (more advanced)
-              isAdmin: data.isAdmin === true || data.email === ADMIN_EMAIL, // Example: admin status from doc OR email match
+              name: data.name,
+              email: data.email,
+              photoURL: data.photoURL,
+              joinDate: joinDateStr,
+              isAdmin: data.isAdmin === true, // Directly use the isAdmin field
             } as AppUser;
           });
           setFetchedUsers(userList);
@@ -77,13 +69,13 @@ export default function AdminUsersPage() {
         }
       };
       fetchUsers();
-    } else if (!checkingAdminStatus && !authLoading && !isAdminUser) {
+    } else if (!authLoading && !isAdminUser) { // If not admin after loading, stop loading users
         setIsLoadingUsers(false); 
     }
-  }, [isAdminUser, authLoading, checkingAdminStatus]);
+  }, [isAdminUser, authLoading]);
 
 
-  if (authLoading || checkingAdminStatus) {
+  if (authLoading) { // Only show main loader if auth is loading
     return (
       <AppShell>
         <div className="flex flex-col items-center justify-center h-full py-10">
@@ -94,7 +86,8 @@ export default function AdminUsersPage() {
     );
   }
 
-  if (!isAdminUser) {
+  // After auth loading, if not admin, show access denied
+  if (!isAdminUser) { 
      return (
       <AppShell>
         <div className="flex flex-col items-center justify-center h-full py-10">
@@ -137,7 +130,7 @@ export default function AdminUsersPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {isLoadingUsers ? (
+            {isLoadingUsers ? ( // This loader is specific to fetching users
               <div className="flex justify-center py-4">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 <p className="ml-3 text-muted-foreground">Loading users...</p>
@@ -153,4 +146,3 @@ export default function AdminUsersPage() {
     </AppShell>
   );
 }
-```

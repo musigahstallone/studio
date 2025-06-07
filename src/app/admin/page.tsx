@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { AppShell } from '@/components/layout/AppShell';
@@ -13,42 +13,32 @@ import { Button } from '@/components/ui/button';
 import { Activity, TrendingDown, TrendingUp, Target, Tag, CreditCard, BarChart3, Users, ListChecks, Settings, ArrowRight, Loader2, Lock } from 'lucide-react';
 import { useSettings } from '@/contexts/SettingsContext';
 import { formatCurrency } from '@/lib/utils';
+import { useMemo } from 'react';
 
-const ADMIN_EMAIL = 'admin@example.com';
 
 export default function AdminDashboardPage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, isAdminUser, loading: authLoading } = useAuth(); // Use isAdminUser from AuthContext
   const router = useRouter();
   const { allPlatformExpenses, loadingAllPlatformExpenses } = useExpenses();
-  const { allPlatformBudgets, loadingAllPlatformBudgets } = useBudgets(); // Budgets not directly used on this page but good to have if needed
+  const { allPlatformBudgets, loadingAllPlatformBudgets } = useBudgets(); 
   const { currency, isMounted: settingsMounted } = useSettings();
 
-  const [isAdminUser, setIsAdminUser] = useState(false);
-  const [checkingAdminStatus, setCheckingAdminStatus] = useState(true);
 
   useEffect(() => {
     if (!authLoading && !user) {
       router.push('/login');
       return;
     }
-
-    const verifyAdminStatus = async () => {
-      if (user) {
-        setIsAdminUser(user.email === ADMIN_EMAIL);
-      } else {
-         setIsAdminUser(false);
-      }
-      setCheckingAdminStatus(false);
-    };
-
-    if (!authLoading && user) {
-       verifyAdminStatus();
-    } else if (!authLoading && !user) {
-       setIsAdminUser(false);
-       setCheckingAdminStatus(false);
+    // If auth has loaded, and user is present but not an admin, redirect them or show access denied.
+    // The !isAdminUser check is crucial here.
+    if (!authLoading && user && !isAdminUser) {
+      // Option 1: Redirect to home if preferred
+      // router.push('/'); 
+      // Option 2: Let the UI below handle "Access Denied" rendering
+      // No explicit redirect here, the component will render the access denied message.
     }
 
-  }, [user, authLoading, router]);
+  }, [user, isAdminUser, authLoading, router]);
 
   const totalTransactions = allPlatformExpenses.length;
 
@@ -99,7 +89,7 @@ export default function AdminDashboardPage() {
     { href: '/settings', label: 'App Settings', icon: Settings, description: 'Configure application-wide settings.' },
   ];
 
-  if (authLoading || checkingAdminStatus || loadingAllPlatformExpenses || loadingAllPlatformBudgets || !settingsMounted) {
+  if (authLoading || loadingAllPlatformExpenses || loadingAllPlatformBudgets || !settingsMounted) {
     return (
       <AppShell>
         <div className="flex flex-col items-center justify-center h-full py-10">
@@ -110,6 +100,7 @@ export default function AdminDashboardPage() {
     );
   }
 
+  // This check is after loading, ensuring isAdminUser has been determined.
   if (!isAdminUser) {
     return (
       <AppShell>
@@ -129,13 +120,14 @@ export default function AdminDashboardPage() {
               </Button>
             </CardContent>
              <CardDescription className="mt-4 text-xs text-muted-foreground">
-                If you believe this is an error, please contact support.
+                If you believe this is an error, please contact support or ensure your account has admin privileges.
              </CardDescription>
           </Card>
         </div>
       </AppShell>
     );
   }
+
 
   return (
     <AppShell>
@@ -148,7 +140,6 @@ export default function AdminDashboardPage() {
         </div>
         <p className="text-sm text-muted-foreground">
           Platform analytics (all amounts in {currency}) and management overview.
-          <span className="italic"> (Data from 'expenses_all' & 'budgets_all' collections. Secure admin access is vital.)</span>
         </p>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -188,7 +179,8 @@ export default function AdminDashboardPage() {
               <Users className="h-5 w-5 text-purple-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-foreground">N/A</div> {/* Update this if user count is fetched */}
+              {/* User count would require fetching all users, can be added if UserList source is adapted */}
+              <div className="text-3xl font-bold text-foreground">N/A</div>
               <p className="text-xs text-muted-foreground">(See 'Manage Users')</p>
             </CardContent>
           </Card>

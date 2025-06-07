@@ -97,8 +97,8 @@ export interface AppUser {
   name?: string | null;
   email?: string | null;
   photoURL?: string | null;
-  joinDate?: string;
-  isAdmin?: boolean; // This would ideally come from custom claims or a roles collection
+  joinDate?: string; // ISO string date
+  isAdmin?: boolean; // Added for RBAC
   // For mock data consistency on admin page if needed, but ideally fetched
   transactionCount?: number;
   totalSpent?: number;

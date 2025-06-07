@@ -8,8 +8,9 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
-import { LayoutDashboard, CreditCard, Target, Settings as CogIcon, ShieldCheck } from 'lucide-react'; // Renamed Settings to CogIcon
+import { LayoutDashboard, CreditCard, Target, Settings as CogIcon, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
+// No longer need to import useAuth directly here if isAdmin is passed as a prop
 
 const baseNavItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -26,7 +27,7 @@ const footerNavItems = [
 interface AppSidebarNavProps {
   onLinkClick?: () => void; 
   isMobileLayout?: boolean; 
-  isAdmin?: boolean; // Added isAdmin prop
+  isAdmin: boolean; // Changed from isAdmin?: boolean to isAdmin: boolean
 }
 
 export function AppSidebarNav({ onLinkClick, isMobileLayout = false, isAdmin = false }: AppSidebarNavProps) {

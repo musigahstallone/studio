@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { PiggyBank, Menu, X, ShieldCheck, LogIn, LogOut, UserCircle, Settings as CogIcon } from 'lucide-react'; // Renamed Settings to CogIcon
+import { PiggyBank, Menu, X, ShieldCheck, LogIn, LogOut, UserCircle, Settings as CogIcon } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -22,25 +22,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-// Define your admin email or a more robust check here
-const ADMIN_EMAIL = 'admin@example.com'; // Replace with your actual admin email
 
 export function AppHeader() {
   const pathname = usePathname();
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
-  const { user, loading } = useAuth();
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  useEffect(() => {
-    if (user) {
-      // Replace with your actual admin checking logic (e.g., custom claims, Firestore role check)
-      setIsAdmin(user.email === ADMIN_EMAIL);
-    } else {
-      setIsAdmin(false);
-    }
-  }, [user]);
+  const { user, appUser, isAdminUser, loading } = useAuth(); // Use isAdminUser from AuthContext
 
   const handleMobileLinkClick = () => {
     setIsMobileMenuOpen(false);
@@ -50,10 +38,9 @@ export function AppHeader() {
     try {
       await auth.signOut();
       router.push('/login'); 
-      setIsMobileMenuOpen(false); // Close menu on logout
+      setIsMobileMenuOpen(false); 
     } catch (error) {
       console.error("Logout error:", error);
-      // Handle logout error (e.g., display a toast)
     }
   };
   
@@ -81,7 +68,6 @@ export function AppHeader() {
 
         {hasMounted && user && (
           <nav className="hidden md:flex items-center gap-1">
-            {/* Main nav links can be dynamically generated or kept static if they don't change based on role */}
             <ButtonLink href="/" isActive={pathname === '/'}>Dashboard</ButtonLink>
             <ButtonLink href="/expenses" isActive={pathname === '/expenses'}>Transactions</ButtonLink>
             <ButtonLink href="/budgets" isActive={pathname === '/budgets'}>Budgets</ButtonLink>
@@ -97,14 +83,14 @@ export function AppHeader() {
             </Button>
           )}
 
-          {hasMounted && user && (
+          {hasMounted && user && appUser && ( // Ensure appUser is loaded
              <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
                   <Avatar className="h-9 w-9 border">
-                    <AvatarImage src={user.photoURL || undefined} alt={user.displayName || user.email || 'User'} data-ai-hint="user avatar" />
+                    <AvatarImage src={appUser.photoURL || user.photoURL || undefined} alt={appUser.name || user.displayName || user.email || 'User'} data-ai-hint="user avatar" />
                     <AvatarFallback>
-                      {user.email ? user.email.charAt(0).toUpperCase() : <UserCircle className="h-5 w-5" />}
+                      {appUser.email ? appUser.email.charAt(0).toUpperCase() : <UserCircle className="h-5 w-5" />}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
@@ -112,9 +98,9 @@ export function AppHeader() {
               <DropdownMenuContent className="w-56" align="end" forceMount>
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">{user.displayName || user.email?.split('@')[0]}</p>
+                    <p className="text-sm font-medium leading-none">{appUser.name || user.displayName || user.email?.split('@')[0]}</p>
                     <p className="text-xs leading-none text-muted-foreground">
-                      {user.email}
+                      {appUser.email || user.email}
                     </p>
                   </div>
                 </DropdownMenuLabel>
@@ -122,7 +108,7 @@ export function AppHeader() {
                 <DropdownMenuItem asChild>
                   <Link href="/settings"><CogIcon className="mr-2 h-4 w-4" /> Settings</Link>
                 </DropdownMenuItem>
-                {isAdmin && (
+                {isAdminUser && ( // Use isAdminUser from context
                   <DropdownMenuItem asChild>
                     <Link href="/admin"><ShieldCheck className="mr-2 h-4 w-4" /> Admin Panel</Link>
                   </DropdownMenuItem>
@@ -160,7 +146,7 @@ export function AppHeader() {
               </SheetTitle>
             </SheetHeader>
             <div className="flex-grow overflow-y-auto">
-              <AppSidebarNav onLinkClick={handleMobileLinkClick} isMobileLayout={true} isAdmin={isAdmin} />
+              <AppSidebarNav onLinkClick={handleMobileLinkClick} isMobileLayout={true} isAdmin={isAdminUser} />
             </div>
              <button
                 onClick={() => setIsMobileMenuOpen(false)}
@@ -197,6 +183,3 @@ function ButtonLink({ href, isActive, children }: ButtonLinkProps) {
     </Link>
   );
 }
-
-// CogIcon is now imported from lucide-react as Settings, then renamed.
-// If you have a custom SVG for CogIcon, it's no longer used here unless you re-add it.

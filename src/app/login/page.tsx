@@ -9,7 +9,7 @@ import {
   signInWithEmailAndPassword,
   sendPasswordResetEmail
 } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -92,10 +92,10 @@ export default function LoginPage() {
         await setDoc(userDocRef, {
           uid: user.uid,
           email: user.email,
-          name: user.email?.split('@')[0] || 'New User',
-          photoURL: null,
-          joinDate: serverTimestamp(),
-          isAdmin: false,
+          name: user.email?.split('@')[0] || 'New User', // Default name
+          photoURL: user.photoURL, // Can be null
+          joinDate: Timestamp.fromDate(new Date()), // Use Firestore Timestamp
+          isAdmin: false, // Default role
         });
       }
       toast({
@@ -205,7 +205,6 @@ export default function LoginPage() {
                   onClick={() => {
                     setAuthMode('signup');
                     setError(null);
-                    // Clear password fields when switching forms
                     setPassword(''); 
                     setConfirmPassword('');
                   }}
