@@ -1,3 +1,4 @@
+
 "use client";
 
 import { AppShell } from '@/components/layout/AppShell';
@@ -10,52 +11,50 @@ import { useState, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { ProcessedExpenseData } from '@/actions/aiActions';
-import { ScrollArea } from '@/components/ui/scroll-area';
-
-// Mock initial data
-const initialExpenses: Expense[] = [
-  { id: '1', type: 'expense', description: 'Coffee Meeting', amount: 12.50, date: '2024-07-15', category: 'Food & Drink', merchant: 'Cafe Mocha' },
-  { id: '2', type: 'income', description: 'July Salary', amount: 2500, date: '2024-07-01', category: 'Salary' },
-];
+import { useExpenses } from '@/contexts/ExpenseContext'; // Import useExpenses
 
 export default function ExpensesPage() {
-  const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
-  const [editingExpense, setEditingExpense] = useState<ProcessedExpenseData & { type: "expense" | "income"} | undefined>(undefined);
-  const [activeTab, setActiveTab] = useState("manual"); // To switch focus to manual form after AI extraction
+  const { expenses, addExpense, deleteExpense, updateExpense } = useExpenses(); // Use context
+  const [editingExpense, setEditingExpense] = useState<Partial<Expense> | undefined>(undefined);
+  const [activeTab, setActiveTab] = useState("manual");
 
-  const addExpense = (expense: Expense) => {
-    setExpenses(prev => [expense, ...prev]);
-    setEditingExpense(undefined); // Clear any pre-filled data
-    setActiveTab("manual"); // Switch to manual tab or ensure it's visible
+  const handleAddOrUpdateExpense = (expenseData: Omit<Expense, 'id'>) => {
+    addExpense(expenseData);
+    setEditingExpense(undefined); 
+    setActiveTab("manual"); 
   };
 
-  const deleteExpense = (id: string) => {
-    setExpenses(prev => prev.filter(e => e.id !== id));
+  const handleUpdateExistingExpense = (expense: Expense) => {
+    updateExpense(expense);
+    setEditingExpense(undefined);
+    setActiveTab("manual");
   };
   
   const handleEditExpense = (expenseToEdit: Expense) => {
-    // For now, this will pre-fill the form for re-adding. True edit would update existing.
-    setEditingExpense({
-      description: expenseToEdit.description,
-      amount: expenseToEdit.amount,
-      date: expenseToEdit.date,
-      category: expenseToEdit.category,
-      merchant: expenseToEdit.merchant,
-      type: expenseToEdit.type,
-    });
-    setActiveTab("manual"); // Switch to manual form
-    // Scroll to form or ensure it's visible
+    setEditingExpense(expenseToEdit); // Pass full expense with ID
+    setActiveTab("manual"); 
     document.getElementById('manual-expense-form')?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const handleDataExtracted = useCallback((data: ProcessedExpenseData & { type: "expense" | "income" }) => {
-    setEditingExpense(data);
+    // AI extracted data doesn't have an ID yet, so it's for a new entry
+    setEditingExpense({ 
+        description: data.description,
+        amount: data.amount,
+        date: data.date,
+        category: data.category,
+        merchant: data.merchant,
+        type: data.type
+    });
     setActiveTab("manual");
-    // Ensure the manual form is visible and scrolled into view
     setTimeout(() => {
         document.getElementById('manual-expense-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 100);
   }, []);
+
+  const handleFormSubmissionDone = () => {
+    setEditingExpense(undefined); // Clear editing state after form submission
+  };
 
   return (
     <AppShell>
@@ -72,10 +71,16 @@ export default function ExpensesPage() {
           <TabsContent value="manual">
             <Card id="manual-expense-form">
               <CardHeader>
-                <CardTitle>Manual Transaction Entry</CardTitle>
+                <CardTitle>{editingExpense?.id ? "Edit Transaction" : "Manual Transaction Entry"}</CardTitle>
               </CardHeader>
               <CardContent>
-                <ExpenseForm onAddExpense={addExpense} initialData={editingExpense} formId="manual-expense-entry-form"/>
+                <ExpenseForm 
+                    onAddExpense={handleAddOrUpdateExpense} 
+                    onUpdateExpense={handleUpdateExistingExpense}
+                    initialData={editingExpense} 
+                    formId="manual-expense-entry-form"
+                    onSubmissionDone={handleFormSubmissionDone}
+                />
               </CardContent>
             </Card>
           </TabsContent>

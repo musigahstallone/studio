@@ -1,53 +1,68 @@
+
 "use client";
 
 import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DollarSign, TrendingUp, TrendingDown, Filter } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip as RechartsTooltip } from 'recharts';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart'; // ChartTooltip is implicitly used by ChartTooltipContent
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { Expense } from '@/lib/types';
+import { useExpenses } from '@/contexts/ExpenseContext'; // Import useExpenses
+import { useState, useMemo } from 'react';
+import type { Category } from '@/lib/types';
 
-// Mock data for demonstration
-const mockExpenses: Expense[] = [
-  { id: '1', description: 'Groceries', amount: 75.50, date: '2024-07-15', category: 'Groceries', type: 'expense', merchant: 'SuperMart' },
-  { id: '2', description: 'Salary July', amount: 3000, date: '2024-07-01', category: 'Salary', type: 'income' },
-  { id: '3', description: 'Dinner with friends', amount: 45.00, date: '2024-07-10', category: 'Food & Drink', type: 'expense', merchant: 'The Italian Place' },
-  { id: '4', description: 'Gasoline', amount: 50.00, date: '2024-07-05', category: 'Transportation', type: 'expense', merchant: 'Gas Station' },
-  { id: '5', description: 'Movie tickets', amount: 25.00, date: '2024-07-12', category: 'Entertainment', type: 'expense', merchant: 'Cineplex' },
-  { id: '6', description: 'Freelance Project', amount: 500, date: '2024-07-20', category: 'Salary', type: 'income' },
-];
 
-const chartConfig = {
-  expenses: {
-    label: "Expenses",
-    color: "hsl(var(--destructive))",
+const chartConfigBase = {
+  total: { // This key will be used for the Bar's dataKey
+    label: "Total Expenses",
+    color: "hsl(var(--destructive))", // Or use a chart-specific color like var(--chart-1)
   },
-  income: {
-    label: "Income",
-    color: "hsl(var(--chart-2))",
-  },
+  // You can add more configurations if your chart has multiple series
 };
 
+
 export default function DashboardPage() {
-  const totalIncome = mockExpenses
+  const { expenses } = useExpenses(); // Use expenses from context
+  const [selectedCategory, setSelectedCategory] = useState<Category | 'all'>('all');
+
+  const filteredExpenses = useMemo(() => {
+    if (selectedCategory === 'all') {
+      return expenses;
+    }
+    return expenses.filter(e => e.category === selectedCategory);
+  }, [expenses, selectedCategory]);
+
+  const totalIncome = filteredExpenses
     .filter(e => e.type === 'income')
     .reduce((sum, e) => sum + e.amount, 0);
-  const totalExpenses = mockExpenses
+  const totalExpenses = filteredExpenses
     .filter(e => e.type === 'expense')
     .reduce((sum, e) => sum + e.amount, 0);
   const balance = totalIncome - totalExpenses;
 
-  const expenseByCategory = mockExpenses
-    .filter(e => e.type === 'expense')
-    .reduce((acc, e) => {
-      acc[e.category] = (acc[e.category] || 0) + e.amount;
-      return acc;
-    }, {} as Record<string, number>);
+  const expenseByCategory = useMemo(() => {
+    // Use all expenses for category list, but filteredExpenses for chart data if needed (or stick to all for breakdown)
+    return expenses 
+      .filter(e => e.type === 'expense')
+      .reduce((acc, e) => {
+        acc[e.category] = (acc[e.category] || 0) + e.amount;
+        return acc;
+      }, {} as Record<string, number>);
+  }, [expenses]);
 
-  const chartData = Object.entries(expenseByCategory)
-    .map(([category, total]) => ({ category, total: Number(total.toFixed(2)) }))
-    .sort((a, b) => b.total - a.total);
+  const chartData = useMemo(() => {
+    const source = selectedCategory === 'all' ? expenseByCategory : 
+        { [selectedCategory]: filteredExpenses.filter(e=>e.type === 'expense').reduce((sum, e) => sum + e.amount, 0) };
+    
+    return Object.entries(source)
+      .map(([category, total]) => ({ category, total: Number(total.toFixed(2)) }))
+      .filter(item => item.total > 0) // Only show categories with expenses
+      .sort((a, b) => b.total - a.total);
+  }, [expenseByCategory, selectedCategory, filteredExpenses]);
+  
+  const uniqueCategories = useMemo(() => {
+    return Array.from(new Set(expenses.filter(e => e.type === 'expense').map(e => e.category))).sort();
+  }, [expenses]);
 
   return (
     <AppShell>
@@ -62,7 +77,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">${totalIncome.toFixed(2)}</div>
-              <p className="text-xs text-muted-foreground">July 2024</p>
+              {/* <p className="text-xs text-muted-foreground">Based on current filter</p> */}
             </CardContent>
           </Card>
           <Card>
@@ -72,7 +87,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">${totalExpenses.toFixed(2)}</div>
-              <p className="text-xs text-muted-foreground">July 2024</p>
+              {/* <p className="text-xs text-muted-foreground">Based on current filter</p> */}
             </CardContent>
           </Card>
           <Card>
@@ -82,7 +97,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">${balance.toFixed(2)}</div>
-              <p className="text-xs text-muted-foreground">July 2024</p>
+              {/* <p className="text-xs text-muted-foreground">Based on current filter</p> */}
             </CardContent>
           </Card>
         </div>
@@ -92,14 +107,14 @@ export default function DashboardPage() {
             <CardTitle>Expense Breakdown</CardTitle>
             <div className="flex items-center gap-2">
               <Filter className="h-4 w-4 text-muted-foreground" />
-              <Select defaultValue="all">
+              <Select value={selectedCategory} onValueChange={(value) => setSelectedCategory(value as Category | 'all')}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Filter by category" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Categories</SelectItem>
-                  {Object.keys(expenseByCategory).map(cat => (
-                    <SelectItem key={cat} value={cat.toLowerCase().replace(' ', '-')}>{cat}</SelectItem>
+                  {uniqueCategories.map(cat => (
+                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -107,7 +122,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             {chartData.length > 0 ? (
-               <ChartContainer config={chartConfig} className="h-[300px] w-full">
+               <ChartContainer config={chartConfigBase} className="h-[300px] w-full">
                 <BarChart data={chartData} accessibilityLayer>
                   <CartesianGrid vertical={false} />
                   <XAxis
@@ -119,16 +134,15 @@ export default function DashboardPage() {
                   />
                   <YAxis />
                   <RechartsTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="total" fill="var(--color-expenses)" radius={4} />
+                  <Bar dataKey="total" fill="var(--color-total)" radius={4} />
                 </BarChart>
               </ChartContainer>
             ) : (
-              <p className="text-center text-muted-foreground">No expense data available for chart.</p>
+              <p className="text-center text-muted-foreground">No expense data for {selectedCategory === 'all' ? 'any category' : selectedCategory} in the current period.</p>
             )}
           </CardContent>
         </Card>
         
-        {/* TODO: Add Recent Transactions Table */}
       </div>
     </AppShell>
   );

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -9,30 +10,36 @@ import { useToast } from "@/hooks/use-toast";
 import type { Expense } from "@/lib/types";
 import { expenseCategories, incomeCategories } from "@/lib/types";
 import { ExpenseFormFields } from "./ExpenseFormFields";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Save } from "lucide-react";
 import { useState, useEffect } from "react";
-import type { ProcessedExpenseData } from "@/actions/aiActions";
 
+// Schema now includes an optional ID for updates
 export const ExpenseFormSchema = z.object({
+  id: z.string().optional(), // For identifying expense to update
   type: z.enum(["expense", "income"]),
   description: z.string().min(2, { message: "Description must be at least 2 characters." }),
   amount: z.number().positive({ message: "Amount must be positive." }),
   date: z.string().refine((date) => !isNaN(Date.parse(date)), { message: "Invalid date format." }),
-  category: z.string().min(1, { message: "Category is required." }), // Will be validated against dynamic list later
+  category: z.string().min(1, { message: "Category is required." }),
   merchant: z.string().optional(),
 });
 
+export type ExpenseFormData = z.infer<typeof ExpenseFormSchema>;
+
 interface ExpenseFormProps {
-  onAddExpense: (expense: Expense) => void;
-  initialData?: Partial<ProcessedExpenseData & {type?: "expense" | "income"}>; // For pre-filling from AI
-  formId?: string; // For multiple forms on one page
+  onAddExpense: (expenseData: Omit<Expense, 'id'>) => void;
+  onUpdateExpense: (expense: Expense) => void;
+  initialData?: Partial<Expense>; // Can be full Expense for editing, or ProcessedExpenseData for AI
+  formId?: string;
+  onSubmissionDone?: () => void; // Callback to clear editing state in parent
 }
 
-export function ExpenseForm({ onAddExpense, initialData, formId = "expense-form" }: ExpenseFormProps) {
+export function ExpenseForm({ onAddExpense, onUpdateExpense, initialData, formId = "expense-form", onSubmissionDone }: ExpenseFormProps) {
   const { toast } = useToast();
   const [formType, setFormType] = useState<"expense" | "income">(initialData?.type || "expense");
+  const isEditing = !!initialData?.id;
 
-  const form = useForm<z.infer<typeof ExpenseFormSchema>>({
+  const form = useForm<ExpenseFormData>({
     resolver: zodResolver(ExpenseFormSchema.refine(data => {
         const categories = data.type === 'expense' ? expenseCategories : incomeCategories;
         return categories.includes(data.category as any);
@@ -41,6 +48,7 @@ export function ExpenseForm({ onAddExpense, initialData, formId = "expense-form"
         path: ["category"],
     })),
     defaultValues: {
+      id: initialData?.id || undefined,
       type: initialData?.type || "expense",
       description: initialData?.description || "",
       amount: initialData?.amount || 0,
@@ -51,21 +59,19 @@ export function ExpenseForm({ onAddExpense, initialData, formId = "expense-form"
   });
 
   useEffect(() => {
-    if (initialData) {
-      form.reset({
-        type: initialData.type || formType,
-        description: initialData.description || "",
-        amount: initialData.amount || 0,
-        date: initialData.date || new Date().toISOString().split("T")[0],
-        category: initialData.category || "",
-        merchant: initialData.merchant || "",
-      });
-      if(initialData.type) setFormType(initialData.type);
-    }
-  }, [initialData, form, formType]);
+    form.reset({
+      id: initialData?.id || undefined,
+      type: initialData?.type || "expense",
+      description: initialData?.description || "",
+      amount: initialData?.amount || 0,
+      date: initialData?.date || new Date().toISOString().split("T")[0],
+      category: initialData?.category || "",
+      merchant: initialData?.merchant || "",
+    });
+    setFormType(initialData?.type || "expense");
+  }, [initialData, form]);
 
   useEffect(() => {
-    // Reset category if form type changes and current category is not valid for new type
     const currentCategory = form.getValues("category");
     const categoriesForType = formType === 'expense' ? expenseCategories : incomeCategories;
     if (currentCategory && !categoriesForType.includes(currentCategory as any)) {
@@ -73,18 +79,30 @@ export function ExpenseForm({ onAddExpense, initialData, formId = "expense-form"
     }
   }, [formType, form]);
 
-
-  function onSubmit(values: z.infer<typeof ExpenseFormSchema>) {
-    const newExpense: Expense = {
-      id: crypto.randomUUID(),
-      ...values,
-      category: values.category as any, // Zod refine handles validation
-    };
-    onAddExpense(newExpense);
-    toast({
-      title: `${formType === 'expense' ? 'Expense' : 'Income'} Added`,
-      description: `${values.description} - $${values.amount.toFixed(2)}`,
-    });
+  function onSubmit(values: ExpenseFormData) {
+    if (values.id) { // Update existing expense
+      const expenseToUpdate: Expense = {
+        id: values.id,
+        type: values.type,
+        description: values.description,
+        amount: values.amount,
+        date: values.date,
+        category: values.category as any, // Zod refine handles validation
+        merchant: values.merchant,
+      };
+      onUpdateExpense(expenseToUpdate);
+      toast({
+        title: `${formType === 'expense' ? 'Expense' : 'Income'} Updated`,
+        description: `${values.description} - $${values.amount.toFixed(2)}`,
+      });
+    } else { // Add new expense
+      const { id, ...expenseData } = values; // Exclude id if present but not for new
+      onAddExpense(expenseData as Omit<Expense, 'id'>);
+      toast({
+        title: `${formType === 'expense' ? 'Expense' : 'Income'} Added`,
+        description: `${values.description} - $${values.amount.toFixed(2)}`,
+      });
+    }
     form.reset({
         type: formType,
         description: "",
@@ -92,7 +110,11 @@ export function ExpenseForm({ onAddExpense, initialData, formId = "expense-form"
         date: new Date().toISOString().split("T")[0],
         category: "",
         merchant: "",
+        id: undefined,
     });
+    if (onSubmissionDone) {
+        onSubmissionDone();
+    }
   }
 
   return (
@@ -103,11 +125,12 @@ export function ExpenseForm({ onAddExpense, initialData, formId = "expense-form"
             formType={formType} 
             onFormTypeChange={(newType) => {
                 setFormType(newType);
-                form.setValue("type", newType); // Ensure RHF tracks type change
+                form.setValue("type", newType);
             }}
         />
         <Button type="submit" className="w-full sm:w-auto">
-          <PlusCircle className="mr-2 h-4 w-4" /> Add {formType === "expense" ? "Expense" : "Income"}
+          {isEditing ? <Save className="mr-2 h-4 w-4" /> : <PlusCircle className="mr-2 h-4 w-4" />}
+          {isEditing ? `Save ${formType}` : `Add ${formType}`}
         </Button>
       </form>
     </Form>
