@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,10 +11,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Wand2 } from "lucide-react";
 import { useState } from "react";
 import { processTextExpense, type ProcessedExpenseData } from "@/actions/aiActions";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 
 const TextCategorizationSchema = z.object({
-  description: z.string().min(5, { message: "Please enter a more detailed description." }),
+  description: z.string().min(5, { message: "Please enter a more detailed description." }).max(200, { message: "Description must be 200 characters or less."}),
 });
 
 interface TextCategorizationFormProps {
@@ -37,17 +37,15 @@ export function TextCategorizationForm({ onDataExtracted }: TextCategorizationFo
     setExtractedData(null);
     try {
       const result = await processTextExpense({ description: values.description });
-      // Determine if it's income or expense based on amount or category
-      // For simplicity, assume expense if not explicitly salary/investment income from AI.
-      // A more robust solution would involve AI explicitly stating type or more keywords.
       const type = (result.category === 'Salary' || (result.category === 'Investments' && result.amount > 0)) ? 'income' : 'expense';
       
       setExtractedData(result);
-      onDataExtracted({...result, type }); // Pass to parent to pre-fill main form
+      onDataExtracted({...result, type }); 
       toast({
-        title: "Data Extracted via Text",
+        title: "Data Extracted",
         description: `Merchant: ${result.merchant || 'N/A'}, Amount: $${result.amount.toFixed(2)}`,
       });
+      form.reset();
     } catch (error) {
       toast({
         variant: "destructive",
@@ -60,49 +58,42 @@ export function TextCategorizationForm({ onDataExtracted }: TextCategorizationFo
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Categorize by Text</CardTitle>
-        <CardDescription>
-          Enter a free-form description (e.g., &quot;Lunch at Cafe Mocha - $12.50&quot; or &quot;Spotify subscription for July $10.99&quot;) and let AI extract the details.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Expense Description</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="e.g., Dinner at The Local Diner with friends $55 on 2024-07-15"
-                      className="resize-none"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
-              <Wand2 className="mr-2 h-4 w-4" /> {isLoading ? "Processing..." : "Extract Data with AI"}
-            </Button>
-          </form>
-        </Form>
-        {extractedData && (
-          <div className="mt-6 rounded-md border bg-muted p-4">
-            <h4 className="font-semibold">Extracted Data:</h4>
-            <p>Merchant: {extractedData.merchant || "N/A"}</p>
-            <p>Amount: ${extractedData.amount.toFixed(2)}</p>
-            <p>Date: {extractedData.date}</p>
-            <p>Category: {extractedData.category}</p>
-            <p className="mt-2 text-sm text-muted-foreground">This data has been used to pre-fill the manual entry form. Please review and submit.</p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+    <div className="space-y-4">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Expense Description</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="e.g., Dinner with friends $55 on 2024-07-15"
+                    className="resize-none"
+                    rows={3}
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <Button type="submit" disabled={isLoading} className="w-full">
+            <Wand2 className="mr-2 h-4 w-4" /> {isLoading ? "Processing..." : "Extract Data"}
+          </Button>
+        </form>
+      </Form>
+      {extractedData && (
+        <div className="mt-4 rounded-md border bg-muted/50 p-4 text-sm">
+          <h4 className="font-semibold mb-2 text-foreground">Extracted Data:</h4>
+          <p><span className="font-medium text-muted-foreground">Merchant:</span> {extractedData.merchant || "N/A"}</p>
+          <p><span className="font-medium text-muted-foreground">Amount:</span> ${extractedData.amount.toFixed(2)}</p>
+          <p><span className="font-medium text-muted-foreground">Date:</span> {extractedData.date}</p>
+          <p><span className="font-medium text-muted-foreground">Category:</span> {extractedData.category}</p>
+          <p className="mt-3 text-xs text-muted-foreground">This data has been used to pre-fill the manual entry form. Please review and submit.</p>
+        </div>
+      )}
+    </div>
   );
 }

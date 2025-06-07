@@ -3,17 +3,17 @@
 
 import type { Expense } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Trash2, Edit3, ArrowDownCircle, ArrowUpCircle, DollarSign, Tag, CalendarDays, Building } from "lucide-react";
-import { Card, CardContent, CardDescription } from "@/components/ui/card"; // Keep Card for empty state
+import { Trash2, Edit3, ArrowDownCircle, ArrowUpCircle, Tag, CalendarDays, Building, ChevronLeft, ChevronRight } from "lucide-react";
+import { Card, CardContent, CardDescription } from "@/components/ui/card";
+import { useState } from "react";
+
+const ITEMS_PER_PAGE = 5;
 
 interface ExpenseListItemProps {
   expense: Expense;
   onDeleteExpense: (id: string) => void;
   onEditExpense: (expense: Expense) => void;
 }
-
-// ExpenseListItem.tsx
 
 function ExpenseListItem({ expense, onDeleteExpense, onEditExpense }: ExpenseListItemProps) {
   const isIncome = expense.type === 'income';
@@ -78,6 +78,15 @@ interface ExpenseListProps {
 }
 
 export function ExpenseList({ expenses, onDeleteExpense, onEditExpense }: ExpenseListProps) {
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const sortedExpenses = expenses.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  const totalPages = Math.ceil(sortedExpenses.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const paginatedExpenses = sortedExpenses.slice(startIndex, endIndex);
+
   if (expenses.length === 0) {
     return (
       <Card className="mt-8">
@@ -90,11 +99,10 @@ export function ExpenseList({ expenses, onDeleteExpense, onEditExpense }: Expens
   }
 
   return (
-    <div className="mt-6 border rounded-lg overflow-hidden">
-      <div className="divide-y">
-        {expenses
-          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-          .map((expense) => (
+    <div className="mt-6">
+      <div className="border rounded-lg overflow-hidden">
+        <div className="divide-y">
+          {paginatedExpenses.map((expense) => (
             <ExpenseListItem
               key={expense.id}
               expense={expense}
@@ -102,7 +110,33 @@ export function ExpenseList({ expenses, onDeleteExpense, onEditExpense }: Expens
               onEditExpense={onEditExpense}
             />
           ))}
+        </div>
       </div>
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center space-x-2 mt-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Previous
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            Page {currentPage} of {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages}
+          >
+            Next
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

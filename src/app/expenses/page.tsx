@@ -1,3 +1,4 @@
+
 "use client";
 
 import { AppShell } from '@/components/layout/AppShell';
@@ -19,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 export default function ExpensesPage() {
   const { expenses, addExpense, deleteExpense, updateExpense } = useExpenses();
   const [editingExpense, setEditingExpense] = useState<Partial<Expense> | undefined>(undefined);
-  const [activeView, setActiveView] = useState("list");
+  const [activeView, setActiveView] = useState("list"); // "list", "text-ai", "receipt-ai", "camera-ai"
   const [isExpenseFormOpen, setIsExpenseFormOpen] = useState(false);
 
   const handleOpenFormForNew = () => {
@@ -53,7 +54,8 @@ export default function ExpensesPage() {
       merchant: data.merchant,
       type: data.type
     });
-    setIsExpenseFormOpen(true);
+    setIsExpenseFormOpen(true); // Open the main expense form pre-filled
+    // setActiveView("list"); // Optionally switch back to list view or stay on AI tab
   }, []);
 
   const handleFormSubmissionDone = () => {
@@ -74,16 +76,16 @@ export default function ExpensesPage() {
           </Button>
         </div>
 
-        <div className="w-full sm:max-w-sm">
+        <div className="w-full sm:max-w-xs">
           <Select value={activeView} onValueChange={setActiveView}>
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Select View" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="list">All Transactions</SelectItem>
-              <SelectItem value="text-ai">Text Input (AI)</SelectItem>
-              <SelectItem value="receipt-ai">Receipt Upload (AI)</SelectItem>
-              <SelectItem value="camera-ai">Scan with Camera (AI)</SelectItem>
+              <SelectItem value="text-ai">AI: Text Input</SelectItem>
+              <SelectItem value="receipt-ai">AI: Receipt Upload</SelectItem>
+              <SelectItem value="camera-ai">AI: Scan with Camera</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -102,7 +104,7 @@ export default function ExpensesPage() {
               <CardHeader>
                 <CardTitle>Categorize by Text</CardTitle>
                 <CardDescription>
-                  Enter a description like &quot;Lunch at Cafe Mocha - $12.50&quot;, and AI will extract it.
+                  Type a description (e.g., &quot;Lunch at Cafe Mocha - $12.50&quot;), and AI will parse it.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -114,9 +116,9 @@ export default function ExpensesPage() {
           {activeView === "receipt-ai" && (
             <Card>
               <CardHeader>
-                <CardTitle>Extract from Receipt</CardTitle>
+                <CardTitle>Extract from Receipt Image</CardTitle>
                 <CardDescription>
-                  Upload your receipt image and let AI handle the rest.
+                  Upload your receipt image, and AI handles the rest.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -128,9 +130,9 @@ export default function ExpensesPage() {
           {activeView === "camera-ai" && (
             <Card>
               <CardHeader>
-                <CardTitle>Scan Receipt with Camera</CardTitle>
+                <CardTitle>Scan Receipt via Camera</CardTitle>
                 <CardDescription>
-                  Point and scan — AI will extract data.
+                  Use your camera to scan a receipt for AI-powered data extraction.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -145,7 +147,7 @@ export default function ExpensesPage() {
           onOpenChange={setIsExpenseFormOpen}
           title={formTitle}
           description={formDescription}
-          side="right"
+          side="right" // This will be overridden to "bottom" on mobile by the wrapper itself
         >
           <ExpenseForm 
             onAddExpense={handleAddOrUpdateExpense} 

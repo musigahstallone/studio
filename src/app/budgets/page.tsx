@@ -9,13 +9,12 @@ import { useState, useMemo } from 'react';
 import { useExpenses } from '@/contexts/ExpenseContext';
 import { ResponsiveFormWrapper } from '@/components/shared/ResponsiveFormWrapper';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Edit3 } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { PlusCircle } from 'lucide-react';
 
 const initialBudgetsData: Budget[] = [
-  // Initial mock data can be kept or removed if starting fresh
-  // { id: 'b1', category: 'Food & Drink', amount: 400, spentAmount: 0 },
-  // { id: 'b2', category: 'Transportation', amount: 150, spentAmount: 0 },
+  // Example initial data (can be removed if starting fresh)
+  // { id: 'b1', name: 'Monthly Food', category: 'Food & Drink', amount: 400, spentAmount: 0 },
+  // { id: 'b2', name: 'Transport Costs', category: 'Transportation', amount: 150, spentAmount: 0 },
 ];
 
 export default function BudgetsPage() {
@@ -42,7 +41,9 @@ export default function BudgetsPage() {
         updatedBudgets[index] = budget;
         return updatedBudgets;
       }
-      return [budget, ...prev].sort((a,b) => a.category.localeCompare(b.category));
+      // When adding a new budget, ensure its spentAmount is initialized correctly
+      // (it should already be passed from BudgetForm based on existing expenses or 0)
+      return [budget, ...prev].sort((a,b) => (a.name || "").localeCompare(b.name || ""));
     });
     setIsBudgetFormOpen(false);
     setEditingBudget(undefined);
@@ -58,11 +59,13 @@ export default function BudgetsPage() {
         .filter(e => e.type === 'expense' && e.category === budget.category)
         .reduce((sum, e) => sum + e.amount, 0);
       return { ...budget, spentAmount: spent };
-    }).sort((a,b) => a.category.localeCompare(b.category));
+    }).sort((a,b) => (a.name || "").localeCompare(b.name || ""));
   }, [budgets, expenses]);
 
   const formTitle = editingBudget?.id ? "Edit Budget" : "Set New Budget";
-  const formDescription = editingBudget?.id ? "Update the details for this budget." : "Define a spending limit for a category.";
+  const formDescription = editingBudget?.id 
+    ? "Update the details for this budget." 
+    : "Define a name and spending limit for a category.";
 
   return (
     <AppShell>

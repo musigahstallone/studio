@@ -5,7 +5,10 @@ import type { Budget } from "@/lib/types";
 import { Card, CardContent, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Trash2, Edit3, Target } from "lucide-react";
+import { Trash2, Edit3, Target, ChevronLeft, ChevronRight } from "lucide-react";
+import { useState } from "react";
+
+const ITEMS_PER_PAGE = 5;
 
 interface BudgetListItemProps {
   budget: Budget;
@@ -23,8 +26,9 @@ function BudgetListItem({ budget, onDeleteBudget, onEditBudget }: BudgetListItem
       <div className="flex items-start space-x-3 flex-grow mb-3 sm:mb-0">
         <Target className="h-6 w-6 sm:h-5 sm:w-5 mt-1 sm:mt-0 text-primary flex-shrink-0" />
         <div className="flex-grow space-y-1">
-          <p className="font-semibold text-base sm:text-lg text-foreground">{budget.category}</p>
-          <div className="w-full max-w-xs">
+          <p className="font-semibold text-base sm:text-lg text-foreground">{budget.name}</p>
+          <p className="text-sm text-muted-foreground">{budget.category}</p>
+          <div className="w-full max-w-xs mt-1">
             <Progress value={Math.min(progress, 100)} className={`h-2 ${isOverBudget ? "[&>div]:bg-destructive" : ""}`} />
             <div className="flex justify-between text-xs text-muted-foreground mt-1">
               <span>Spent: ${budget.spentAmount.toFixed(2)}</span>
@@ -58,6 +62,15 @@ interface BudgetListProps {
 }
 
 export function BudgetList({ budgets, onDeleteBudget, onEditBudget }: BudgetListProps) {
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const sortedBudgets = budgets.sort((a,b) => a.name.localeCompare(b.name));
+
+  const totalPages = Math.ceil(sortedBudgets.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const paginatedBudgets = sortedBudgets.slice(startIndex, endIndex);
+
   if (budgets.length === 0) {
     return (
       <Card className="mt-8">
@@ -70,17 +83,44 @@ export function BudgetList({ budgets, onDeleteBudget, onEditBudget }: BudgetList
   }
 
   return (
-    <div className="mt-6 border rounded-lg overflow-hidden">
-      <div className="divide-y">
-        {budgets.map((budget) => (
-          <BudgetListItem 
-            key={budget.id} 
-            budget={budget} 
-            onDeleteBudget={onDeleteBudget} 
-            onEditBudget={onEditBudget}
-          />
-        ))}
+    <div className="mt-6">
+      <div className="border rounded-lg overflow-hidden">
+        <div className="divide-y">
+          {paginatedBudgets.map((budget) => (
+            <BudgetListItem 
+              key={budget.id} 
+              budget={budget} 
+              onDeleteBudget={onDeleteBudget} 
+              onEditBudget={onEditBudget}
+            />
+          ))}
+        </div>
       </div>
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center space-x-2 mt-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Previous
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            Page {currentPage} of {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages}
+          >
+            Next
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

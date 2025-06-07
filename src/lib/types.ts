@@ -1,3 +1,4 @@
+
 export type Category =
   | 'Food & Drink'
   | 'Transportation'
@@ -72,6 +73,7 @@ export interface Expense {
 
 export interface Budget {
   id: string;
+  name: string; // Added budget name
   category: Category;
   amount: number; // Target budget amount
   spentAmount: number; // Actual amount spent in this category for the period

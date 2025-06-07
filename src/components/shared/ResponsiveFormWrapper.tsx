@@ -3,10 +3,8 @@
 
 import { ReactNode, useEffect } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetClose } from "@/components/ui/sheet";
-import { Button } from "../ui/button";
-import { X } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 
 interface ResponsiveFormWrapperProps {
   isOpen: boolean;
@@ -28,36 +26,35 @@ export function ResponsiveFormWrapper({
   const isMobile = useIsMobile();
 
   useEffect(() => {
-    // Ensure focus management when dialog/sheet opens/closes if needed
+    // Optional: Add focus management if Radix doesn't handle it perfectly for your case
   }, [isOpen]);
 
   if (isMobile) {
+    // On mobile, use a Sheet from the bottom
     return (
-      <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[425px] p-0">
-          <DialogHeader className="p-6 pb-0">
-            <DialogTitle>{title}</DialogTitle>
-            {description && <DialogDescription>{description}</DialogDescription>}
-          </DialogHeader>
-          <div className="p-6 max-h-[70vh] overflow-y-auto">
+      <Sheet open={isOpen} onOpenChange={onOpenChange}>
+        <SheetContent 
+            side="bottom" 
+            className="p-0 flex flex-col h-[80vh] rounded-t-lg sm:h-auto" // Max height for drawer effect
+            onOpenAutoFocus={(e) => e.preventDefault()} // Prevents auto-focusing issues on mobile
+        > 
+          <SheetHeader className="p-6 pb-4 border-b sticky top-0 bg-background z-10">
+            <SheetTitle>{title}</SheetTitle>
+            {description && <SheetDescription>{description}</SheetDescription>}
+          </SheetHeader>
+          <div className="p-6 flex-grow overflow-y-auto">
             {children}
           </div>
-           <DialogClose asChild className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
-            {/* This is handled by DialogContent's default close, but if needed:
-            <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}>
-              <X className="h-4 w-4" />
-              <span className="sr-only">Close</span>
-            </Button> 
-            */}
-          </DialogClose>
-        </DialogContent>
-      </Dialog>
+          {/* SheetClose is automatically handled by Radix when clicking outside or pressing Esc */}
+        </SheetContent>
+      </Sheet>
     );
   }
 
+  // On desktop, use a Sheet from the side (default 'right')
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
-      <SheetContent side={side} className="w-full sm:max-w-lg p-0 flex flex-col">
+      <SheetContent side={side} className="w-full sm:max-w-md p-0 flex flex-col"> {/* Adjusted max-width for desktop */}
         <SheetHeader className="p-6 pb-4 border-b">
           <SheetTitle>{title}</SheetTitle>
           {description && <SheetDescription>{description}</SheetDescription>}
@@ -65,14 +62,7 @@ export function ResponsiveFormWrapper({
         <div className="p-6 flex-grow overflow-y-auto">
           {children}
         </div>
-        <SheetClose asChild className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary">
-           {/* This is handled by SheetContent's default close, but if needed:
-           <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}>
-              <X className="h-4 w-4" />
-              <span className="sr-only">Close</span>
-            </Button> 
-            */}
-        </SheetClose>
+         {/* SheetClose is automatically handled by Radix */}
       </SheetContent>
     </Sheet>
   );

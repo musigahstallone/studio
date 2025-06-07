@@ -28,6 +28,7 @@ import { PlusCircle } from "lucide-react";
 
 const BudgetFormSchema = z.object({
   id: z.string().optional(), // For identifying budget to update
+  name: z.string().min(1, { message: "Budget name is required." }).max(50, { message: "Name must be 50 characters or less."}),
   category: z.string().min(1, { message: "Category is required." }),
   amount: z.number().positive({ message: "Budget amount must be positive." }),
 });
@@ -49,27 +50,38 @@ export function BudgetForm({ onSaveBudget, existingBudgets, initialData, onSubmi
     resolver: zodResolver(BudgetFormSchema),
     defaultValues: {
       id: initialData?.id || undefined,
+      name: initialData?.name || "",
       category: initialData?.category || "",
       amount: initialData?.amount || 0,
     },
   });
 
   function onSubmit(values: BudgetFormData) {
-    const existingBudgetForCategory = existingBudgets.find(b => b.category === values.category);
+    // Check if another budget (not the one being edited) already uses this name
+    if (existingBudgets.some(b => b.name.toLowerCase() === values.name.toLowerCase() && b.id !== values.id)) {
+      form.setError("name", { type: "manual", message: "This budget name already exists." });
+      return;
+    }
+    // Check if another budget (not the one being edited) already uses this category
+    if (existingBudgets.some(b => b.category === values.category && b.id !== values.id)) {
+         form.setError("category", { type: "manual", message: "A budget for this category already exists. Edit the existing one or choose a different category." });
+        return;
+    }
     
     const budgetToSave: Budget = {
-      id: values.id || existingBudgetForCategory?.id || crypto.randomUUID(),
+      id: values.id || crypto.randomUUID(),
+      name: values.name,
       category: values.category as any, 
       amount: values.amount,
-      spentAmount: existingBudgetForCategory ? existingBudgetForCategory.spentAmount : 0, 
+      spentAmount: initialData?.spentAmount || (existingBudgets.find(b => b.category === values.category)?.spentAmount || 0),
     };
 
     onSaveBudget(budgetToSave);
     toast({
-      title: isEditing || existingBudgetForCategory ? "Budget Updated" : "Budget Set",
-      description: `${values.category}: $${values.amount.toFixed(2)}`,
+      title: isEditing ? "Budget Updated" : "Budget Set",
+      description: `${values.name} (${values.category}): $${values.amount.toFixed(2)}`,
     });
-    form.reset({ category: "", amount: 0, id: undefined });
+    form.reset({ name: "", category: "", amount: 0, id: undefined });
     if (onSubmissionDone) {
       onSubmissionDone();
     }
@@ -80,6 +92,19 @@ export function BudgetForm({ onSaveBudget, existingBudgets, initialData, onSubmi
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <FormField
           control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Budget Name</FormLabel>
+              <FormControl>
+                <Input placeholder="e.g., Monthly Groceries, Entertainment Fund" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
           name="category"
           render={({ field }) => (
             <FormItem>
@@ -87,7 +112,7 @@ export function BudgetForm({ onSaveBudget, existingBudgets, initialData, onSubmi
               <Select 
                 onValueChange={field.onChange} 
                 defaultValue={field.value}
-                disabled={isEditing} // Prevent changing category when editing for simplicity
+                disabled={isEditing} 
               >
                 <FormControl>
                   <SelectTrigger>
@@ -99,7 +124,6 @@ export function BudgetForm({ onSaveBudget, existingBudgets, initialData, onSubmi
                     <SelectItem 
                       key={category} 
                       value={category}
-                      // Disable if category already has a budget and we are not editing that specific budget
                       disabled={!isEditing && existingBudgets.some(b => b.category === category)}
                     >
                       {category}
@@ -124,11 +148,12 @@ export function BudgetForm({ onSaveBudget, existingBudgets, initialData, onSubmi
                     {...field} 
                     onChange={e => {
                       const val = e.target.value;
-                      const num = parseFloat(val);
-                      if (isNaN(num)) {
-                        field.onChange(val); // Pass the original string if NaN (e.g., "" or "abc")
+                      // Allow empty string for clearing, otherwise parse as float
+                      if (val === "") {
+                        field.onChange(val); 
                       } else {
-                        field.onChange(num); // Pass the parsed number
+                        const num = parseFloat(val);
+                        field.onChange(isNaN(num) ? val : num);
                       }
                     }}
                 />
@@ -138,7 +163,7 @@ export function BudgetForm({ onSaveBudget, existingBudgets, initialData, onSubmi
           )}
         />
         <Button type="submit" className="w-full">
-          <PlusCircle className="mr-2 h-4 w-4" /> {isEditing || existingBudgets.find(b => b.category === form.getValues().category) ? "Update Budget" : "Set Budget"}
+          <PlusCircle className="mr-2 h-4 w-4" /> {isEditing ? "Update Budget" : "Set Budget"}
         </Button>
       </form>
     </Form>
