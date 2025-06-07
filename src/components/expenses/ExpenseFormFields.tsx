@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { Control } from "react-hook-form";
@@ -89,7 +90,15 @@ export function ExpenseFormFields({ control, formType, onFormTypeChange }: Expen
             <FormLabel>Amount</FormLabel>
             <FormControl>
               <Input type="number" placeholder="0.00" {...field} 
-                onChange={e => field.onChange(parseFloat(e.target.value))}
+                onChange={e => {
+                  const val = e.target.value;
+                  const num = parseFloat(val);
+                  if (isNaN(num)) {
+                    field.onChange(val); // Pass the original string if NaN (e.g., "" or "abc")
+                  } else {
+                    field.onChange(num); // Pass the parsed number
+                  }
+                }}
               />
             </FormControl>
             <FormMessage />
