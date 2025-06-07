@@ -25,7 +25,7 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
   const [showCameraFeed, setShowCameraFeed] = useState(false); // Controls if video feed is active
 
   const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(() => document.createElement('canvas'));
+  const canvasRef = useRef<HTMLCanvasElement>(null); // Changed initialization
 
   const stopCameraStream = useCallback(() => {
     if (videoRef.current && videoRef.current.srcObject) {
@@ -64,7 +64,7 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
     } catch (error) {
       console.error('Error accessing camera:', error);
       setShowCameraFeed(false); // Ensure feed is marked off on error
-      if (error instanceof Error && error.name === "NotAllowedError") {
+      if (error instanceof Error && (error.name === "NotAllowedError" || error.name === "PermissionDeniedError")) {
         setHasCameraPermission(false); // Explicitly set denied
         toast({
           variant: 'destructive',
@@ -101,13 +101,21 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
       toast({ variant: "destructive", title: "Camera Not Ready", description: "Please start the camera first and ensure it's active." });
       return;
     }
+
+    const canvas = canvasRef.current;
+    if (!canvas) {
+        toast({ variant: "destructive", title: "Canvas Error", description: "Canvas element is not available for capture." });
+        return;
+    }
     
     const video = videoRef.current;
-    const canvas = canvasRef.current;
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     const context = canvas.getContext('2d');
-    if (!context) return; // Should not happen
+    if (!context) {
+        toast({ variant: "destructive", title: "Canvas Error", description: "Could not get 2D context from canvas." });
+        return; 
+    }
 
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
     const photoDataUri = canvas.toDataURL('image/jpeg');
@@ -174,6 +182,7 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
 
   return (
     <div className="space-y-4">
+      <canvas ref={canvasRef} style={{ display: 'none' }} /> {/* Added hidden canvas */}
       <div className={videoContainerClasses}>
         {/* Always render video tag for ref, but conditionally show content */}
         <video
@@ -290,3 +299,5 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
     </div>
   );
 }
+
+    
