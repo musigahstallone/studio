@@ -256,17 +256,25 @@ export default function AdminDashboardPage() {
         </Card>
          <Card className="shadow-lg">
             <CardHeader>
-                <CardTitle className="flex items-center text-xl">
-                    Future Admin Analytics
-                </CardTitle>
-                <CardDescription>Placeholders for more advanced analytics that would require full Firebase integration and backend logic (e.g., Cloud Functions, secure aggregation, custom claims for RBAC).</CardDescription>
+                <CardTitle className="text-xl">Advanced Platform Analytics</CardTitle>
+                <CardDescription>
+                  The following analytics require backend processing (e.g., Cloud Functions) for efficient and scalable implementation. 
+                  They are not available with the current client-side setup.
+                </CardDescription>
             </CardHeader>
             <CardContent className="space-y-2 text-muted-foreground">
-                <p>- Most active users by transaction volume (requires querying user data and aggregating).</p>
-                <p>- Total transaction amounts per client (daily, weekly, monthly - requires user-specific aggregation).</p>
-                <p>- Collective client transaction statistics (requires platform-wide aggregation).</p>
-                <p>- Average transactions per hour (requires time-series analysis).</p>
-                <p>- Real-time data streams for key metrics (requires more advanced setup).</p>
+                <p className="font-medium text-foreground">Future Analytics (Require Backend):</p>
+                <ul className="list-disc list-inside space-y-1 pl-4 text-sm">
+                    <li>Most active users by transaction volume.</li>
+                    <li>Total transaction amounts per client (daily, weekly, monthly summaries).</li>
+                    <li>Collective client transaction statistics (e.g., platform-wide daily/weekly/monthly totals).</li>
+                    <li>Average transactions per hour.</li>
+                    <li>Real-time data streams for key metrics.</li>
+                </ul>
+                 <p className="mt-3 text-xs">
+                  These features typically involve server-side aggregation of data from the 'users', 'expenses_all', and 'budgets_all' collections, 
+                  and potentially storing pre-calculated results for quick retrieval by the admin dashboard.
+                </p>
             </CardContent>
           </Card>
       </div>

@@ -48,16 +48,28 @@ export default function AdminUsersPage() {
             if (data.joinDate && (data.joinDate as Timestamp).toDate) {
                 joinDateStr = (data.joinDate as Timestamp).toDate().toISOString().split('T')[0];
             } else if (typeof data.joinDate === 'string') {
-                joinDateStr = data.joinDate;
+                // Handle cases where joinDate might already be a string (e.g., older data)
+                const parsedDate = new Date(data.joinDate);
+                if (!isNaN(parsedDate.getTime())) {
+                    joinDateStr = parsedDate.toISOString().split('T')[0];
+                } else {
+                    joinDateStr = data.joinDate; // Keep original if parsing fails
+                }
             }
 
+
+            // For transactionCount and totalSpent, these would typically require
+            // additional queries per user or aggregated data from a backend.
+            // For now, we'll keep them as optional fields in AppUser and they might be undefined.
             return { 
               uid: doc.id, 
               name: data.name,
               email: data.email,
               photoURL: data.photoURL,
               joinDate: joinDateStr,
-              isAdmin: data.isAdmin === true, // Directly use the isAdmin field
+              isAdmin: data.isAdmin === true, 
+              // transactionCount: data.transactionCount, // Example if you stored this
+              // totalSpent: data.totalSpent,         // Example if you stored this
             } as AppUser;
           });
           setFetchedUsers(userList);
@@ -126,7 +138,8 @@ export default function AdminUsersPage() {
           <CardHeader>
             <CardTitle>All Platform Users</CardTitle>
             <CardDescription>
-              Overview of registered users fetched from Firestore 'users' collection.
+              Overview of registered users fetched from Firestore 'users' collection. 
+              Detailed transaction counts and spending per user would require backend aggregation for optimal performance.
             </CardDescription>
           </CardHeader>
           <CardContent>
