@@ -10,12 +10,14 @@ export default {
   ],
   theme: {
     extend: {
+      /*
       fontFamily: {
         // These will now use CSS variables set by the active font theme class
         body: ['var(--font-family-body)', 'serif'], 
         headline: ['var(--font-family-headline)', 'sans-serif'],
         code: ['monospace'],
       },
+      */
       colors: {
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',

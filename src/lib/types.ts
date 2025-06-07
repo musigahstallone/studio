@@ -105,11 +105,8 @@ export interface AppUser {
 export const supportedCurrencies = ['USD', 'EUR', 'KES'] as const;
 export type CurrencyCode = typeof supportedCurrencies[number];
 
-// DEFAULT_DISPLAY_CURRENCY is the one selected by default in settings if nothing is in localStorage for display
 export const DEFAULT_DISPLAY_CURRENCY: CurrencyCode = 'USD';
-// DEFAULT_LOCAL_CURRENCY is the one selected by default in settings if nothing is in localStorage for input
-export const DEFAULT_LOCAL_CURRENCY: CurrencyCode = 'KES'; // Example: Kenyan user might input in KES
-// DEFAULT_STORED_CURRENCY is the currency in which all raw numerical amounts are stored in Firestore
+export const DEFAULT_LOCAL_CURRENCY: CurrencyCode = 'KES'; 
 export const DEFAULT_STORED_CURRENCY: CurrencyCode = 'USD';
 
 export const CurrencyCodeSchema = z.enum(supportedCurrencies);
@@ -117,5 +114,6 @@ export const CurrencyCodeSchema = z.enum(supportedCurrencies);
 export type Theme = 'light' | 'dark' | 'system';
 export const DEFAULT_THEME: Theme = 'system';
 
-export type FontThemeId = string;
-export const DEFAULT_FONT_THEME_ID_CONST = 'work-sans-dm-serif-display';
+// FontThemeId and DEFAULT_FONT_THEME_ID_CONST are commented out as the feature is disabled.
+// export type FontThemeId = string;
+// export const DEFAULT_FONT_THEME_ID_CONST = 'work-sans-dm-serif-display';

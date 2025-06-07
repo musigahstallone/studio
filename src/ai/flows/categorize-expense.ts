@@ -11,7 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { CategoryEnumSchema, allCategories } from '@/lib/types'; // Import allCategories for validation
+import { CategoryEnumSchema, allCategories } from '@/lib/types';
 
 const CategorizeExpenseInputSchema = z.object({
   description: z
@@ -22,11 +22,11 @@ const CategorizeExpenseInputSchema = z.object({
 export type CategorizeExpenseInput = z.infer<typeof CategorizeExpenseInputSchema>;
 
 const CategorizeExpenseOutputSchema = z.object({
-  merchant: z.string().optional().describe('The name of the merchant, if identifiable.'),
-  amount: z.number().describe('The amount of the transaction. If not found, use 0.'),
-  date: z.string().describe('The date of the transaction in ISO format (YYYY-MM-DD). If not specified, use the current date.'),
-  category: CategoryEnumSchema.describe('The budget category of the transaction. If unsure, use "Other".'),
-  type: z.enum(["expense", "income"]).describe('Whether the transaction is an expense or income.'),
+  merchant: z.string().optional().describe('The name of the merchant. If not identifiable, set to empty string or omit.'),
+  amount: z.number().describe('The amount of the transaction. If not found or unparsable, use 0.'),
+  date: z.string().describe('The date of the transaction in YYYY-MM-DD format. If not specified, use the current date.'),
+  category: CategoryEnumSchema.describe(`The budget category of the transaction. Choose from: ${CategoryEnumSchema.options.join(', ')}. If unsure, or if the description doesn't fit a specific category, use "Other".`),
+  type: z.enum(["expense", "income"]).describe('Whether the transaction is an expense or income. Infer based on context (e.g., "received salary" implies income, "paid for lunch" implies expense). If unclear, default to "expense".'),
 });
 
 export type CategorizeExpenseOutput = z.infer<typeof CategorizeExpenseOutputSchema>;
@@ -41,19 +41,19 @@ const prompt = ai.definePrompt({
   name: 'categorizeExpensePrompt',
   input: {schema: CategorizeExpenseInputSchema},
   output: {schema: CategorizeExpenseOutputSchema},
-  prompt: `You are an AI assistant that categorizes transactions based on a free-form text description. Your goal is to extract as much information as possible.
+  prompt: `You are an AI assistant that categorizes transactions based on a free-form text description. Your goal is to extract as much information as possible and return a complete JSON object matching the specified output schema.
 
 Analyze the following description:
 Description: {{{description}}}
 
-Extract the following details and return them in JSON format:
-- merchant: The name of the merchant. If not clearly identifiable, omit this field or set it to an empty string.
-- amount: The transaction amount as a number. If no amount is mentioned or inferable, use 0.
-- date: The transaction date in YYYY-MM-DD format. If not specified, use the current date.
-- category: The budget category. Choose from the following: ${CategoryEnumSchema.options.join(', ')}. If unsure, or if the description doesn't fit a specific category, use "Other".
-- type: Classify as "expense" or "income" based on context (e.g., "received salary" implies income, "paid for lunch" implies expense).
+Extract the following details. It is CRITICAL to return ALL fields in the JSON output, even if some values are defaults.
+- merchant: The name of the merchant. If not clearly identifiable, set to an empty string or omit.
+- amount: The transaction amount as a number. If no amount is mentioned or inferable, YOU MUST use 0.
+- date: The transaction date in YYYY-MM-DD format. If not specified or unparsable, YOU MUST use the current date.
+- category: The budget category. Choose from the following: ${CategoryEnumSchema.options.join(', ')}. If unsure, or if the description doesn't fit a specific category, YOU MUST use "Other".
+- type: Classify as "expense" or "income" based on context (e.g., "received salary" implies income, "paid for lunch" implies expense). If unclear, YOU MUST default to "expense".
 
-Even if some details are unclear, provide your best interpretation for all fields. It's important to return a complete JSON object matching the requested structure.
+Provide your best interpretation for all fields, ensuring the output is a valid JSON object matching the requested structure.
   `,
 });
 
@@ -66,20 +66,18 @@ const categorizeExpenseFlow = ai.defineFlow(
   async input => {
     const {output} = await prompt(input);
 
-    // Initialize a default output structure, ensuring all fields are present.
-    // The AI is expected to return data conforming to CategorizeExpenseOutputSchema.
-    // These defaults act as a fallback if the AI's output is unexpectedly sparse or if a field needs to be normalized.
-    
+    // Fallback logic in case the AI fails to adhere perfectly to instructions
+    // or if Zod parsing of the output has issues (though ai.definePrompt handles parsing)
     const result: CategorizeExpenseOutput = {
-      merchant: output?.merchant || undefined,
-      amount: typeof output?.amount === 'number' ? output.amount : 0,
-      date: output?.date && /^\d{4}-\d{2}-\d{2}$/.test(output.date) ? output.date : new Date().toISOString().split('T')[0],
-      category: output?.category && allCategories.includes(output.category as any) ? output.category : 'Other',
-      type: output?.type === 'income' || output?.type === 'expense' ? output.type : 'expense', // Default to expense
+      merchant: output?.merchant || undefined, // Allow undefined if AI omits
+      amount: (typeof output?.amount === 'number' && !isNaN(output.amount)) ? output.amount : 0,
+      date: (output?.date && /^\d{4}-\d{2}-\d{2}$/.test(output.date)) ? output.date : new Date().toISOString().split('T')[0],
+      category: (output?.category && allCategories.includes(output.category as any)) ? output.category : 'Other',
+      type: (output?.type === 'income' || output?.type === 'expense') ? output.type : 'expense',
     };
-
-    // Refine type classification if AI didn't confidently set it or if it was defaulted
-    if (!output?.type || (output.type !== 'income' && output.type !== 'expense')) {
+    
+    // Further refine type classification if it was defaulted by our code or AI was unsure
+    if (result.type === 'expense' && (!output?.type || (output.type !== 'income' && output.type !== 'expense'))) {
         const descriptionLower = input.description.toLowerCase();
         if (descriptionLower.includes('salary') || 
             descriptionLower.includes('received') || 
@@ -88,22 +86,31 @@ const categorizeExpenseFlow = ai.defineFlow(
             descriptionLower.includes('got paid') ||
             descriptionLower.includes('payment for')) {
             result.type = 'income';
-        } else {
-            // More robust expense detection - if not clearly income, assume expense
-            result.type = 'expense';
+            // If it's income, and category was defaulted to 'Other' or a common expense category, re-evaluate
+            if (result.category === 'Other' || !incomeCategories.includes(result.category as any)) {
+                if (descriptionLower.includes('salary')) result.category = 'Salary';
+                else result.category = 'Other'; // Or a more sophisticated income category detection
+            }
         }
-    } else {
-        result.type = output.type; // Use AI's type if it was valid
     }
     
-    // Ensure category is valid, falling back to 'Other' if the AI's choice isn't in our list.
-    // The schema validation from Zod on the prompt output should ideally catch invalid enum values.
-    // This is an additional safeguard.
+    // Ensure category is valid
     if (!allCategories.includes(result.category as any)) {
         result.category = 'Other';
     }
+    // If type is income but category is an expense-only one, default to 'Other' or 'Salary'
+    if (result.type === 'income' && !incomeCategories.includes(result.category as any)) {
+        result.category = input.description.toLowerCase().includes('salary') ? 'Salary' : 'Other';
+    }
+
 
     return result;
   }
 );
 
+const incomeCategories: Category[] = [ // Define locally if not already imported/available
+  'Salary',
+  'Investments',
+  'Gifts & Donations',
+  'Other',
+];

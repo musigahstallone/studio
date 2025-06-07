@@ -11,24 +11,24 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { CategoryEnumSchema } from '@/lib/types';
+import { CategoryEnumSchema, allCategories, incomeCategories as appIncomeCategories } from '@/lib/types';
 
 const ExtractExpenseDataInputSchema = z.object({
   photoDataUri: z
     .string()
     .describe(
-      "A photo of a receipt, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+      "A photo of a receipt or financial document, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
 });
 export type ExtractExpenseDataInput = z.infer<typeof ExtractExpenseDataInputSchema>;
 
 const ExtractExpenseDataOutputSchema = z.object({
-  merchant: z.string().describe('The name of the merchant.'),
-  amount: z.number().describe('The total amount of the transaction.'),
-  date: z.string().describe('The date of the transaction in ISO 8601 format (YYYY-MM-DD).'),
-  category: CategoryEnumSchema.describe('The budget category of the transaction.'),
-  type: z.enum(["expense", "income"]).describe('Whether the transaction is an expense or income.'),
-  description: z.string().describe('A concise and engaging description of the transaction derived from the receipt (e.g., "Lunch at The Grand Cafe including appetizers and drinks", or "Salary deposit from Acme Corp"). If it is an income type, it should reflect that e.g. "Payment received from [Client/Source]" or "Refund from [Merchant]"'),
+  merchant: z.string().describe('The name of the merchant or source. If not identifiable, use "Unknown Merchant/Source".'),
+  amount: z.number().describe('The total amount of the transaction. If unclear or not found, YOU MUST use 0.'),
+  date: z.string().describe('The date of the transaction in YYYY-MM-DD format. If not visible, YOU MUST use the current date.'),
+  category: CategoryEnumSchema.describe(`The budget category of the transaction. Choose from: ${CategoryEnumSchema.options.join(', ')}. If unsure, YOU MUST use "Other".`),
+  type: z.enum(["expense", "income"]).describe('Whether the transaction is an expense or income. Infer based on document. If unclear, default to "expense".'),
+  description: z.string().describe('A concise description of the transaction (e.g., "Lunch at The Grand Cafe", "Salary deposit"). If cannot be determined, use a generic description like "[Income/Expense] from [Merchant/Source]".'),
 });
 export type ExtractExpenseDataOutput = z.infer<typeof ExtractExpenseDataOutputSchema>;
 
@@ -42,13 +42,19 @@ const prompt = ai.definePrompt({
   output: {schema: ExtractExpenseDataOutputSchema},
   prompt: `You are an expert financial assistant specializing in extracting information from receipts or financial documents.
 
-You will use the provided image to extract the merchant, total amount, date, budget category, determine if it's an expense or income, and generate a concise, engaging description of the transaction.
-The category should be one of the following: ${CategoryEnumSchema.options.join(', ')}.
-Return the date in ISO 8601 format (YYYY-MM-DD). If the date is not clearly visible, assume the current date.
-Based on the items, merchant, and total, classify this as 'expense' or 'income'. For example, a typical store receipt is an 'expense'. If the document indicates money received (e.g. a payment confirmation, a refund slip), classify it as 'income'.
-The description should summarize what was purchased or the nature of the income (e.g., "Groceries from SuperMart including fresh produce and dairy" for an expense, or "Refund for returned item at TechStore" for income).
+You will use the provided image to extract key financial details. It is CRITICAL to return ALL fields defined in the output schema, even if some values must be defaulted.
+- merchant: The name of the merchant or source. If not identifiable from the image, YOU MUST use "Unknown Merchant/Source".
+- amount: The total transaction amount as a number. If this is not clearly visible or parsable, YOU MUST use 0.
+- date: The transaction date in YYYY-MM-DD format. If the date is not clearly visible, YOU MUST use the current date.
+- category: The budget category. Choose from: ${CategoryEnumSchema.options.join(', ')}. If unsure or cannot determine, YOU MUST use "Other".
+- type: Classify as "expense" or "income". For example, a typical store receipt is an "expense". If the document indicates money received (e.g., payment confirmation, refund slip), classify as "income". If unclear, YOU MUST default to "expense".
+- description: Generate a concise description (e.g., "Groceries from SuperMart", "Salary deposit from Acme Corp", "Refund from TechStore"). If details are sparse, use a generic like "[Income/Expense] from [Merchant/Source]".
 
-Image: {{media url=photoDataUri}}`,
+Analyze this image carefully:
+Image: {{media url=photoDataUri}}
+
+Return a complete JSON object matching the specified output schema.
+  `,
 });
 
 const extractExpenseDataFlow = ai.defineFlow(
@@ -59,18 +65,36 @@ const extractExpenseDataFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await prompt(input);
-    if (!output) {
-      throw new Error("AI failed to provide an output for extraction.");
+
+    // Robust fallbacks if the AI output is incomplete, despite the strong prompt instructions.
+    // This ensures the function always returns a valid ExtractExpenseDataOutput.
+    const result: ExtractExpenseDataOutput = {
+      merchant: output?.merchant || "Unknown Merchant/Source",
+      amount: (typeof output?.amount === 'number' && !isNaN(output.amount)) ? output.amount : 0,
+      date: (output?.date && /^\d{4}-\d{2}-\d{2}$/.test(output.date)) ? output.date : new Date().toISOString().split('T')[0],
+      category: (output?.category && allCategories.includes(output.category as any)) ? output.category : 'Other',
+      type: (output?.type === 'income' || output?.type === 'expense') ? output.type : 'expense',
+      description: output?.description || `Transaction at ${output?.merchant || "Unknown Merchant/Source"}`
+    };
+
+    // Additional refinement for type based on category if not strongly determined by AI
+    if (result.type === 'expense' && (!output?.type || (output.type !== 'income' && output.type !== 'expense'))) {
+        if (result.category === 'Salary' || (result.merchant && result.merchant.toLowerCase().includes('refund'))) {
+            result.type = 'income';
+        }
     }
-    if (!output.date) {
-      output.date = new Date().toISOString().split('T')[0];
+    
+    // Ensure description makes sense with the type
+    if (!output?.description) {
+        result.description = `${result.type.charAt(0).toUpperCase() + result.type.slice(1)} at ${result.merchant}`;
     }
-    if (!output.type) {
-      output.type = (output.category === 'Salary' || (output.merchant && output.merchant.toLowerCase().includes('refund'))) ? 'income' : 'expense';
+
+    // If type is income but category is an expense-only one, default to 'Other' or 'Salary'
+    if (result.type === 'income' && !appIncomeCategories.includes(result.category as any)) {
+        result.category = result.description.toLowerCase().includes('salary') ? 'Salary' : 'Other';
     }
-    if (!output.description) {
-      output.description = `${output.type === 'income' ? 'Income' : 'Purchase'} at ${output.merchant || 'Unknown Source/Merchant'}`;
-    }
-    return output;
+
+
+    return result;
   }
 );

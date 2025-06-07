@@ -1,18 +1,17 @@
 
 "use client";
 
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-import { fontPairings, type FontPairing } from '@/lib/fonts';
+// import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"; // Commented out
+// import { Label } from "@/components/ui/label"; // Commented out
+// import { fontPairings, type FontPairing } from '@/lib/fonts'; // Commented out
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useSettings } from '@/contexts/SettingsContext'; // Import useSettings
+// import { useSettings } from '@/contexts/SettingsContext'; // Commented out
 
 export function FontSwitcher() {
-  // Use fontTheme and setFontTheme from SettingsContext
-  const { fontTheme, setFontTheme, isMounted } = useSettings();
+  // const { fontTheme, setFontTheme, isMounted } = useSettings(); // Commented out
 
+  /* // All original logic commented out
   if (!isMounted) {
-    // Placeholder for SSR or initial load to prevent hydration mismatch
     return (
       <Card className="shadow-lg">
         <CardHeader>
@@ -37,7 +36,6 @@ export function FontSwitcher() {
     );
   }
   
-  // The rest of the component uses fontTheme and setFontTheme from context
   return (
     <Card className="shadow-lg">
       <CardHeader>
@@ -46,8 +44,8 @@ export function FontSwitcher() {
       </CardHeader>
       <CardContent>
         <RadioGroup
-          value={fontTheme} // Use fontTheme from context
-          onValueChange={setFontTheme} // Use setFontTheme from context
+          value={fontTheme}
+          onValueChange={setFontTheme}
           className="space-y-4"
         >
           {fontPairings.map((pairing: FontPairing) => (
@@ -64,6 +62,23 @@ export function FontSwitcher() {
             </div>
           ))}
         </RadioGroup>
+      </CardContent>
+    </Card>
+  );
+  */
+
+  // Render a placeholder indicating the feature is disabled
+  return (
+     <Card className="shadow-lg opacity-50">
+      <CardHeader>
+        <CardTitle>Typography (Feature Disabled)</CardTitle>
+        <CardDescription>Font customization is currently disabled.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground">
+          The ability to change font pairings has been temporarily commented out. 
+          The application will use default system fonts.
+        </p>
       </CardContent>
     </Card>
   );

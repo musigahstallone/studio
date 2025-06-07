@@ -1,5 +1,5 @@
 
-"use client"; // Make this a client component for auth check
+"use client"; 
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -8,8 +8,8 @@ import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ThemeSwitcher } from '@/components/settings/ThemeSwitcher';
 import { Loader2 } from 'lucide-react';
-import { FontSwitcher } from '@/components/settings/FontSwitcher'; // Re-enable FontSwitcher
-import { CurrencySwitcher } from '@/components/settings/CurrencySwitcher'; // Import CurrencySwitcher
+// import { FontSwitcher } from '@/components/settings/FontSwitcher'; // Commented out FontSwitcher
+import { CurrencySwitcher } from '@/components/settings/CurrencySwitcher';
 
 export default function SettingsPage() {
   const { user, loading: authLoading } = useAuth();
@@ -49,22 +49,9 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
  
-        <FontSwitcher />
+        {/* <FontSwitcher /> */} {/* FontSwitcher component usage commented out */}
         
         <CurrencySwitcher />
-
-        {/* Add more settings sections here as needed */}
-        {/* 
-        <Card>
-          <CardHeader>
-            <CardTitle>Account</CardTitle>
-            <CardDescription>Manage your account details.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">Account settings coming soon.</p>
-          </CardContent>
-        </Card>
-        */}
       </div>
     </AppShell>
   );

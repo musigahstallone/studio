@@ -41,9 +41,9 @@
     --sidebar-border: 0 0% 80%;
     --sidebar-ring: 40 90% 55%;
 
-    /* Default Font Variables */
-    --font-family-body: 'Lora', serif;
-    --font-family-headline: 'Manrope', sans-serif;
+    /* Default Font Variables - Commented out to use Tailwind defaults */
+    /* --font-family-body: 'Lora', serif; */
+    /* --font-family-headline: 'Manrope', sans-serif; */
   }
 
   .dark {
@@ -82,13 +82,13 @@
     --sidebar-border: 0 0% 20%;
     --sidebar-ring: 40 80% 60%;
 
-    /* Default Font Variables for Dark Mode (can be same or different) */
-    /* If font themes override these, this is just a fallback if no theme class is set */
-    --font-family-body: 'Lora', serif;
-    --font-family-headline: 'Manrope', sans-serif;
+    /* Default Font Variables for Dark Mode - Commented out */
+    /* --font-family-body: 'Lora', serif; */
+    /* --font-family-headline: 'Manrope', sans-serif; */
   }
 
-  /* Font Theme Classes */
+  /* Font Theme Classes - Commented out */
+  /*
   .font-theme-manrope-lora {
     --font-family-body: 'Lora', serif;
     --font-family-headline: 'Manrope', sans-serif;
@@ -109,6 +109,7 @@
     --font-family-body: "'Space Grotesk', sans-serif";
     --font-family-headline: "'EB Garamond', serif";
   }
+  */
 }
 
 @layer base {
@@ -117,10 +118,11 @@
   }
   body {
     @apply bg-background text-foreground overflow-x-hidden;
-    font-family: var(--font-family-body); /* Apply body font variable */
+    /* font-family: var(--font-family-body); */ /* Commented out, Tailwind base will apply sans-serif */
   }
   /* Apply headline font variable to h1-h6 or a specific class */
   h1, h2, h3, h4, h5, h6, .font-headline {
-    font-family: var(--font-family-headline);
+    /* font-family: var(--font-family-headline); */ /* Commented out, elements will inherit or use Tailwind defaults */
+    /* You might want to apply Tailwind's font-serif or similar here if desired */
   }
 }
