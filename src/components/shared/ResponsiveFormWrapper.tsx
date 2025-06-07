@@ -35,7 +35,7 @@ export function ResponsiveFormWrapper({
       <Sheet open={isOpen} onOpenChange={onOpenChange}>
         <SheetContent 
             side="bottom" 
-            className="p-0 flex flex-col h-[80vh] rounded-t-lg sm:h-auto" // Max height for drawer effect
+            className="p-0 flex flex-col max-h-[90vh] rounded-t-lg sm:h-auto" // Use max-h for flexibility
             onOpenAutoFocus={(e) => e.preventDefault()} // Prevents auto-focusing issues on mobile
         > 
           <SheetHeader className="p-6 pb-4 border-b sticky top-0 bg-background z-10">
@@ -67,3 +67,4 @@ export function ResponsiveFormWrapper({
     </Sheet>
   );
 }
+
