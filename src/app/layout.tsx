@@ -7,9 +7,70 @@ import { AppProviders } from '@/components/layout/AppProviders';
 // Import new defaults for currency and font
 import { DEFAULT_THEME, DEFAULT_DISPLAY_CURRENCY, DEFAULT_LOCAL_CURRENCY } from '@/lib/types'; // DEFAULT_FONT_THEME_ID_CONST removed
 
+const APP_NAME = 'PennyPincher AI';
+const APP_DESCRIPTION = 'Effortlessly manage your expenses, budgets, and savings goals with PennyPincher AI. AI-powered expense tracking from text & receipts, multi-currency support, and intelligent financial insights.';
+
 export const metadata: Metadata = {
-  title: 'PennyPincher AI',
-  description: 'Track your expenses with AI-powered categorization.',
+  applicationName: APP_NAME,
+  title: {
+    default: APP_NAME,
+    template: `%s | ${APP_NAME}`,
+  },
+  description: APP_DESCRIPTION,
+  manifest: "/manifest.json", // Assuming you might add a manifest later
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: APP_NAME,
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  keywords: ['expense tracker', 'budgeting app', 'personal finance', 'ai finance', 'savings goals', 'multi-currency', 'financial management'],
+  authors: [{ name: 'Stallone Musigah', url: 'https://musigahstallone.tech' }],
+  creator: 'Stallone Musigah',
+  publisher: 'PennyPincher AI',
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002'), // Replace with your actual domain in .env
+  openGraph: {
+    type: 'website',
+    siteName: APP_NAME,
+    title: {
+        default: APP_NAME,
+        template: `%s | ${APP_NAME}`,
+    },
+    description: APP_DESCRIPTION,
+    url: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002'), // Replace with your actual domain
+    images: [
+      {
+        url: 'https://placehold.co/1200x630.png?text=PennyPincher+AI', // Replace with your actual OG image
+        width: 1200,
+        height: 630,
+        alt: `${APP_NAME} - Smart Financial Management`,
+      },
+    ],
+    locale: 'en_US',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: {
+        default: APP_NAME,
+        template: `%s | ${APP_NAME}`,
+    },
+    description: APP_DESCRIPTION,
+    images: ['https://placehold.co/1200x630.png?text=PennyPincher+AI'], // Replace with your actual Twitter image
+    // creator: '@yourtwitterhandle', // Optional: if you have a Twitter handle
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
 };
 
 export default function RootLayout({
