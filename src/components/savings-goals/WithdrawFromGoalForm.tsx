@@ -27,8 +27,6 @@ import { DEFAULT_STORED_CURRENCY } from "@/lib/types"; // Import DEFAULT_STORED_
 
 const WithdrawFromGoalSchema = z.object({
   withdrawalDescription: z.string().optional(),
-  // For now, we assume full withdrawal of currentAmount.
-  // If partial withdrawal is added, an amount field would be needed here.
 });
 
 type WithdrawFromGoalFormData = z.infer<typeof WithdrawFromGoalSchema>;
@@ -80,16 +78,17 @@ export function WithdrawFromGoalForm({ goal, onConfirmWithdrawal, onSubmissionDo
     actualPenaltyCollected,
     actualTransactionCostCollected,
     netAmountToUser,
-    effectiveMaturityDate
+    effectiveMaturityDate,
+    isWithdrawalPossible,
+    disableReason,
   } = useMemo(() => {
-    let early = true; // Assume early by default
+    let early = true; 
     let maturityDate: Date | null = null;
     const isFunded = goal.currentAmount >= goal.targetAmount;
 
     if (goal.withdrawalCondition === 'targetAmountReached' && isFunded) {
-        early = false; // Mature if condition is targetAmountReached and it's met
+        early = false;
     } else {
-        // Fallback to date-based maturity
         if (goal.targetDate) {
             try {
                 const tDate = parseISO(goal.targetDate);
@@ -118,7 +117,7 @@ export function WithdrawFromGoalForm({ goal, onConfirmWithdrawal, onSubmissionDo
                            ? goal.targetAmount * penaltyRate
                            : 0;
     
-    const grossAmountToWithdraw = goal.currentAmount; // Full withdrawal
+    const grossAmountToWithdraw = goal.currentAmount; 
     const transactionCost = calculateTransactionCostForDisplay(grossAmountToWithdraw);
 
     let penaltyCollected = 0;
@@ -141,59 +140,59 @@ export function WithdrawFromGoalForm({ goal, onConfirmWithdrawal, onSubmissionDo
         }
     }
     
+    const finalNetAmountToUser = Math.max(0, netToUser);
+    let possible = true;
+    let reason = null;
+
+    if (goal.currentAmount <= 0) {
+        possible = false;
+        reason = "No funds available to withdraw.";
+    } else if (early && !goal.allowsEarlyWithdrawal) {
+        possible = false;
+        reason = "Early withdrawal is not permitted for this goal.";
+    } else if (finalNetAmountToUser <= 0 && goal.currentAmount > 0) { // Only show this reason if there were funds to begin with
+        possible = false;
+        reason = "Withdrawal not allowed as the net amount after deductions would be zero or less.";
+    }
+    
     return {
         isActuallyEarly: early,
         calculatedPenaltyOnTarget: penaltyOnTarget,
         calculatedTransactionCost: transactionCost,
         actualPenaltyCollected: Math.max(0, penaltyCollected),
         actualTransactionCostCollected: Math.max(0, costCollected),
-        netAmountToUser: Math.max(0, netToUser),
+        netAmountToUser: finalNetAmountToUser,
         effectiveMaturityDate: maturityDate,
+        isWithdrawalPossible: possible,
+        disableReason: reason,
     };
   }, [goal]);
 
 
   async function onSubmit(values: WithdrawFromGoalFormData) {
-    if (!settingsMounted) {
-      toast({ variant: "destructive", title: "Error", description: "Settings not loaded. Please try again." });
+    if (!settingsMounted || !isWithdrawalPossible) {
+      if (!settingsMounted) {
+          toast({ variant: "destructive", title: "Error", description: "Settings not loaded. Please try again." });
+      } else if (disableReason) {
+          toast({ variant: "destructive", title: "Withdrawal Blocked", description: disableReason });
+      }
       return;
     }
-    // Re-check isActuallyEarly for submission based on latest goal state
-    // (although useMemo should update if goal prop changes, this is an extra check against stale form state if needed)
-    let currentIsEarly = true;
-    const currentIsFunded = goal.currentAmount >= goal.targetAmount;
-    if (goal.withdrawalCondition === 'targetAmountReached' && currentIsFunded) {
-        currentIsEarly = false;
-    } else if (effectiveMaturityDate && (isPast(effectiveMaturityDate) || isToday(effectiveMaturityDate))) {
-        currentIsEarly = false;
-    }
-
-
-    if (currentIsEarly && !goal.allowsEarlyWithdrawal) {
-        toast({variant: "destructive", title: "Withdrawal Blocked", description: "Early withdrawal is not permitted for this goal."});
-        return;
-    }
-    if (goal.currentAmount <= 0) {
-        toast({variant: "destructive", title: "No Funds", description: "There are no funds to withdraw from this goal."});
-        return;
-    }
-
+    
     setIsSubmitting(true);
     try {
-      // Withdraw the full currentAmount
       await onConfirmWithdrawal(goal, goal.currentAmount, values.withdrawalDescription);
       if (onSubmissionDone) {
         onSubmissionDone();
       }
     } catch (error) {
       console.error("Withdrawal submission error:", error)
+      // Error toast might be handled by context, or add a generic one here if not caught
     } finally {
       setIsSubmitting(false);
     }
   }
   
-  const canWithdraw = goal.currentAmount > 0 && (!isActuallyEarly || goal.allowsEarlyWithdrawal);
-
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -303,23 +302,15 @@ export function WithdrawFromGoalForm({ goal, onConfirmWithdrawal, onSubmissionDo
         <Button 
             type="submit" 
             className="w-full" 
-            disabled={!settingsMounted || isSubmitting || !canWithdraw}
+            disabled={!settingsMounted || isSubmitting || !isWithdrawalPossible}
         >
           <Download className="mr-2 h-4 w-4" />
           {isSubmitting ? "Processing..." : "Confirm Full Withdrawal"}
         </Button>
-        {!canWithdraw && goal.currentAmount > 0 && (
-            <p className="text-xs text-destructive text-center">
-                Withdrawal is not currently possible for this goal (e.g. early withdrawal not allowed and not mature).
-            </p>
-        )}
-         {!canWithdraw && goal.currentAmount <= 0 && (
-            <p className="text-xs text-muted-foreground text-center">
-                No funds available to withdraw.
-            </p>
+        {!isWithdrawalPossible && settingsMounted && disableReason && (
+            <p className="text-xs text-destructive text-center pt-1">{disableReason}</p>
         )}
       </form>
     </Form>
   );
 }
-

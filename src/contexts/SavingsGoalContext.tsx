@@ -332,24 +332,19 @@ export const SavingsGoalProvider = ({ children }: { children: ReactNode }) => {
       toast({ variant: "destructive", title: "Not Authenticated" });
       throw new Error("Not Authenticated");
     }
-    if (grossAmountToWithdrawFromGoal <= 0 || grossAmountToWithdrawFromGoal > goal.currentAmount) {
-      toast({ variant: "destructive", title: "Invalid Withdrawal Amount" });
-      throw new Error("Invalid withdrawal amount. Requested more than available or zero.");
-    }
 
     const goalDocRef = doc(db, 'users', user.uid, 'savingsGoals', goal.id);
     const expenseColRef = collection(db, 'users', user.uid, 'expenses');
     const withdrawalLogColRef = collection(db, 'users', user.uid, 'savingsGoalWithdrawals');
     const platformRevenueColRef = collection(db, 'platformRevenue');
 
-    let isEarly = true; // Assume early by default, prove otherwise
+    let isEarly = true; 
     let effectiveMaturityDate: Date | null = null;
     const isGoalFunded = goal.currentAmount >= goal.targetAmount;
 
     if (goal.withdrawalCondition === 'targetAmountReached' && isGoalFunded) {
-        isEarly = false; // Mature if condition is targetAmountReached and it's met
+        isEarly = false;
     } else {
-        // Fallback to date-based maturity if the primary condition isn't "targetAmountReached" or if it is but not yet funded
         if (goal.targetDate) {
             try {
                 const tDate = parseISO(goal.targetDate);
@@ -377,14 +372,23 @@ export const SavingsGoalProvider = ({ children }: { children: ReactNode }) => {
       toast({ variant: "destructive", title: "Early Withdrawal Not Allowed" });
       throw new Error("Early withdrawal is not allowed for this goal.");
     }
+    
+    if (grossAmountToWithdrawFromGoal <= 0) {
+        toast({variant: "destructive", title: "No Funds", description: "No funds to withdraw from this goal."});
+        throw new Error("No funds to withdraw.");
+    }
+    if (grossAmountToWithdrawFromGoal > goal.currentAmount) {
+      // This check is important before transaction, though transaction will re-verify
+      toast({ variant: "destructive", title: "Invalid Amount", description: "Attempting to withdraw more than available." });
+      throw new Error("Attempting to withdraw more than available.");
+    }
 
-    // Calculate penalty based on targetAmount
+
     const penaltyRate = goal.earlyWithdrawalPenaltyRate;
     const calculatedPenalty = isEarly && goal.allowsEarlyWithdrawal && penaltyRate > 0 
                                ? goal.targetAmount * penaltyRate 
                                : 0;
     
-    // Calculate transaction cost based on the gross amount being withdrawn from the goal
     const calculatedTransactionCost = calculateTransactionCost(grossAmountToWithdrawFromGoal);
 
     let actualPenaltyCollected = 0;
@@ -393,7 +397,7 @@ export const SavingsGoalProvider = ({ children }: { children: ReactNode }) => {
 
     if (calculatedPenalty >= grossAmountToWithdrawFromGoal) {
         actualPenaltyCollected = grossAmountToWithdrawFromGoal;
-        actualTransactionCostCollected = 0; // No funds left for transaction cost
+        actualTransactionCostCollected = 0;
         netAmountToUser = 0;
     } else {
         actualPenaltyCollected = calculatedPenalty;
@@ -407,10 +411,14 @@ export const SavingsGoalProvider = ({ children }: { children: ReactNode }) => {
         }
     }
     
-    // Ensure amounts are positive or zero
     actualPenaltyCollected = Math.max(0, actualPenaltyCollected);
     actualTransactionCostCollected = Math.max(0, actualTransactionCostCollected);
     netAmountToUser = Math.max(0, netAmountToUser);
+
+    if (netAmountToUser <= 0 && grossAmountToWithdrawFromGoal > 0) {
+        toast({ variant: "destructive", title: "Withdrawal Not Allowed", description: "The net amount after deductions would be zero or less. Withdrawal cancelled." });
+        throw new Error("Withdrawal not allowed: Net amount after deductions is zero or less.");
+    }
 
     let incomeTransactionId = '';
 
@@ -419,7 +427,7 @@ export const SavingsGoalProvider = ({ children }: { children: ReactNode }) => {
         const goalSnap = await transaction.get(goalDocRef);
         if (!goalSnap.exists()) throw new Error("Savings goal not found.");
         const currentGoalData = goalSnap.data() as SavingsGoal;
-        // Re-check currentAmount inside transaction to prevent race conditions
+        
         if (currentGoalData.currentAmount < grossAmountToWithdrawFromGoal) {
             throw new Error("Insufficient funds in goal at time of transaction.");
         }
@@ -427,22 +435,17 @@ export const SavingsGoalProvider = ({ children }: { children: ReactNode }) => {
         const newGoalCurrentAmount = currentGoalData.currentAmount - grossAmountToWithdrawFromGoal;
         let newGoalStatus = currentGoalData.status;
         
-        if (isEarly && goal.allowsEarlyWithdrawal) newGoalStatus = 'withdrawnEarly'; // Only set to withdrawnEarly if it was actually an early withdrawal
-        else if (newGoalCurrentAmount <= 0 && ( (currentGoalData.withdrawalCondition === 'targetAmountReached' && isGoalFunded) || (currentGoalData.withdrawalCondition === 'maturityDateReached' && !isEarly) ) ) {
+        if (isEarly && goal.allowsEarlyWithdrawal) newGoalStatus = 'withdrawnEarly';
+        else if (newGoalCurrentAmount <= 0 && ( (currentGoalData.withdrawalCondition === 'targetAmountReached' && (currentGoalData.currentAmount >= currentGoalData.targetAmount)) || (currentGoalData.withdrawalCondition === 'maturityDateReached' && !isEarly) ) ) {
             newGoalStatus = 'completed';
-        } else if (newGoalCurrentAmount <= 0) {
-            // This case might occur if goal was partially withdrawn, and now fully depleted before formal maturity/target completion
-            newGoalStatus = currentGoalData.status; // Keep existing status or decide a specific one like 'depleted'
         }
-
-
+        
         transaction.update(goalDocRef, {
           currentAmount: newGoalCurrentAmount,
           status: newGoalStatus,
           updatedAt: serverTimestamp(),
         });
 
-        // Create Income Transaction for User (only if net amount is positive)
         if (netAmountToUser > 0) {
             const incomePayload: Omit<Expense, 'id'|'userId'|'createdAt'|'updatedAt'> = {
                 description: description || `Withdrawal from ${goal.name}`,
@@ -457,7 +460,6 @@ export const SavingsGoalProvider = ({ children }: { children: ReactNode }) => {
             transaction.set(newIncomeDocRef, { ...incomePayload, userId: user.uid, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
         }
 
-        // Create Platform Revenue Entry for Penalty (if any)
         if (actualPenaltyCollected > 0) {
             const penaltyRevenuePayload: Omit<PlatformRevenueEntry, 'id'|'createdAt'> = {
                 userId: user.uid,
@@ -470,7 +472,6 @@ export const SavingsGoalProvider = ({ children }: { children: ReactNode }) => {
             const newPenaltyRevenueDocRef = doc(platformRevenueColRef);
             transaction.set(newPenaltyRevenueDocRef, {...penaltyRevenuePayload, createdAt: serverTimestamp()});
         }
-        // Create Platform Revenue Entry for Transaction Cost (if any)
         if (actualTransactionCostCollected > 0) {
             const costRevenuePayload: Omit<PlatformRevenueEntry, 'id'|'createdAt'> = {
                 userId: user.uid,
@@ -485,17 +486,16 @@ export const SavingsGoalProvider = ({ children }: { children: ReactNode }) => {
         }
       });
 
-      // Log the withdrawal (outside transaction)
        await addDoc(withdrawalLogColRef, {
             userId: user.uid,
             savingsGoalId: goal.id,
-            incomeTransactionId: netAmountToUser > 0 ? incomeTransactionId : null, // Only if income was created
+            incomeTransactionId: netAmountToUser > 0 ? incomeTransactionId : null,
             amountWithdrawn: grossAmountToWithdrawFromGoal,
             penaltyAmount: actualPenaltyCollected,
             transactionCost: actualTransactionCostCollected,
             netAmountToUser: netAmountToUser,
             date: new Date().toISOString().split('T')[0],
-            isEarlyWithdrawal: isEarly, // This now correctly reflects if it was an early withdrawal based on combined conditions
+            isEarlyWithdrawal: isEarly,
             createdAt: serverTimestamp(),
         } as Omit<SavingsGoalWithdrawal, 'id'>);
 
@@ -504,10 +504,10 @@ export const SavingsGoalProvider = ({ children }: { children: ReactNode }) => {
     } catch (e) {
       console.error("Error withdrawing from savings goal: ", e);
       const errorMessage = e instanceof Error ? e.message : "Could not process withdrawal.";
-      if (errorMessage !== "Early Withdrawal Not Allowed" && errorMessage !== "Invalid withdrawal amount." && errorMessage !== "Insufficient funds in goal at time of transaction.") {
+      if (errorMessage !== "Early Withdrawal Not Allowed" && errorMessage !== "Invalid withdrawal amount." && errorMessage !== "Insufficient funds in goal at time of transaction." && errorMessage !== "Withdrawal not allowed: Net amount after deductions is zero or less." && errorMessage !== "No funds to withdraw.") {
          toast({ variant: "destructive", title: "Withdrawal Failed", description: errorMessage });
       }
-      throw e; // Re-throw
+      throw e; 
     }
   }, [user, toast]);
 
@@ -534,4 +534,3 @@ export const useSavingsGoals = (): SavingsGoalContextType => {
   }
   return context;
 };
-
