@@ -123,7 +123,7 @@ export function AppHeader() {
             </DropdownMenu>
           )}
 
-          {user && ( 
+          {hasMounted && user && ( 
             <div className="md:hidden">
               <button
                 onClick={() => setIsMobileMenuOpen(true)}
@@ -137,7 +137,7 @@ export function AppHeader() {
         </div>
       </header>
 
-      {isMobile && user && (
+      {hasMounted && isMobile && user && (
         <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
           <SheetContent side="left" className="w-72 p-0 flex flex-col bg-background">
             <SheetHeader className="p-4 border-b">
