@@ -2,7 +2,6 @@
 "use client";
 
 import { useEffect, useState, useCallback } from 'react';
-// No useRouter for login redirect, AdminShell handles it.
 import { AdminShell } from '@/components/admin/layout/AdminShell';
 import { UserList } from '@/components/admin/UserList';
 import type { AppUser } from '@/lib/types';
@@ -12,20 +11,17 @@ import { Button } from '@/components/ui/button';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, query, orderBy, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext'; // Needed for isAdminUser to pass to fetchUsers if it were dependent
-
-// Note: AdminShell now handles the primary auth/admin checks and loading/denied states.
-// This page component assumes it will only be rendered if the user is an authenticated admin.
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function AdminUsersPage() {
-  const { isAdminUser } = useAuth(); // Get isAdminUser for fetchUsers logic
+  const { isAdminUser } = useAuth();
   const { toast } = useToast();
   const [fetchedUsers, setFetchedUsers] = useState<AppUser[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchUsers = useCallback(async () => {
-    if (!isAdminUser) { // Should not happen if AdminShell works, but good guard
+    if (!isAdminUser) {
       setIsLoadingUsers(false);
       return;
     }
@@ -34,29 +30,55 @@ export default function AdminUsersPage() {
       const usersCol = collection(db, 'users');
       const q = query(usersCol, orderBy('joinDate', 'desc'));
       const userSnapshot = await getDocs(q);
-      const userList = userSnapshot.docs.map(doc => {
-        const data = doc.data();
+
+      const userListPromises = userSnapshot.docs.map(async (docSnapshot) => {
+        const userData = docSnapshot.data();
+        const userId = docSnapshot.id;
+        let transactionCount = 0;
+        let totalSpent = 0;
+
+        try {
+          const expensesColRef = collection(db, 'users', userId, 'expenses');
+          const expensesSnapshot = await getDocs(expensesColRef);
+          transactionCount = expensesSnapshot.size;
+          expensesSnapshot.forEach(expDoc => {
+            const expData = expDoc.data();
+            if (expData.type === 'expense' && typeof expData.amount === 'number') {
+              totalSpent += expData.amount; // amount is in base currency (USD)
+            }
+          });
+        } catch (userExpenseError) {
+          console.error(`Error fetching expenses for user ${userId}:`, userExpenseError);
+          // Keep transactionCount and totalSpent as 0 if fetching fails
+        }
+        
         let joinDateStr: string | undefined = undefined;
-        if (data.joinDate && (data.joinDate as Timestamp).toDate) {
-            joinDateStr = (data.joinDate as Timestamp).toDate().toISOString().split('T')[0];
-        } else if (typeof data.joinDate === 'string') {
-            const parsedDate = new Date(data.joinDate);
+        if (userData.joinDate && (userData.joinDate as Timestamp).toDate) {
+            joinDateStr = (userData.joinDate as Timestamp).toDate().toISOString().split('T')[0];
+        } else if (typeof userData.joinDate === 'string') {
+            const parsedDate = new Date(userData.joinDate);
             if (!isNaN(parsedDate.getTime())) {
                 joinDateStr = parsedDate.toISOString().split('T')[0];
             } else {
-                joinDateStr = data.joinDate;
+                joinDateStr = userData.joinDate; // Fallback to original string if unparsable
             }
         }
+
         return {
-          uid: doc.id,
-          name: data.name,
-          email: data.email,
-          photoURL: data.photoURL,
+          uid: userId,
+          name: userData.name,
+          email: userData.email,
+          photoURL: userData.photoURL,
           joinDate: joinDateStr,
-          isAdmin: data.isAdmin === true,
+          isAdmin: userData.isAdmin === true,
+          transactionCount,
+          totalSpent,
         } as AppUser;
       });
+
+      const userList = await Promise.all(userListPromises);
       setFetchedUsers(userList);
+
       if (isRefreshing) {
         toast({ title: "User List Refreshed", description: `${userList.length} users loaded.`});
       }
@@ -68,14 +90,13 @@ export default function AdminUsersPage() {
       setIsLoadingUsers(false);
       setIsRefreshing(false);
     }
-  }, [isAdminUser, toast, isRefreshing]); // Added isAdminUser dependency
+  }, [isAdminUser, toast, isRefreshing]);
 
   useEffect(() => {
-    // Fetch users only if confirmed admin by AuthContext (which AdminShell also uses)
     if (isAdminUser) {
       fetchUsers();
     } else {
-        setIsLoadingUsers(false); // Stop loading if somehow rendered without admin rights
+        setIsLoadingUsers(false);
     }
   }, [isAdminUser, fetchUsers]);
 
@@ -83,9 +104,6 @@ export default function AdminUsersPage() {
     setIsRefreshing(true);
     fetchUsers();
   };
-
-  // AdminShell handles the main loading spinner and access denied message.
-  // This component will only render its content if the user is an admin.
 
   return (
     <AdminShell>
@@ -103,7 +121,7 @@ export default function AdminUsersPage() {
           <CardHeader>
             <CardTitle>All Platform Users</CardTitle>
             <CardDescription>
-              Overview of registered users. Ensure user data is in the 'users' collection.
+              Overview of registered users. Transaction and spending data is calculated on load.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -119,6 +137,20 @@ export default function AdminUsersPage() {
             )}
           </CardContent>
         </Card>
+         <Card className="shadow-lg bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-700/30">
+            <CardHeader>
+                <CardTitle className="text-amber-700 dark:text-amber-400">Performance Note</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <p className="text-sm text-amber-600 dark:text-amber-300">
+                    Displaying real-time transaction counts and total spending for each user requires fetching all transactions for each user listed. 
+                    This client-side calculation can be slow and resource-intensive for a large number of users or transactions.
+                </p>
+                <p className="text-sm text-amber-600 dark:text-amber-300 mt-2">
+                    For production applications, it is highly recommended to pre-calculate and store these aggregates (e.g., using Cloud Functions) on each user's document for better performance and scalability.
+                </p>
+            </CardContent>
+          </Card>
       </div>
     </AdminShell>
   );

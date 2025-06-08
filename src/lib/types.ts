@@ -20,25 +20,6 @@ export type Category =
   | 'Groceries'
   | 'Other';
 
-// export const allCategories: Category[] = [
-//   'Food & Drink',
-//   'Transportation',
-//   'Entertainment',
-//   'Shopping',
-//   'Travel',
-//   'Utilities',
-//   'Rent',
-//   'Salary',
-//   'Healthcare',
-//   'Education',
-//   'Gifts & Donations',
-//   'Investments',
-//   'Bills & Fees',
-//   'Personal Care',
-//   'Groceries',
-//   'Other',
-// ];
-
 export const allCategories = [
   'Food & Drink',
   'Transportation',
@@ -59,7 +40,6 @@ export const allCategories = [
 ] as const;
 
 export const CategoryEnumSchema = z.enum(allCategories);
-// export const CategoryEnumSchema = z.enum(allCategories);
 
 export const expenseCategories: Category[] = [
   'Food & Drink',
@@ -118,8 +98,8 @@ export interface AppUser {
   photoURL?: string | null;
   joinDate?: string; // ISO string date
   isAdmin?: boolean;
-  transactionCount?: number;
-  totalSpent?: number; // Assumed to be in DEFAULT_STORED_CURRENCY if aggregated on backend
+  transactionCount: number; // Now mandatory
+  totalSpent: number; // Now mandatory, assumed to be in DEFAULT_STORED_CURRENCY
 }
 
 export const supportedCurrencies = ['USD', 'EUR', 'KES'] as const;
@@ -136,4 +116,4 @@ export const DEFAULT_THEME: Theme = 'system';
 
 // FontThemeId and DEFAULT_FONT_THEME_ID_CONST are commented out as the feature is disabled.
 // export type FontThemeId = string;
-// export const DEFAULT_FONT_THEME_ID_CONST = 'work-sans-dm-serif-display';
+// export const DEFAULT_FONT_THEME_ID_CONST = 'default-font-placeholder';

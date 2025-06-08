@@ -8,7 +8,7 @@ import { Card, CardDescription, CardContent } from "@/components/ui/card";
 import { useState, useEffect } from "react";
 import { format, parseISO, isValid } from 'date-fns';
 import Image from "next/image";
-import { useSettings } from "@/contexts/SettingsContext"; // Use displayCurrency
+import { useSettings } from "@/contexts/SettingsContext";
 import { formatCurrency } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -20,7 +20,7 @@ interface UserListItemProps {
 }
 
 function UserListItem({ user }: UserListItemProps) {
-  const { displayCurrency, isMounted: settingsMounted } = useSettings(); // Use displayCurrency
+  const { displayCurrency, isMounted: settingsMounted } = useSettings();
   const [formattedJoinDate, setFormattedJoinDate] = useState('');
 
   useEffect(() => {
@@ -35,7 +35,7 @@ function UserListItem({ user }: UserListItemProps) {
         }
       } catch (e) {
         console.error("Error formatting join date for user:", user.uid, user.joinDate, e);
-        setFormattedJoinDate(String(user.joinDate));
+        setFormattedJoinDate(String(user.joinDate)); // Fallback to original string
       }
     } else {
       setFormattedJoinDate('N/A');
@@ -79,9 +79,8 @@ function UserListItem({ user }: UserListItemProps) {
       </div>
 
       <div className="flex flex-col items-start md:items-end gap-1 text-xs text-muted-foreground">
-        <span className="flex items-center"><ShoppingBag className="h-3 w-3 mr-1 text-primary" />{user.transactionCount || 0} Txns (mock)</span>
-        {/* user.totalSpent is in base currency, formatCurrency converts to displayCurrency */}
-        <span className="flex items-center"><DollarSign className="h-3 w-3 mr-1 text-green-500" />Spent: {formatCurrency(user.totalSpent || 0, displayCurrency)} (mock)</span>
+        <span className="flex items-center"><ShoppingBag className="h-3 w-3 mr-1 text-primary" />{user.transactionCount} Txns</span>
+        <span className="flex items-center"><DollarSign className="h-3 w-3 mr-1 text-green-500" />Spent: {formatCurrency(user.totalSpent, displayCurrency)}</span>
       </div>
     </div>
   );
@@ -95,7 +94,7 @@ export function UserList({ users }: UserListProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const { isMounted: settingsMounted } = useSettings();
 
-  const sortedUsers = users;
+  const sortedUsers = users; // Already sorted by joinDate in the page component
 
   const totalPages = Math.ceil(sortedUsers.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
