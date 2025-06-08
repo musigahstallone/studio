@@ -25,13 +25,12 @@ export function AdminShell({ children }: AdminShellProps) {
     if (!authLoading && !user) {
       router.push('/login');
     }
-    // Access denied is handled by the check below
   }, [user, isAdminUser, authLoading, router]);
 
   if (authLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-muted">
-        <AdminHeader /> {/* Show header even on loading to maintain structure */}
+        <AdminHeader />
         <div className="flex flex-1 items-center justify-center w-full">
             <Loader2 className="h-16 w-16 animate-spin text-primary" />
         </div>
@@ -40,11 +39,9 @@ export function AdminShell({ children }: AdminShellProps) {
   }
 
   if (!isAdminUser) {
-    // Render an "Access Denied" page within the potential admin context
-    // Or redirect, but showing a message can be clearer.
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background">
-         <AdminHeader /> {/* Show header for context */}
+         <AdminHeader />
          <div className="flex flex-1 items-center justify-center w-full p-4">
             <Card className="w-full max-w-md p-6 text-center shadow-xl">
                 <CardHeader>
@@ -72,8 +69,8 @@ export function AdminShell({ children }: AdminShellProps) {
     <div className="flex flex-col min-h-screen bg-muted/40">
       <AdminHeader />
       <div className="flex flex-1 pt-16"> {/* pt-16 to offset fixed AdminHeader */}
-        <AdminSidebar />
-        <main className="flex-1 p-6 lg:p-8 overflow-y-auto">
+        <AdminSidebar /> {/* Sidebar will hide itself on mobile */}
+        <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto"> {/* Added md: for padding change */}
           {children}
         </main>
       </div>

@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { PiggyBank, LogOut, UserCircle, Settings, ShieldAlert } from 'lucide-react';
+import { PiggyBank, LogOut, UserCircle, Settings, ShieldAlert, Menu, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { auth } from '@/lib/firebase';
@@ -16,15 +16,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { AdminMobileNav } from './AdminMobileNav';
+import { useState } from 'react';
 
 export function AdminHeader() {
   const router = useRouter();
   const { user, appUser, isAdminUser } = useAuth();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleLogout = async () => {
     try {
       await auth.signOut();
       router.push('/login');
+      setIsMobileMenuOpen(false);
     } catch (error) {
       console.error("Logout error:", error);
     }
@@ -33,6 +38,31 @@ export function AdminHeader() {
   return (
     <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-card px-4 sm:px-6 lg:px-8 shadow-sm">
       <div className="flex items-center gap-2">
+        <div className="md:hidden">
+          <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" aria-label="Open admin menu">
+                <Menu className="h-6 w-6" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-72 p-0 flex flex-col bg-background">
+              <SheetHeader className="p-4 border-b">
+                <SheetTitle className="flex items-center gap-2">
+                  <ShieldAlert className="h-7 w-7 text-primary" />
+                  <span className="font-headline text-xl font-semibold tracking-tight text-foreground">Admin Menu</span>
+                </SheetTitle>
+                 <button
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 md:hidden"
+                    aria-label="Close admin menu"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+              </SheetHeader>
+              <AdminMobileNav onLinkClick={() => setIsMobileMenuOpen(false)} />
+            </SheetContent>
+          </Sheet>
+        </div>
         <Link href="/admin" className="flex items-center gap-2">
           <ShieldAlert className="h-7 w-7 text-primary" />
           <h1 className="font-headline text-xl font-semibold tracking-tight text-foreground">

@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, LogIn, UserPlus, KeyRound, CheckCircle, AlertCircle } from 'lucide-react';
+import { Loader2, LogIn, UserPlus, KeyRound, CheckCircle, AlertCircle, Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -24,7 +24,9 @@ export default function LoginPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login'); // 'login' or 'signup'
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -40,7 +42,7 @@ export default function LoginPage() {
           break;
         case 'auth/email-already-in-use':
           friendlyMessage = 'This email address is already in use. Try logging in.';
-          setAuthMode('login'); // Switch to login mode if email is in use
+          setAuthMode('login');
           break;
         case 'auth/weak-password':
           friendlyMessage = 'Password should be at least 6 characters.';
@@ -92,10 +94,10 @@ export default function LoginPage() {
         await setDoc(userDocRef, {
           uid: user.uid,
           email: user.email,
-          name: user.email?.split('@')[0] || 'New User', // Default name
-          photoURL: user.photoURL, // Can be null
-          joinDate: Timestamp.fromDate(new Date()), // Use Firestore Timestamp
-          isAdmin: false, // Default role
+          name: user.email?.split('@')[0] || 'New User',
+          photoURL: user.photoURL,
+          joinDate: Timestamp.fromDate(new Date()),
+          isAdmin: false,
         });
       }
       toast({
@@ -103,7 +105,7 @@ export default function LoginPage() {
         description: 'Your account has been created. Welcome to PennyPincher AI!',
         action: <CheckCircle className="text-green-500" />,
       });
-      router.push('/'); // User is automatically signed in by createUserWithEmailAndPassword
+      router.push('/');
     } catch (err: any) {
       handleAuthError(err, 'Signup');
     } finally {
@@ -151,15 +153,28 @@ export default function LoginPage() {
       </div>
       <div className="space-y-2">
         <Label htmlFor="password">Password</Label>
-        <Input
-          id="password"
-          type="password"
-          placeholder="••••••••"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          disabled={isLoading}
-          required
-        />
+        <div className="relative">
+          <Input
+            id="password"
+            type={showPassword ? 'text' : 'password'}
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            disabled={isLoading}
+            required
+            className="pr-10"
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            onClick={() => setShowPassword(!showPassword)}
+            aria-label={showPassword ? "Hide password" : "Show password"}
+          >
+            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </Button>
+        </div>
       </div>
     </>
   );
@@ -219,15 +234,28 @@ export default function LoginPage() {
               {commonFormFields}
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  placeholder="••••••••"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  disabled={isLoading}
-                  required
-                />
+                <div className="relative">
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    disabled={isLoading}
+                    required
+                    className="pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
               </div>
               {error && <p className="text-sm text-destructive text-center">{error}</p>}
               <Button
