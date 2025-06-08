@@ -66,28 +66,35 @@ export default function LandingPage() {
     if (!authLoading && user) {
       router.push('/dashboard');
     } else if (!authLoading && !user) {
-      // Show login prompt toast if user is unauthenticated and not loading
-      const loginPromptShown = sessionStorage.getItem('loginPromptShown');
-      if (!loginPromptShown) { // Show only once per session, or remove this check for "every refresh"
+      const justLoggedOut = sessionStorage.getItem('justLoggedOut') === 'true';
+      const loginPromptShown = sessionStorage.getItem('loginPromptShown') === 'true';
+
+      if (justLoggedOut || !loginPromptShown) {
         toast({
           title: 'Welcome to PennyPincher AI!',
-          description: 'Ready to manage your finances? Log in or create an account.',
+          description: 'Ready to manage your finances? Log in or create an account to get started.',
           action: (
-            <Button asChild variant="outline" size="sm">
+            <Button asChild variant="outline" size="sm" className="mt-2 sm:mt-0 ml-0 sm:ml-2">
               <Link href="/login">
                 <LogIn className="mr-2 h-4 w-4" /> Login / Sign Up
               </Link>
             </Button>
           ),
-          duration: 10000, // Keep toast longer
+          duration: 15000, 
+          className: "rounded-xl shadow-lg border-primary/20 bg-card", 
         });
-        // sessionStorage.setItem('loginPromptShown', 'true'); // Uncomment to show only once per session
+        if (!justLoggedOut) {
+          sessionStorage.setItem('loginPromptShown', 'true'); 
+        }
+        if (justLoggedOut) {
+          sessionStorage.removeItem('justLoggedOut');
+        }
       }
     }
   }, [user, authLoading, router, toast]);
 
 
-  if (authLoading || (!authLoading && user)) { // Keep showing loader if redirecting authed user
+  if (authLoading || (!authLoading && user)) { 
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>

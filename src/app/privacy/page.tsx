@@ -2,7 +2,7 @@
 import { PublicPageShell } from '@/components/layout/PublicPageShell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
-import * as React from 'react'; // Added React import
+import * as React from 'react';
 
 const privacySections = [
   {
@@ -18,13 +18,13 @@ const privacySections = [
     content: [
       <p key="2p1">We may collect personal information that you provide to us directly, such as:</p>,
       <ul key="2ul1" className="list-disc space-y-1 pl-5 my-2">
-        <li>Account Information: Name, email address, password.</li>,
-        <li>Financial Information: Transaction details (description, amount, date, category, merchant), budget information, savings goal details. Receipts or documents you upload.</li>,
+        <li>Account Information: Name, email address, password.</li>
+        <li>Financial Information: Transaction details (description, amount, date, category, merchant), budget information, savings goal details. Receipts or documents you upload.</li>
         <li>User Content: Text descriptions you provide for AI processing.</li>
       </ul>,
       <p key="2p2" className="mt-2">We also collect some information automatically:</p>,
       <ul key="2ul2" className="list-disc space-y-1 pl-5 my-2">
-          <li>Usage Data: Information about how you interact with our app.</li>,
+          <li>Usage Data: Information about how you interact with our app.</li>
           <li>Device Information: IP address, browser type, operating system. (Standard server logs)</li>
       </ul>
     ]
@@ -35,11 +35,11 @@ const privacySections = [
     content: [
       <p key="3p1">We use the information we collect to:</p>,
       <ul key="3ul1" className="list-disc space-y-1 pl-5 my-2">
-        <li>Provide, operate, and maintain our application.</li>,
-        <li>Process your transactions and manage your financial data.</li>,
-        <li>Improve, personalize, and expand our application.</li>,
-        <li>Communicate with you, including for customer service and updates.</li>,
-        <li>For AI features, such as categorizing expenses and extracting data from receipts. Data processed by AI models is handled according to the terms of our AI service providers (e.g., Google Gemini).</li>,
+        <li>Provide, operate, and maintain our application.</li>
+        <li>Process your transactions and manage your financial data.</li>
+        <li>Improve, personalize, and expand our application.</li>
+        <li>Communicate with you, including for customer service and updates.</li>
+        <li>For AI features, such as categorizing expenses and extracting data from receipts. Data processed by AI models is handled according to the terms of our AI service providers (e.g., Google Gemini).</li>
         <li>Prevent fraudulent activity and ensure security.</li>
       </ul>
     ]
@@ -50,7 +50,7 @@ const privacySections = [
     content: [
       <p key="4p1">We do not sell your personal information. We may share your information in the following situations:</p>,
       <ul key="4ul1" className="list-disc space-y-1 pl-5 my-2">
-        <li>With Service Providers: We may share your information with third-party vendors and service providers that perform services for us or on our behalf (e.g., cloud hosting, AI model providers). These providers are obligated to protect your data.</li>,
+        <li>With Service Providers: We may share your information with third-party vendors and service providers that perform services for us or on our behalf (e.g., cloud hosting, AI model providers). These providers are obligated to protect your data.</li>
         <li>For Legal Reasons: If required by law or in response to valid requests by public authorities.</li>
       </ul>
     ]
@@ -106,10 +106,10 @@ export default function PrivacyPolicyPage() {
             
             <div className="space-y-8">
               {privacySections.map((section) => (
-                <div key={section.number} className="space-y-2">
+                <div key={section.number} className="space-y-0">
 
                   {/* == SMALL SCREEN LAYOUT (stacked: Number+Title then Content) == */}
-                  <div className="md:hidden">
+                  <div className="md:hidden mb-6">
                     <div className="flex items-baseline space-x-2 mb-2">
                       <span className="text-lg font-bold text-primary font-mono">
                         {section.number}
@@ -124,7 +124,7 @@ export default function PrivacyPolicyPage() {
                   </div>
 
                   {/* == LARGE SCREEN (md and up) LAYOUT (offset Number, then Title & Content) == */}
-                  <div className="hidden md:flex md:items-start md:space-x-4">
+                  <div className="hidden md:flex md:items-start md:space-x-4 mb-6">
                     <span className="mt-px text-xl font-bold text-primary font-mono shrink-0 w-10 text-right pr-2">
                       {section.number}
                     </span>

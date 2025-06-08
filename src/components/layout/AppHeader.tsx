@@ -2,10 +2,10 @@
 "use client";
 
 import Link from 'next/link';
-import { PiggyBank, Menu, X, ShieldCheck, LogIn, LogOut, UserCircle, Settings as CogIcon, LayoutDashboard } from 'lucide-react';
+import { PiggyBank, Menu, X, ShieldCheck, LogIn, LogOut, UserCircle, Settings as CogIcon, LayoutDashboard, Sun, Moon, Laptop } from 'lucide-react'; // Added Laptop
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from '@/components/ui/sheet';
 import { AppSidebarNav } from './AppSidebarNav';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -22,7 +22,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from '@/hooks/use-toast';
-
+import { useSettings } from '@/contexts/SettingsContext';
+import type { Theme } from '@/lib/types';
 
 export function AppHeader() {
   const pathname = usePathname();
@@ -31,6 +32,7 @@ export function AppHeader() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
   const { user, appUser, isAdminUser, loading } = useAuth();
+  const { theme, setTheme, isMounted: settingsAreMounted } = useSettings(); // For settings page theme switcher
 
   const handleMobileLinkClick = () => {
     setIsMobileMenuOpen(false);
@@ -55,15 +57,23 @@ export function AppHeader() {
   }, []);
 
 
-  if (pathname === '/login' || pathname === '/' || pathname === '/privacy' || pathname === '/terms' || pathname === '/contact' || pathname === '/features') { // Don't show app header on public pages
+  if (pathname === '/login' || pathname === '/' || pathname === '/privacy' || pathname === '/terms' || pathname === '/contact' || pathname === '/features' || pathname === '/faq') { // Don't show app header on public pages
     return null;
   }
+  
+  // Theme toggle logic specifically for the settings page, if a switcher is there
+  const toggleThemeForSettingsPage = () => {
+    if (!settingsAreMounted) return;
+    setTheme(theme === 'light' ? 'dark' : 'light');
+  };
+  const ThemeIconForSettingsPage = theme === 'light' ? Moon : Sun;
+
 
   return (
     <>
       <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b bg-background/95 px-4 backdrop-blur-sm sm:px-6 lg:px-8">
         <div className="flex items-center gap-2">
-          <Link href="/dashboard" className="flex items-center gap-2"> {/* Logo now links to dashboard for logged-in users */}
+          <Link href="/dashboard" className="flex items-center gap-2">
             <PiggyBank className="h-7 w-7 text-primary" />
             <h1 className="font-headline text-xl font-semibold tracking-tight text-foreground">
               PennyPincher AI
@@ -73,10 +83,10 @@ export function AppHeader() {
 
         {hasMounted && user && (
           <nav className="hidden md:flex items-center gap-1">
-            <ButtonLink href="/dashboard" isActive={pathname === '/dashboard'}>Dashboard</ButtonLink>
-            <ButtonLink href="/expenses" isActive={pathname === '/expenses'}>Transactions</ButtonLink>
-            <ButtonLink href="/budgets" isActive={pathname === '/budgets'}>Budgets</ButtonLink>
-            <ButtonLink href="/savings-goals" isActive={pathname === '/savings-goals'}>Savings Goals</ButtonLink>
+            <ButtonLink href="/dashboard" currentPathname={pathname}>Dashboard</ButtonLink>
+            <ButtonLink href="/expenses" currentPathname={pathname}>Transactions</ButtonLink>
+            <ButtonLink href="/budgets" currentPathname={pathname}>Budgets</ButtonLink>
+            <ButtonLink href="/savings-goals" currentPathname={pathname}>Savings Goals</ButtonLink>
           </nav>
         )}
 
@@ -94,7 +104,7 @@ export function AppHeader() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
                   <Avatar className="h-9 w-9 border">
-                    <AvatarImage src={appUser.photoURL || user.photoURL || undefined} alt={appUser.name || user.displayName || user.email || 'User'} data-ai-hint="user avatar" />
+                    <AvatarImage src={appUser.photoURL || user.photoURL || undefined} alt={appUser.name || user.displayName || user.email || 'User'} data-ai-hint="user avatar"/>
                     <AvatarFallback>
                       {appUser.email ? appUser.email.charAt(0).toUpperCase() : <UserCircle className="h-5 w-5" />}
                     </AvatarFallback>
@@ -133,52 +143,47 @@ export function AppHeader() {
 
           {hasMounted && user && (
             <div className="md:hidden">
-              <button
-                onClick={() => setIsMobileMenuOpen(true)}
-                className="p-2 text-foreground hover:text-primary transition-colors"
-                aria-label="Open menu"
-              >
-                <Menu className="h-6 w-6" />
-              </button>
+              <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+                <SheetTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="p-2 text-foreground hover:text-primary transition-colors"
+                    aria-label="Open menu"
+                  >
+                    <Menu className="h-6 w-6" />
+                  </Button>
+                </SheetTrigger>
+                 <SheetContent side="left" className="w-72 p-0 flex flex-col bg-background">
+                  <SheetHeader className="p-4 border-b">
+                    <SheetTitle className="flex items-center gap-2">
+                      <PiggyBank className="h-7 w-7 text-primary" />
+                      <span className="font-headline text-xl font-semibold tracking-tight text-foreground">PennyPincher AI</span>
+                    </SheetTitle>
+                  </SheetHeader>
+                  <div className="flex-grow overflow-y-auto">
+                    <AppSidebarNav onLinkClick={handleMobileLinkClick} isMobileLayout={true} isAdmin={isAdminUser} />
+                  </div>
+                  {/* SheetClose is implicit via Radix and the X button in SheetContent */}
+                </SheetContent>
+              </Sheet>
             </div>
           )}
         </div>
       </header>
-
-      {hasMounted && isMobile && user && (
-        <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-          <SheetContent side="left" className="w-72 p-0 flex flex-col bg-background">
-            <SheetHeader className="p-4 border-b">
-              <SheetTitle className="flex items-center gap-2">
-                 <PiggyBank className="h-7 w-7 text-primary" />
-                 <span className="font-headline text-xl font-semibold tracking-tight text-foreground">PennyPincher AI</span>
-              </SheetTitle>
-            </SheetHeader>
-            <div className="flex-grow overflow-y-auto">
-              <AppSidebarNav onLinkClick={handleMobileLinkClick} isMobileLayout={true} isAdmin={isAdminUser} />
-            </div>
-             <button
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                aria-label="Close menu"
-              >
-                <X className="h-5 w-5" />
-                <span className="sr-only">Close</span>
-              </button>
-          </SheetContent>
-        </Sheet>
-      )}
     </>
   );
 }
 
 interface ButtonLinkProps {
   href: string;
-  isActive: boolean;
+  currentPathname: string;
   children: React.ReactNode;
 }
 
-function ButtonLink({ href, isActive, children }: ButtonLinkProps) {
+function ButtonLink({ href, currentPathname, children }: ButtonLinkProps) {
+  const isActive = currentPathname === href || (href.startsWith(currentPathname) && currentPathname !== '/');
+
   return (
     <Link
       href={href}
