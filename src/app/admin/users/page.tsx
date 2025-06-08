@@ -2,37 +2,37 @@
 "use client";
 
 import { useEffect, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
-import { AppShell } from '@/components/layout/AppShell';
+// No useRouter for login redirect, AdminShell handles it.
+import { AdminShell } from '@/components/admin/layout/AdminShell';
 import { UserList } from '@/components/admin/UserList';
 import type { AppUser } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, AlertTriangle, Lock, RefreshCw } from 'lucide-react';
-import Link from 'next/link';
+import { Loader2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { db } from '@/lib/firebase'; 
+import { db } from '@/lib/firebase';
 import { collection, getDocs, query, orderBy, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext'; // Needed for isAdminUser to pass to fetchUsers if it were dependent
 
+// Note: AdminShell now handles the primary auth/admin checks and loading/denied states.
+// This page component assumes it will only be rendered if the user is an authenticated admin.
 
 export default function AdminUsersPage() {
-  const { user, isAdminUser, loading: authLoading } = useAuth(); 
-  const router = useRouter();
+  const { isAdminUser } = useAuth(); // Get isAdminUser for fetchUsers logic
   const { toast } = useToast();
   const [fetchedUsers, setFetchedUsers] = useState<AppUser[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchUsers = useCallback(async () => {
-    if (!isAdminUser) {
-      setIsLoadingUsers(false); // Ensure loading stops if not admin
+    if (!isAdminUser) { // Should not happen if AdminShell works, but good guard
+      setIsLoadingUsers(false);
       return;
     }
     setIsLoadingUsers(true);
     try {
       const usersCol = collection(db, 'users');
-      const q = query(usersCol, orderBy('joinDate', 'desc')); 
+      const q = query(usersCol, orderBy('joinDate', 'desc'));
       const userSnapshot = await getDocs(q);
       const userList = userSnapshot.docs.map(doc => {
         const data = doc.data();
@@ -44,16 +44,16 @@ export default function AdminUsersPage() {
             if (!isNaN(parsedDate.getTime())) {
                 joinDateStr = parsedDate.toISOString().split('T')[0];
             } else {
-                joinDateStr = data.joinDate; 
+                joinDateStr = data.joinDate;
             }
         }
-        return { 
-          uid: doc.id, 
+        return {
+          uid: doc.id,
           name: data.name,
           email: data.email,
           photoURL: data.photoURL,
           joinDate: joinDateStr,
-          isAdmin: data.isAdmin === true, 
+          isAdmin: data.isAdmin === true,
         } as AppUser;
       });
       setFetchedUsers(userList);
@@ -68,76 +68,31 @@ export default function AdminUsersPage() {
       setIsLoadingUsers(false);
       setIsRefreshing(false);
     }
-  }, [isAdminUser, toast, isRefreshing]);
+  }, [isAdminUser, toast, isRefreshing]); // Added isAdminUser dependency
 
   useEffect(() => {
-     if (!authLoading && !user) {
-      router.push('/login');
-      return;
-    }
-    if (!authLoading && user && !isAdminUser) {
-      // UI handles "Access Denied"
-    }
-  }, [user, isAdminUser, authLoading, router]);
-
-  useEffect(() => {
-    if (!authLoading && isAdminUser) { 
+    // Fetch users only if confirmed admin by AuthContext (which AdminShell also uses)
+    if (isAdminUser) {
       fetchUsers();
-    } else if (!authLoading && !isAdminUser) { 
-        setIsLoadingUsers(false); 
+    } else {
+        setIsLoadingUsers(false); // Stop loading if somehow rendered without admin rights
     }
-  }, [isAdminUser, authLoading, fetchUsers]);
+  }, [isAdminUser, fetchUsers]);
 
   const handleRefreshUsers = () => {
     setIsRefreshing(true);
     fetchUsers();
   };
 
-
-  if (authLoading) { 
-    return (
-      <AppShell>
-        <div className="flex flex-col items-center justify-center h-full py-10">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
-          <p className="mt-4 text-muted-foreground">Loading User Management...</p>
-        </div>
-      </AppShell>
-    );
-  }
-
-  if (!isAdminUser) { 
-     return (
-      <AppShell>
-        <div className="flex flex-col items-center justify-center h-full py-10">
-          <Card className="w-full max-w-md p-8 text-center shadow-xl">
-            <CardHeader>
-              <Lock className="h-16 w-16 text-destructive mx-auto mb-6" />
-              <CardTitle className="text-3xl font-headline">Access Denied</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground text-lg mb-6">
-                You do not have the necessary permissions to view this page.
-              </p>
-              <Button asChild className="w-full sm:w-auto" size="lg">
-                <Link href="/admin">Back to Admin Dashboard</Link>
-              </Button>
-            </CardContent>
-             <CardDescription className="mt-4 text-xs text-muted-foreground">
-                This section is restricted to administrators.
-             </CardDescription>
-          </Card>
-        </div>
-      </AppShell>
-    );
-  }
-
+  // AdminShell handles the main loading spinner and access denied message.
+  // This component will only render its content if the user is an admin.
 
   return (
-    <AppShell>
+    <AdminShell>
       <div className="space-y-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <h1 className="font-headline text-3xl font-semibold text-foreground">
-            Manage Users
+            User Management
           </h1>
           <Button onClick={handleRefreshUsers} variant="outline" disabled={isLoadingUsers || isRefreshing}>
             <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
@@ -148,11 +103,11 @@ export default function AdminUsersPage() {
           <CardHeader>
             <CardTitle>All Platform Users</CardTitle>
             <CardDescription>
-              Overview of registered users. Transaction counts and spending per user are mock values.
+              Overview of registered users. Ensure user data is in the 'users' collection.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {isLoadingUsers && !isRefreshing ? ( 
+            {isLoadingUsers && !isRefreshing ? (
               <div className="flex justify-center py-4">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 <p className="ml-3 text-muted-foreground">Loading users...</p>
@@ -165,8 +120,6 @@ export default function AdminUsersPage() {
           </CardContent>
         </Card>
       </div>
-    </AppShell>
+    </AdminShell>
   );
 }
-
-    
