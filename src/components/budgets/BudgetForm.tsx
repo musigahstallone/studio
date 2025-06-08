@@ -22,12 +22,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox"; // Import Checkbox
 import { useToast } from "@/hooks/use-toast";
 import type { Budget } from "@/lib/types";
 import { expenseCategories, DEFAULT_STORED_CURRENCY } from "@/lib/types";
-import { PlusCircle, Save } from "lucide-react";
-import { useSettings } from "@/contexts/SettingsContext"; // Import useSettings
-import { convertToBaseCurrency, formatCurrency } from "@/lib/utils"; // Import conversion utils
+import { PlusCircle, Save, AlertOctagon } from "lucide-react";
+import { useSettings } from "@/contexts/SettingsContext"; 
+import { convertToBaseCurrency, formatCurrency } from "@/lib/utils"; 
 import { useEffect } from "react";
 
 
@@ -35,8 +36,8 @@ const BudgetFormSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(1, { message: "Budget name is required." }).max(50, { message: "Name must be 50 characters or less."}),
   category: z.string().min(1, { message: "Category is required." }),
-  // Amount entered by user in their localCurrency
   amount: z.number().positive({ message: "Budget amount must be positive." }),
+  warnOnExceed: z.boolean().optional(), // Added warnOnExceed
 });
 
 type BudgetFormData = z.infer<typeof BudgetFormSchema>;
@@ -50,7 +51,7 @@ interface BudgetFormProps {
 
 export function BudgetForm({ onSaveBudget, existingBudgets, initialData, onSubmissionDone }: BudgetFormProps) {
   const { toast } = useToast();
-  const { localCurrency, displayCurrency, isMounted: settingsMounted } = useSettings(); // Get localCurrency
+  const { localCurrency, displayCurrency, isMounted: settingsMounted } = useSettings(); 
   const isEditing = !!initialData?.id;
 
   const form = useForm<BudgetFormData>({
@@ -62,14 +63,14 @@ export function BudgetForm({ onSaveBudget, existingBudgets, initialData, onSubmi
       id: initialData?.id || undefined,
       name: initialData?.name || "",
       category: initialData?.category || "",
-      amount: initialData?.amount || 0, // This will be interpreted as localCurrency by user
+      amount: initialData?.amount || 0,
+      warnOnExceed: initialData?.warnOnExceed || false, // Default to false
     },
   });
 
   useEffect(() => {
     let amountForForm = initialData?.amount || 0;
     if (initialData?.amount && settingsMounted && localCurrency !== DEFAULT_STORED_CURRENCY) {
-      // Convert stored base currency amount to local currency for form input display
       const rateFromBaseToLocal = 1 / (CONVERSION_RATES_TO_BASE_BUDGET[localCurrency] || 1);
       amountForForm = initialData.amount * rateFromBaseToLocal;
     }
@@ -79,6 +80,7 @@ export function BudgetForm({ onSaveBudget, existingBudgets, initialData, onSubmi
       name: initialData?.name || "",
       category: initialData?.category || "",
       amount: parseFloat(amountForForm.toFixed(2)) || 0,
+      warnOnExceed: initialData?.warnOnExceed || false,
     });
   }, [initialData, form, settingsMounted, localCurrency]);
 
@@ -98,13 +100,13 @@ export function BudgetForm({ onSaveBudget, existingBudgets, initialData, onSubmi
         return;
     }
 
-    // Convert amount from localCurrency (user input) to DEFAULT_STORED_CURRENCY
     const amountInBaseCurrency = convertToBaseCurrency(values.amount, localCurrency);
 
     const budgetDataForContext: Omit<Budget, 'id' | 'userId' | 'spentAmount' | 'createdAt' | 'updatedAt'> = {
       name: values.name,
       category: values.category as any,
-      amount: amountInBaseCurrency, // Store converted amount
+      amount: amountInBaseCurrency, 
+      warnOnExceed: values.warnOnExceed || false, // Ensure it's always a boolean
     };
 
     onSaveBudget(budgetDataForContext, values.id);
@@ -113,7 +115,7 @@ export function BudgetForm({ onSaveBudget, existingBudgets, initialData, onSubmi
       title: isEditing ? "Budget Updated" : "Budget Set",
       description: `${values.name} (${values.category}): ${formatCurrency(amountInBaseCurrency, displayCurrency)}`,
     });
-    form.reset({ name: "", category: "", amount: 0, id: undefined });
+    form.reset({ name: "", category: "", amount: 0, id: undefined, warnOnExceed: false });
     if (onSubmissionDone) {
       onSubmissionDone();
     }
@@ -196,6 +198,29 @@ export function BudgetForm({ onSaveBudget, existingBudgets, initialData, onSubmi
             </FormItem>
           )}
         />
+        <FormField
+          control={form.control}
+          name="warnOnExceed"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4 shadow-sm">
+              <FormControl>
+                <Checkbox
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+              <div className="space-y-1 leading-none">
+                <FormLabel className="cursor-pointer">
+                  Warn on Exceeding Budget
+                </FormLabel>
+                <FormDescription>
+                  Receive a notification if spending in this category goes over budget.
+                </FormDescription>
+              </div>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <Button type="submit" className="w-full" disabled={!settingsMounted}>
           {isEditing ? <Save className="mr-2 h-4 w-4" /> : <PlusCircle className="mr-2 h-4 w-4" />}
           {isEditing ? "Update Budget" : "Set Budget"}
@@ -205,7 +230,6 @@ export function BudgetForm({ onSaveBudget, existingBudgets, initialData, onSubmi
   );
 }
 
-// Temporary placeholder, replace with actual calculation if needed for form.reset
 const CONVERSION_RATES_TO_BASE_BUDGET: Record<string, number> = {
   USD: 1,
   EUR: 1 / 0.92,

@@ -96,6 +96,7 @@ export interface Budget {
   category: Category;
   amount: number; // This will always be stored in DEFAULT_STORED_CURRENCY
   spentAmount: number; // Calculated client-side, converted to display currency before display
+  warnOnExceed?: boolean; // New field for warning preference
   createdAt?: string | Timestamp;
   updatedAt?: string | Timestamp;
 }
@@ -162,7 +163,7 @@ export interface SavingsGoalWithdrawal {
   id: string;
   userId: string;
   savingsGoalId: string;
-  incomeTransactionId: string; // ID of the 'income' transaction created for this withdrawal
+  incomeTransactionId: string | null; // Nullable if net amount is zero
   amountWithdrawn: number; // Gross amount taken from savings goal, in DEFAULT_STORED_CURRENCY
   penaltyAmount: number; // Penalty applied, in DEFAULT_STORED_CURRENCY
   transactionCost: number; // Future use, in DEFAULT_STORED_CURRENCY

@@ -20,9 +20,9 @@ import { useToast } from "@/hooks/use-toast";
 import type { SavingsGoal } from "@/lib/types";
 import { useSettings } from "@/contexts/SettingsContext";
 import { convertToBaseCurrency, formatCurrency } from "@/lib/utils";
-import { DollarSign } from "lucide-react";
+import { DollarSign, AlertOctagon } from "lucide-react"; // Added AlertOctagon
 import { Textarea } from "@/components/ui/textarea";
-import { useExpenses } from "@/contexts/ExpenseContext"; // To calculate available income
+import { useExpenses, useBudgets } from "@/contexts/ExpenseContext"; 
 import { useEffect, useState, useMemo } from "react";
 import { DEFAULT_STORED_CURRENCY } from "@/lib/types";
 
@@ -44,7 +44,6 @@ interface ContributeToGoalFormProps {
   onSubmissionDone?: () => void;
 }
 
-// Conversion rates for display purposes within the component
 const CONVERSION_RATES_FROM_BASE_FOR_DISPLAY: Record<string, number> = {
   USD: 1,
   EUR: 0.92,
@@ -55,8 +54,8 @@ const CONVERSION_RATES_FROM_BASE_FOR_DISPLAY: Record<string, number> = {
 export function ContributeToGoalForm({ goal, onSaveContribution, onSubmissionDone }: ContributeToGoalFormProps) {
   const { toast } = useToast();
   const { localCurrency, displayCurrency, isMounted: settingsMounted } = useSettings();
-  const { expenses: userExpenses } = useExpenses(); // For spendable income calculation
-
+  const { expenses: userExpenses } = useExpenses(); 
+  const { budgets } = useBudgets(); // Get budgets
   const [isSubmittingForm, setIsSubmittingForm] = useState(false);
 
   const form = useForm<ContributeToGoalFormData>({
@@ -75,7 +74,7 @@ export function ContributeToGoalForm({ goal, onSaveContribution, onSubmissionDon
       .filter(e => e.type === 'income')
       .reduce((sum, e) => sum + e.amount, 0);
     const totalCurrentSavingsContributions = userExpenses
-      .filter(e => e.category === 'Savings' && e.relatedSavingsGoalId !== goal.id) // Exclude contributions to *this* goal for spendable calc
+      .filter(e => e.category === 'Savings' && e.relatedSavingsGoalId !== goal.id) 
       .reduce((sum, e) => sum + e.amount, 0);
     
     const spendable = Math.max(0, totalIncome - totalCurrentSavingsContributions);
@@ -86,15 +85,13 @@ export function ContributeToGoalForm({ goal, onSaveContribution, onSubmissionDon
 
   useEffect(() => {
     if (watchFillRemaining && settingsMounted && goal.status === 'active' && remainingToReachGoalBase > 0) {
-      // Convert remainingToReachGoalBase (which is in DEFAULT_STORED_CURRENCY) to localCurrency for form input
       const rateFromBaseToLocal = 1 / (CONVERSION_RATES_TO_BASE_FOR_DISPLAY[localCurrency] || 1);
       const remainingInLocalCurrency = parseFloat((remainingToReachGoalBase * rateFromBaseToLocal).toFixed(2));
       
       form.setValue("contributionAmount", remainingInLocalCurrency, { shouldValidate: true });
-      form.clearErrors("contributionAmount"); // Clear previous errors
+      form.clearErrors("contributionAmount"); 
     } else if (!watchFillRemaining) {
-      // Allow user to clear or type if not filling remaining
-      // form.setValue("contributionAmount", "" as unknown as number); // Clears when unchecked
+      // form.setValue("contributionAmount", "" as unknown as number); 
     }
   }, [watchFillRemaining, settingsMounted, localCurrency, goal.status, remainingToReachGoalBase, form]);
 
@@ -122,7 +119,7 @@ export function ContributeToGoalForm({ goal, onSaveContribution, onSubmissionDon
         return;
     }
     
-    if (!watchFillRemaining) { // Only apply this check if user is manually inputting
+    if (!watchFillRemaining) { 
         if ((goal.currentAmount + amountInBaseCurrency) > goal.targetAmount) {
             const maxAllowedContributionBase = goal.targetAmount - goal.currentAmount;
             const rateFromBaseToLocal = 1 / (CONVERSION_RATES_TO_BASE_FOR_DISPLAY[localCurrency] || 1);
@@ -137,19 +134,44 @@ export function ContributeToGoalForm({ goal, onSaveContribution, onSubmissionDon
         }
     }
 
+    // Budget warning for 'Savings' category
+    const savingsBudget = budgets.find(b => b.category === 'Savings' && b.warnOnExceed);
+    if (savingsBudget) {
+        // Calculate current spent on 'Savings' category based on allUserExpenses from useExpenses()
+        // Note: This is a simplified calculation of current spent. The context's budget object has a `spentAmount`
+        // which is more robust. However, for an immediate warning before this specific transaction,
+        // this direct calculation might be slightly out of sync if many transactions happened just now
+        // without a re-render. For simplicity, we use a local calc here.
+        // A more robust way would be to get the savingsBudget.spentAmount and add to it.
+        let currentSpentOnSavings = 0;
+        userExpenses.filter(e => e.category === 'Savings' && e.type === 'expense')
+                    .forEach(e => currentSpentOnSavings += e.amount); // e.amount is already base currency
+
+        const potentialNewSpentOnSavings = currentSpentOnSavings + amountInBaseCurrency;
+
+        if (potentialNewSpentOnSavings > savingsBudget.amount && savingsBudget.amount > 0) {
+            const overAmount = potentialNewSpentOnSavings - savingsBudget.amount;
+            toast({
+                title: "Budget Warning (Savings)",
+                description: `This contribution might make you exceed your budget for 'Savings' by ${formatCurrency(overAmount, displayCurrency)}. Budget limit: ${formatCurrency(savingsBudget.amount, displayCurrency)}.`,
+                variant: "default",
+                duration: 5000,
+                action: <AlertOctagon className="text-amber-500" />,
+            });
+        }
+    }
 
     try {
       await onSaveContribution(goal.id, amountInBaseCurrency, values.contributionDescription);
       form.reset({
         contributionAmount: "" as unknown as number,
         contributionDescription: `Contribution to ${goal.name}`,
-        fillRemaining: false, // Reset checkbox
+        fillRemaining: false, 
       });
       if (onSubmissionDone) {
         onSubmissionDone();
       }
     } catch (error) {
-      // Specific error toasts are handled by the context, but generic ones can be here too
       if (error instanceof Error && error.message !== "Insufficient spendable income to make this contribution." && error.message !== "Goal already achieved." && error.message !== "Contribution too small to process.") {
           toast({
             variant: "destructive",
@@ -177,7 +199,7 @@ export function ContributeToGoalForm({ goal, onSaveContribution, onSubmissionDon
                         checked={field.value}
                         onCheckedChange={(checked) => {
                             field.onChange(checked);
-                            if (!checked) { // When unchecking
+                            if (!checked) { 
                                 form.setValue("contributionAmount", "" as unknown as number, { shouldValidate: true });
                             }
                         }}
@@ -268,13 +290,8 @@ export function ContributeToGoalForm({ goal, onSaveContribution, onSubmissionDon
   );
 }
 
-// Helper for form's internal display logic if localCurrency isn't USD
-// Ensure this matches or is derived from your main util if more complex conversions are needed
 const CONVERSION_RATES_TO_BASE_FOR_DISPLAY: Record<string, number> = {
   USD: 1,
-  EUR: 1 / 0.92, // 1 EUR = 1/0.92 USD
-  KES: 1 / 130,  // 1 KES = 1/130 USD
+  EUR: 1 / 0.92, 
+  KES: 1 / 130,  
 };
-
-
-    
