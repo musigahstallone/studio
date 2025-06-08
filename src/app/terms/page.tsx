@@ -21,11 +21,19 @@ export default function TermsOfServicePage() {
             <p>PennyPincher AI provides users with tools for personal expense tracking, budget management, savings goal management, and AI-powered financial data processing. The Service is provided "as-is" and we assume no responsibility for the timeliness, deletion, mis-delivery, or failure to store any user communications or personalization settings.</p>
 
             <h2>3. User Responsibilities</h2>
-            <p>You are responsible for maintaining the confidentiality of your account and password and for restricting access to your computer. You agree to accept responsibility for all activities that occur under your account or password.</p>
-            <p>You agree not to use the Service for any unlawful purpose or in any way that might harm, damage, or disparage any other party. You are responsible for the accuracy of the data you input into the Service.</p>
+            <ul>
+              <li>You are responsible for maintaining the confidentiality of your account and password and for restricting access to your computer.</li>
+              <li>You agree to accept responsibility for all activities that occur under your account or password.</li>
+              <li>You agree not to use the Service for any unlawful purpose or in any way that might harm, damage, or disparage any other party.</li>
+              <li>You are responsible for the accuracy of the data you input into the Service.</li>
+            </ul>
             
             <h2>4. AI Features</h2>
-            <p>The Service utilizes artificial intelligence (AI) models for features such as transaction categorization and data extraction. While we strive for accuracy, AI-generated content may occasionally be incorrect or incomplete. You should review and verify any AI-generated data before relying on it for financial decisions. Your use of AI features is subject to the terms of our third-party AI service providers.</p>
+            <ul>
+              <li>The Service utilizes artificial intelligence (AI) models for features such as transaction categorization and data extraction.</li>
+              <li>While we strive for accuracy, AI-generated content may occasionally be incorrect or incomplete. You should review and verify any AI-generated data before relying on it for financial decisions.</li>
+              <li>Your use of AI features is subject to the terms of our third-party AI service providers.</li>
+            </ul>
 
             <h2>5. Financial Disclaimer</h2>
             <p>PennyPincher AI is a tool for personal financial management and tracking. It is not intended to provide financial, investment, legal, or tax advice. You should consult with a qualified professional for such advice. We are not responsible for any financial decisions or actions taken based on the information provided by the Service.</p>

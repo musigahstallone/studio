@@ -5,9 +5,9 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowRight, Cpu, SlidersHorizontal, LandmarkIcon, Coins, ScanLine, TextSearch, Camera, FileUp, UserCog, Palette, ShieldAlert, Users, LineChart } from 'lucide-react';
 import Image from 'next/image';
+import { cn } from '@/lib/utils'; // Added cn import
 
 // Helper icons that might be missing in Lucide, simplified
-// Moved definitions to the top to avoid ReferenceError
 const Percent = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="5" x2="5" y2="19"></line><circle cx="6.5" cy="6.5" r="2.5"></circle><circle cx="17.5" cy="17.5" r="2.5"></circle></svg>;
 const AlertTriangle = ({ className }: { className?: string }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>;
 const DollarSign = ({ className }: { className?: string }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>;
@@ -15,6 +15,7 @@ const Target = ({ className }: { className?: string }) => <svg xmlns="http://www
 const Edit = ({ className }: { className?: string }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z"></path></svg>;
 const Landmark = ({ className }: { className?: string }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="3" x2="21" y1="22" y2="22"></line><line x1="6" x2="6" y1="18" y2="11"></line><line x1="10" x2="10" y1="18" y2="11"></line><line x1="14" x2="14" y1="18" y2="11"></line><line x1="18" x2="18" y1="18" y2="11"></line><polygon points="12 2 20 7 4 7"></polygon></svg>;
 const Shuffle = ({ className }: { className?: string }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.7-1.1 2-1.7 3.3-1.7H22"></path><path d="m18 2 4 4-4 4"></path><path d="M2 6h1.9c1.5 0 2.9.9 3.6 2.2"></path><path d="M22 18h-5.9c-1.3 0-2.5-.6-3.3-1.7l-.5-.8"></path><path d="m18 22 4-4-4-4"></path></svg>;
+
 
 const detailedFeatures = [
   {
@@ -114,7 +115,7 @@ const detailedFeatures = [
     image: { src: "https://placehold.co/600x400.png", alt: "Currency symbols", hint: "currency exchange" }
   },
   {
-    id: 'customization-admin',
+    id: 'customization-admin', // This feature will be filtered out from rendering
     icon: UserCog,
     title: 'Customization & Admin Oversight',
     summary: 'Tailor the app to your needs and manage the platform effectively.',
@@ -141,6 +142,8 @@ const detailedFeatures = [
 
 
 export default function FeaturesPage() {
+  const featuresToDisplay = detailedFeatures.filter(feature => feature.id !== 'customization-admin');
+
   return (
     <PublicPageShell>
       <div className="container mx-auto px-4 py-12 sm:px-6 lg:px-8">
@@ -154,11 +157,48 @@ export default function FeaturesPage() {
         </header>
 
         <div className="space-y-16 md:space-y-24">
-          {detailedFeatures.map((feature, index) => (
+          {featuresToDisplay.map((feature, index) => (
             <section key={feature.id} id={feature.id} className="scroll-mt-20">
               <Card className="overflow-hidden shadow-xl border-border">
-                <div className={`grid md:grid-cols-2 items-center gap-8 md:gap-12 ${index % 2 === 1 ? 'md:grid-flow-col-dense' : ''}`}>
-                  <div className={`p-6 md:p-10 ${index % 2 === 1 ? 'md:col-start-2' : ''}`}>
+                {/* On mobile (default flow), image will be on top due to DOM order. */}
+                {/* On desktop, 'md:order-*' classes will arrange them. */}
+                <div className="grid md:grid-cols-2 items-center gap-0 md:gap-12"> {/* Removed gap for mobile to make image full width */}
+                  {/* Image Container - DOM Order 1 */}
+                  <div
+                    className={cn(
+                      "relative h-64 md:h-full min-h-[300px]",
+                      index % 2 === 1 ? "md:order-2" : "md:order-1" // Image on right for odd index (Text Left, Image Right)
+                                                                    // Image on left for even index (Image Left, Text Right)
+                    )}
+                  >
+                    <Image
+                      src={feature.image.src}
+                      alt={feature.image.alt}
+                      layout="fill"
+                      objectFit="cover"
+                      className="opacity-90"
+                      data-ai-hint={feature.image.hint}
+                    />
+                    {/* Gradient overlay for mobile to blend text, for desktop to blend edge */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-background/50 to-transparent md:hidden"></div>
+                    <div
+                      className={cn(
+                        "absolute inset-0 hidden md:block",
+                        index % 2 === 1
+                          ? "bg-gradient-to-l from-background/30 to-transparent" // Text Left, Image Right -> Gradient on Left of Image
+                          : "bg-gradient-to-r from-background/30 to-transparent"  // Image Left, Text Right -> Gradient on Right of Image
+                      )}
+                    ></div>
+                  </div>
+
+                  {/* Text Container - DOM Order 2 */}
+                  <div
+                    className={cn(
+                      "p-6 md:p-10",
+                      index % 2 === 1 ? "md:order-1" : "md:order-2" // Text on left for odd index
+                                                                    // Text on right for even index
+                    )}
+                  >
                     <div className="inline-flex items-center justify-center p-3 bg-primary/10 text-primary rounded-lg mb-4">
                       <feature.icon className="h-8 w-8" />
                     </div>
@@ -177,17 +217,6 @@ export default function FeaturesPage() {
                         </li>
                       ))}
                     </ul>
-                  </div>
-                  <div className={`relative h-64 md:h-full min-h-[300px] ${index % 2 === 1 ? 'md:col-start-1' : ''}`}>
-                    <Image
-                      src={feature.image.src}
-                      alt={feature.image.alt}
-                      layout="fill"
-                      objectFit="cover"
-                      className="opacity-90"
-                      data-ai-hint={feature.image.hint}
-                    />
-                     <div className="absolute inset-0 bg-gradient-to-t from-background/30 to-transparent md:bg-gradient-to-r md:from-background/30 md:to-transparent"></div>
                   </div>
                 </div>
               </Card>
@@ -212,3 +241,5 @@ export default function FeaturesPage() {
     </PublicPageShell>
   );
 }
+
+    
