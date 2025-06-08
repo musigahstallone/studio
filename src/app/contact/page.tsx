@@ -38,8 +38,8 @@ export default function ContactUsPage() {
                     <Mail className="h-5 w-5 mr-3 mt-0.5 text-primary flex-shrink-0" />
                     <div>
                       <p className="font-medium">Email App Support</p>
-                      <a href="mailto:support@pennypincherai.example.com" className="text-muted-foreground hover:text-primary break-all">
-                        support@pennypincherai.example.com
+                      <a href="mailto:support@pennypincherai.org" className="text-muted-foreground hover:text-primary break-all">
+                        support@pennypincherai.org
                       </a>
                     </div>
                   </div>
