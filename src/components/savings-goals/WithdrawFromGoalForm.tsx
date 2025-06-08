@@ -39,7 +39,7 @@ interface WithdrawFromGoalFormProps {
 
 // Replicated from context for display purposes - ensure this stays in sync or is imported if moved to utils
 const calculateTransactionCostForDisplay = (withdrawalAmount: number): number => {
-  const minCost = 0.50; // USD
+  const minCost = 0.0; // USD
   const maxCost = 15.00; // USD
   let cost = 0;
 
