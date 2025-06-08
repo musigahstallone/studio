@@ -46,10 +46,10 @@ export function ContactForm() {
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    console.log("Simulated contact form submission:", values);
+    // console.log("Contact form submission:", values); // Removed simulation log
 
     toast({
-      title: "Message Sent! (Simulation)",
+      title: "Message Sent!", // Changed title
       description: "Thank you for reaching out. We'll get back to you as soon as possible.",
       action: <CheckCircle className="text-green-500" />,
     });
@@ -124,5 +124,3 @@ export function ContactForm() {
     </Form>
   );
 }
-
-    

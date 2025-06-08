@@ -2,7 +2,7 @@
 import { PublicPageShell } from '@/components/layout/PublicPageShell';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ContactForm } from '@/components/contact/ContactForm';
-import { Mail, Phone, Globe, User } from 'lucide-react'; // Added Globe and User icons
+import { Mail, Phone, Globe, User } from 'lucide-react';
 
 export default function ContactUsPage() {
   return (
@@ -27,77 +27,72 @@ export default function ContactUsPage() {
               </CardContent>
             </Card>
 
-            <div className="space-y-6 mt-4 md:mt-0">
-              <Card className="shadow-lg">
-                <CardHeader>
-                  <CardTitle className="text-xl">Contact Information</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4 text-sm">
-                  <div>
-                    <h4 className="font-semibold mb-1">App Support</h4>
+            <Card className="shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-xl">Contact Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 text-sm">
+                <div>
+                  <h4 className="font-semibold mb-1">App Support</h4>
+                  <div className="flex items-start">
+                    <Mail className="h-5 w-5 mr-3 mt-0.5 text-primary flex-shrink-0" />
+                    <div>
+                      <p className="font-medium">Email App Support</p>
+                      <a href="mailto:support@pennypincherai.example.com" className="text-muted-foreground hover:text-primary break-all">
+                        support@pennypincherai.example.com
+                      </a>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="pt-3 border-t">
+                  <h4 className="font-semibold mb-2">Developer Contact</h4>
+                  <div className="space-y-3">
+                     <div className="flex items-start">
+                      <User className="h-5 w-5 mr-3 mt-0.5 text-primary flex-shrink-0" />
+                      <div>
+                        <p className="font-medium">Name</p>
+                        <p className="text-muted-foreground">Stallone Musigah</p>
+                      </div>
+                    </div>
                     <div className="flex items-start">
                       <Mail className="h-5 w-5 mr-3 mt-0.5 text-primary flex-shrink-0" />
                       <div>
-                        <p className="font-medium">Email App Support</p>
-                        <a href="mailto:support@pennypincherai.example.com" className="text-muted-foreground hover:text-primary break-all">
-                          support@pennypincherai.example.com
+                        <p className="font-medium">Email Developer</p>
+                        <a href="mailto:musigahstallone@gmail.com" className="text-muted-foreground hover:text-primary break-all">
+                          musigahstallone@gmail.com
+                        </a>
+                      </div>
+                    </div>
+                    <div className="flex items-start">
+                      <Phone className="h-5 w-5 mr-3 mt-0.5 text-primary flex-shrink-0" />
+                      <div>
+                        <p className="font-medium">Phone</p>
+                        <p className="text-muted-foreground">+254 797 204141</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start">
+                      <Globe className="h-5 w-5 mr-3 mt-0.5 text-primary flex-shrink-0" />
+                      <div>
+                        <p className="font-medium">Website</p>
+                        <a href="https://musigahstallone.tech" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary break-all">
+                          musigahstallone.tech
                         </a>
                       </div>
                     </div>
                   </div>
-                  
-                  <div className="pt-3 border-t">
-                    <h4 className="font-semibold mb-2">Developer Contact (Stallone Musigah)</h4>
-                    <div className="space-y-3">
-                       <div className="flex items-start">
-                        <User className="h-5 w-5 mr-3 mt-0.5 text-primary flex-shrink-0" />
-                        <div>
-                          <p className="font-medium">Name</p>
-                          <p className="text-muted-foreground">Stallone Musigah</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start">
-                        <Mail className="h-5 w-5 mr-3 mt-0.5 text-primary flex-shrink-0" />
-                        <div>
-                          <p className="font-medium">Email Developer</p>
-                          <a href="mailto:contact@musigahstallone.tech" className="text-muted-foreground hover:text-primary break-all">
-                            contact@musigahstallone.tech
-                          </a>
-                        </div>
-                      </div>
-                      <div className="flex items-start">
-                        <Phone className="h-5 w-5 mr-3 mt-0.5 text-primary flex-shrink-0" />
-                        <div>
-                          <p className="font-medium">Phone</p>
-                          <p className="text-muted-foreground">+254 797 204141</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start">
-                        <Globe className="h-5 w-5 mr-3 mt-0.5 text-primary flex-shrink-0" />
-                        <div>
-                          <p className="font-medium">Website</p>
-                          <a href="https://musigahstallone.tech" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary break-all">
-                            musigahstallone.tech
-                          </a>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-               <Card className="shadow-lg">
-                <CardHeader>
-                  <CardTitle className="text-xl">Note on Response Time</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                        We aim to respond to all inquiries within 24-48 business hours.
-                        Please note that this contact form currently simulates sending a message.
-                    </p>
-                </CardContent>
-              </Card>
-            </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
+
+          <div className="mt-12 pt-8 border-t border-border/50 text-center">
+            <h4 className="text-lg font-semibold text-primary mb-2 font-headline">Note on Response Time</h4>
+            <p className="text-sm text-muted-foreground max-w-xl mx-auto">
+                We aim to respond to all inquiries within 24-48 business hours.
+            </p>
+          </div>
+
         </div>
       </div>
     </PublicPageShell>

@@ -1,7 +1,7 @@
 
 import { PublicPageShell } from '@/components/layout/PublicPageShell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import Link from 'next/link'; // Added import
+import Link from 'next/link'; 
 
 export default function PrivacyPolicyPage() {
   return (
@@ -64,12 +64,9 @@ export default function PrivacyPolicyPage() {
             <h2>9. Contact Us</h2>
             <p>If you have any questions about this Privacy Policy, please contact us via the <Link href="/contact" className="text-primary hover:underline">Contact Us page</Link>.</p>
             
-            <p className="mt-8 text-center text-xs text-muted-foreground">This is a sample Privacy Policy. For a real application, consult with a legal professional.</p>
           </CardContent>
         </Card>
       </div>
     </PublicPageShell>
   );
 }
-
-    

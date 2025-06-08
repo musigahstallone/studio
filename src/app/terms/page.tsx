@@ -93,7 +93,7 @@ export default function TermsOfServicePage() {
           <CardHeader>
             <CardTitle className="text-3xl font-headline text-center">Terms of Service</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-8 px-6 py-8 md:px-8"> {/* Main spacing for sections */}
+          <CardContent className="space-y-8 px-6 py-8 md:px-8"> 
             <p className="text-muted-foreground text-center mb-6">Last updated: {new Date().toLocaleDateString()}</p>
             
             {sections.map((section) => (
@@ -110,9 +110,6 @@ export default function TermsOfServicePage() {
               </div>
             ))}
             
-            <p className="mt-10 pt-6 border-t text-center text-xs text-muted-foreground">
-              This is a sample Terms of Service. For a real application, consult with a legal professional.
-            </p>
           </CardContent>
         </Card>
       </div>
