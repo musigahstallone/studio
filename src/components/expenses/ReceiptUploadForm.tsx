@@ -64,18 +64,16 @@ export function ReceiptUploadForm({ onDataExtracted }: ReceiptUploadFormProps) {
 
       const resultFromAI = await processReceiptExpense({ photoDataUri: fileDataUri });
       
-      // Assume AI extracted amount is in 'localCurrency' context (e.g. receipt currency matches user's local setting)
-      // Convert it to DEFAULT_STORED_CURRENCY for consistency.
       const amountInBaseCurrency = convertToBaseCurrency(resultFromAI.amount, localCurrency);
 
       const finalDataForForm: ProcessedExpenseData & { receiptUrl?: string } = { 
         ...resultFromAI, 
-        amount: amountInBaseCurrency, // Now in base currency
+        amount: amountInBaseCurrency, 
         receiptUrl: receiptFirebaseUrl 
       };
       
-      setExtractedData(finalDataForForm); // Store with amount in base currency
-      onDataExtracted(finalDataForForm); // Pass to form with amount in base currency
+      setExtractedData(finalDataForForm); 
+      onDataExtracted(finalDataForForm); 
 
       toast({
         title: "Data Extracted",
@@ -83,10 +81,16 @@ export function ReceiptUploadForm({ onDataExtracted }: ReceiptUploadFormProps) {
       });
 
     } catch (error: any) {
+       let errorMessage = "Could not process or upload receipt.";
+       if (error.code === 'storage/retry-limit-exceeded') {
+         errorMessage = "Upload failed after multiple retries. Please check your internet connection and try again. Ensure CORS is correctly configured for your Firebase Storage bucket if the issue persists.";
+       } else if (error.message) {
+         errorMessage = error.message;
+       }
        toast({
         variant: "destructive",
-        title: "Error",
-        description: error.message || "Could not process or upload receipt.",
+        title: "Error Processing Receipt",
+        description: errorMessage,
       });
       console.error("Receipt processing/upload error:", error);
     } finally {
@@ -95,7 +99,7 @@ export function ReceiptUploadForm({ onDataExtracted }: ReceiptUploadFormProps) {
   }
 
   const handleUseExtractedData = () => {
-    if (extractedData) { // extractedData.amount is already in DEFAULT_STORED_CURRENCY
+    if (extractedData) { 
       onDataExtracted(extractedData);
        toast({
           title: "Using Previous Data",
@@ -116,7 +120,6 @@ export function ReceiptUploadForm({ onDataExtracted }: ReceiptUploadFormProps) {
           <h4 className="font-semibold mb-1 text-foreground">Previously Extracted:</h4>
           <p><span className="font-medium text-muted-foreground">Desc:</span> {extractedData.description}</p>
           <p><span className="font-medium text-muted-foreground">Merchant:</span> {extractedData.merchant || "N/A"}</p>
-          {/* Display amount converted from base to display currency */}
           <p><span className="font-medium text-muted-foreground">Amount:</span> {formatCurrency(extractedData.amount, displayCurrency)} ({extractedData.type})</p>
           <p><span className="font-medium text-muted-foreground">Date:</span> {extractedData.date}</p>
           <p><span className="font-medium text-muted-foreground">Category:</span> {extractedData.category}</p>
@@ -132,3 +135,5 @@ export function ReceiptUploadForm({ onDataExtracted }: ReceiptUploadFormProps) {
     </div>
   );
 }
+
+    

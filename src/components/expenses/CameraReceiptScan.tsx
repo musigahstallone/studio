@@ -135,24 +135,29 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
 
       const resultFromAI = await processReceiptExpense({ photoDataUri });
       
-      // Assume AI extracted amount is in 'localCurrency' context
       const amountInBaseCurrency = convertToBaseCurrency(resultFromAI.amount, localCurrency);
 
       const finalDataForForm = { ...resultFromAI, amount: amountInBaseCurrency, receiptUrl: receiptFirebaseUrl };
       
       if (!finalDataForForm || typeof finalDataForForm.amount !== 'number' || finalDataForForm.amount <= 0 || !finalDataForForm.date || !/^\d{4}-\d{2}-\d{2}$/.test(finalDataForForm.date) || !finalDataForForm.category) {
         toast({ variant: "destructive", title: "Extraction Incomplete", description: "AI couldn't extract details. Review or re-capture." });
-        setExtractedData(finalDataForForm); // Still set for potential manual correction
+        setExtractedData(finalDataForForm);
       } else {
-        setExtractedData(finalDataForForm); // Store with amount in base currency
-        onDataExtracted(finalDataForForm); // Pass to form with amount in base currency
+        setExtractedData(finalDataForForm); 
+        onDataExtracted(finalDataForForm); 
         toast({
           title: "Data Extracted & Ready",
           description: `Review in form: ${resultFromAI.merchant || 'N/A'} - ${formatCurrency(amountInBaseCurrency, displayCurrency)}`,
         });
       }
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Processing Error", description: error.message || "Could not process image." });
+      let errorMessage = "Could not process image.";
+      if (error.code === 'storage/retry-limit-exceeded') {
+        errorMessage = "Upload failed after multiple retries. Please check your internet connection and try again. Ensure CORS is correctly configured for your Firebase Storage bucket if the issue persists.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      toast({ variant: "destructive", title: "Processing Error", description: errorMessage });
       console.error("Camera capture/upload error:", error);
     } finally {
       setIsLoading(false);
@@ -160,7 +165,7 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
   };
 
   const handleUseExtractedData = () => {
-    if (extractedData) { // extractedData.amount is already in DEFAULT_STORED_CURRENCY
+    if (extractedData) { 
       if (typeof extractedData.amount !== 'number' || extractedData.amount <= 0 || !extractedData.date || !/^\d{4}-\d{2}-\d{2}$/.test(extractedData.date) || !extractedData.category) {
          toast({ variant: "destructive", title: "Invalid Data", description: "Previously extracted data is incomplete. Scan again." });
       } else {
@@ -241,7 +246,6 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
           <h4 className="font-semibold mb-1 text-foreground">Previously Extracted Data:</h4>
           <p><span className="font-medium text-muted-foreground">Desc:</span> {extractedData.description}</p>
           <p><span className="font-medium text-muted-foreground">Merchant:</span> {extractedData.merchant || "N/A"}</p>
-          {/* Display amount converted from base to display currency */}
           <p><span className="font-medium text-muted-foreground">Amount:</span> {settingsMounted ? formatCurrency(extractedData.amount, displayCurrency) : '$' + extractedData.amount.toFixed(2)} ({extractedData.type})</p>
           <p><span className="font-medium text-muted-foreground">Date:</span> {extractedData.date}</p>
           <p><span className="font-medium text-muted-foreground">Category:</span> {extractedData.category}</p>
@@ -257,3 +261,5 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
     </div>
   );
 }
+
+    

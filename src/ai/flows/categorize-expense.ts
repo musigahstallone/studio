@@ -11,7 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { CategoryEnumSchema, allCategories } from '@/lib/types';
+import { Category, CategoryEnumSchema, allCategories } from '@/lib/types';
 
 const CategorizeExpenseInputSchema = z.object({
   description: z
@@ -36,7 +36,7 @@ export async function categorizeExpense(
 ): Promise<CategorizeExpenseOutput> {
   return categorizeExpenseFlow(input);
 }
-
+// - category: The budget category. Choose from the following: ${CategoryEnumSchema.options.join(', ')}. If unsure, or if the description doesn't fit a specific category, YOU MUST use "Other".
 const prompt = ai.definePrompt({
   name: 'categorizeExpensePrompt',
   input: {schema: CategorizeExpenseInputSchema},
@@ -50,7 +50,7 @@ Extract the following details. It is CRITICAL to return ALL fields in the JSON o
 - merchant: The name of the merchant. If not clearly identifiable, set to an empty string or omit.
 - amount: The transaction amount as a number. If no amount is mentioned or inferable, YOU MUST use 0.
 - date: The transaction date in YYYY-MM-DD format. If not specified or unparsable, YOU MUST use the current date.
-- category: The budget category. Choose from the following: ${CategoryEnumSchema.options.join(', ')}. If unsure, or if the description doesn't fit a specific category, YOU MUST use "Other".
+- category: The budget category. Choose from the following: ${allCategories.join(', ')}. If unsure, or if the description doesn't fit a specific category, YOU MUST use "Other".
 - type: Classify as "expense" or "income" based on context (e.g., "received salary" implies income, "paid for lunch" implies expense). If unclear, YOU MUST default to "expense".
 
 Provide your best interpretation for all fields, ensuring the output is a valid JSON object matching the requested structure.

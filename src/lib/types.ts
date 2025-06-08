@@ -20,7 +20,26 @@ export type Category =
   | 'Groceries'
   | 'Other';
 
-export const allCategories: Category[] = [
+// export const allCategories: Category[] = [
+//   'Food & Drink',
+//   'Transportation',
+//   'Entertainment',
+//   'Shopping',
+//   'Travel',
+//   'Utilities',
+//   'Rent',
+//   'Salary',
+//   'Healthcare',
+//   'Education',
+//   'Gifts & Donations',
+//   'Investments',
+//   'Bills & Fees',
+//   'Personal Care',
+//   'Groceries',
+//   'Other',
+// ];
+
+export const allCategories = [
   'Food & Drink',
   'Transportation',
   'Entertainment',
@@ -37,9 +56,10 @@ export const allCategories: Category[] = [
   'Personal Care',
   'Groceries',
   'Other',
-];
+] as const;
 
 export const CategoryEnumSchema = z.enum(allCategories);
+// export const CategoryEnumSchema = z.enum(allCategories);
 
 export const expenseCategories: Category[] = [
   'Food & Drink',

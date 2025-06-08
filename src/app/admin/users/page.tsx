@@ -1,93 +1,100 @@
 
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { AppShell } from '@/components/layout/AppShell';
 import { UserList } from '@/components/admin/UserList';
 import type { AppUser } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, AlertTriangle, Lock } from 'lucide-react';
+import { Loader2, AlertTriangle, Lock, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { db } from '@/lib/firebase'; 
 import { collection, getDocs, query, orderBy, Timestamp } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
 
 
 export default function AdminUsersPage() {
-  const { user, isAdminUser, loading: authLoading } = useAuth(); // Use isAdminUser
+  const { user, isAdminUser, loading: authLoading } = useAuth(); 
   const router = useRouter();
+  const { toast } = useToast();
   const [fetchedUsers, setFetchedUsers] = useState<AppUser[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const fetchUsers = useCallback(async () => {
+    if (!isAdminUser) {
+      setIsLoadingUsers(false); // Ensure loading stops if not admin
+      return;
+    }
+    setIsLoadingUsers(true);
+    try {
+      const usersCol = collection(db, 'users');
+      const q = query(usersCol, orderBy('joinDate', 'desc')); 
+      const userSnapshot = await getDocs(q);
+      const userList = userSnapshot.docs.map(doc => {
+        const data = doc.data();
+        let joinDateStr: string | undefined = undefined;
+        if (data.joinDate && (data.joinDate as Timestamp).toDate) {
+            joinDateStr = (data.joinDate as Timestamp).toDate().toISOString().split('T')[0];
+        } else if (typeof data.joinDate === 'string') {
+            const parsedDate = new Date(data.joinDate);
+            if (!isNaN(parsedDate.getTime())) {
+                joinDateStr = parsedDate.toISOString().split('T')[0];
+            } else {
+                joinDateStr = data.joinDate; 
+            }
+        }
+        return { 
+          uid: doc.id, 
+          name: data.name,
+          email: data.email,
+          photoURL: data.photoURL,
+          joinDate: joinDateStr,
+          isAdmin: data.isAdmin === true, 
+        } as AppUser;
+      });
+      setFetchedUsers(userList);
+      if (isRefreshing) {
+        toast({ title: "User List Refreshed", description: `${userList.length} users loaded.`});
+      }
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      toast({ variant: "destructive", title: "Error Fetching Users", description: "Could not load user data."});
+      setFetchedUsers([]);
+    } finally {
+      setIsLoadingUsers(false);
+      setIsRefreshing(false);
+    }
+  }, [isAdminUser, toast, isRefreshing]);
 
   useEffect(() => {
      if (!authLoading && !user) {
       router.push('/login');
       return;
     }
-    // If auth has loaded, user is present, but not an admin
     if (!authLoading && user && !isAdminUser) {
-      // Let the UI below handle "Access Denied"
+      // UI handles "Access Denied"
     }
   }, [user, isAdminUser, authLoading, router]);
 
   useEffect(() => {
-    // Fetch users only if auth has loaded and the current user is an admin
     if (!authLoading && isAdminUser) { 
-      const fetchUsers = async () => {
-        setIsLoadingUsers(true);
-        try {
-          const usersCol = collection(db, 'users');
-          const q = query(usersCol, orderBy('joinDate', 'desc')); 
-          const userSnapshot = await getDocs(q);
-          const userList = userSnapshot.docs.map(doc => {
-            const data = doc.data();
-            // Convert Firestore Timestamp to ISO string for joinDate
-            let joinDateStr: string | undefined = undefined;
-            if (data.joinDate && (data.joinDate as Timestamp).toDate) {
-                joinDateStr = (data.joinDate as Timestamp).toDate().toISOString().split('T')[0];
-            } else if (typeof data.joinDate === 'string') {
-                // Handle cases where joinDate might already be a string (e.g., older data)
-                const parsedDate = new Date(data.joinDate);
-                if (!isNaN(parsedDate.getTime())) {
-                    joinDateStr = parsedDate.toISOString().split('T')[0];
-                } else {
-                    joinDateStr = data.joinDate; // Keep original if parsing fails
-                }
-            }
-
-
-            // For transactionCount and totalSpent, these would typically require
-            // additional queries per user or aggregated data from a backend.
-            // For now, we'll keep them as optional fields in AppUser and they might be undefined.
-            return { 
-              uid: doc.id, 
-              name: data.name,
-              email: data.email,
-              photoURL: data.photoURL,
-              joinDate: joinDateStr,
-              isAdmin: data.isAdmin === true, 
-              // transactionCount: data.transactionCount, // Example if you stored this
-              // totalSpent: data.totalSpent,         // Example if you stored this
-            } as AppUser;
-          });
-          setFetchedUsers(userList);
-        } catch (error) {
-          console.error("Error fetching users:", error);
-          setFetchedUsers([]);
-        } finally {
-          setIsLoadingUsers(false);
-        }
-      };
       fetchUsers();
-    } else if (!authLoading && !isAdminUser) { // If not admin after loading, stop loading users
+    } else if (!authLoading && !isAdminUser) { 
         setIsLoadingUsers(false); 
     }
-  }, [isAdminUser, authLoading]);
+  }, [isAdminUser, authLoading, fetchUsers]);
+
+  const handleRefreshUsers = () => {
+    setIsRefreshing(true);
+    fetchUsers();
+  };
 
 
-  if (authLoading) { // Only show main loader if auth is loading
+  if (authLoading) { 
     return (
       <AppShell>
         <div className="flex flex-col items-center justify-center h-full py-10">
@@ -98,7 +105,6 @@ export default function AdminUsersPage() {
     );
   }
 
-  // After auth loading, if not admin, show access denied
   if (!isAdminUser) { 
      return (
       <AppShell>
@@ -133,17 +139,20 @@ export default function AdminUsersPage() {
           <h1 className="font-headline text-3xl font-semibold text-foreground">
             Manage Users
           </h1>
+          <Button onClick={handleRefreshUsers} variant="outline" disabled={isLoadingUsers || isRefreshing}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+            {isRefreshing ? "Refreshing..." : "Refresh Users"}
+          </Button>
         </div>
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle>All Platform Users</CardTitle>
             <CardDescription>
-              Overview of registered users fetched from Firestore 'users' collection. 
-              Detailed transaction counts and spending per user would require backend aggregation for optimal performance.
+              Overview of registered users. Transaction counts and spending per user are mock values.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {isLoadingUsers ? ( // This loader is specific to fetching users
+            {isLoadingUsers && !isRefreshing ? ( 
               <div className="flex justify-center py-4">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 <p className="ml-3 text-muted-foreground">Loading users...</p>
@@ -151,7 +160,7 @@ export default function AdminUsersPage() {
             ) : fetchedUsers.length > 0 ? (
               <UserList users={fetchedUsers} />
             ) : (
-              <p className="text-muted-foreground text-center py-4">No users found in the database.</p>
+              <p className="text-muted-foreground text-center py-4">No users found or failed to load.</p>
             )}
           </CardContent>
         </Card>
@@ -159,3 +168,5 @@ export default function AdminUsersPage() {
     </AppShell>
   );
 }
+
+    

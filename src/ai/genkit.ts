@@ -17,5 +17,5 @@ export const ai = genkit({
       apiKey: geminiApiKey, // Explicitly use the new environment variable
     }),
   ],
-  // model: 'googleai/gemini-2.0-flash', // Model can be specified per-call if needed
+  model: 'googleai/gemini-2.0-flash', // Model can be specified per-call if needed
 });
