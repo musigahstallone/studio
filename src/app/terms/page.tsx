@@ -23,7 +23,7 @@ export default function TermsOfServicePage() {
       number: "3.",
       title: "User Responsibilities",
       content: [
-        <ul key="3ul1" className="list-disc pl-5 space-y-1">
+        <ul key="3ul1" className="list-disc space-y-1">
           <li>You are responsible for maintaining the confidentiality of your account and password and for restricting access to your computer.</li>
           <li>You agree to accept responsibility for all activities that occur under your account or password.</li>
           <li>You agree not to use the Service for any unlawful purpose or in any way that might harm, damage, or disparage any other party.</li>
@@ -35,7 +35,7 @@ export default function TermsOfServicePage() {
       number: "4.",
       title: "AI Features",
       content: [
-        <ul key="4ul1" className="list-disc pl-5 space-y-1">
+        <ul key="4ul1" className="list-disc space-y-1">
           <li>The Service utilizes artificial intelligence (AI) models for features such as transaction categorization and data extraction.</li>
           <li>While we strive for accuracy, AI-generated content may occasionally be incorrect or incomplete. You should review and verify any AI-generated data before relying on it for financial decisions.</li>
           <li>Your use of AI features is subject to the terms of our third-party AI service providers.</li>
@@ -93,22 +93,49 @@ export default function TermsOfServicePage() {
           <CardHeader>
             <CardTitle className="text-3xl font-headline text-center">Terms of Service</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-8 px-6 py-8 md:px-8"> 
+          <CardContent className="px-6 py-4 md:px-8 md:py-6"> 
             <p className="text-muted-foreground text-center mb-6">Last updated: {new Date().toLocaleDateString()}</p>
             
-            {sections.map((section) => (
-              <div key={section.number} className="flex items-start space-x-4">
-                <span className="mt-0.5 text-xl sm:text-2xl font-bold text-primary font-mono shrink-0 w-10 text-right pr-1">
-                  {section.number}
-                </span>
-                <div className="flex-1 prose prose-sm sm:prose-base lg:prose-lg dark:prose-invert max-w-none">
-                  <h2 className="!mt-0 !pt-0 !mb-3 text-lg sm:text-xl font-semibold">
-                    {section.title}
-                  </h2>
-                  {section.content}
+            <div className="space-y-6"> {/* Manages spacing between sections */}
+              {sections.map((section) => (
+                <div key={section.number}> {/* Outer wrapper for each section */}
+
+                  {/* == SMALL SCREEN LAYOUT (stacked: Number+Title then Content) == */}
+                  <div className="md:hidden">
+                    <div className="flex items-baseline space-x-2 mb-2"> {/* Number and Title on one line */}
+                      <span className="text-lg font-bold text-primary font-mono">
+                        {section.number}
+                      </span>
+                      <h2 className="text-base font-semibold text-foreground">
+                        {section.title}
+                      </h2>
+                    </div>
+                    {/* Content styled by prose */}
+                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                      {section.content}
+                    </div>
+                  </div>
+
+                  {/* == LARGE SCREEN (md and up) LAYOUT (offset Number, then Title & Content) == */}
+                  <div className="hidden md:flex md:items-start md:space-x-4">
+                    {/* Number offset */}
+                    <span className="mt-px text-xl font-bold text-primary font-mono shrink-0 w-10 text-right pr-2">
+                      {section.number}
+                    </span>
+                    {/* Title and Content in the main column */}
+                    <div className="flex-1">
+                      <h2 className="text-lg font-semibold text-foreground mt-0 mb-2">
+                        {section.title}
+                      </h2>
+                      <div className="prose prose-base dark:prose-invert max-w-none">
+                        {section.content}
+                      </div>
+                    </div>
+                  </div>
+
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
             
           </CardContent>
         </Card>
