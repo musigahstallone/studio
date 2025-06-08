@@ -28,7 +28,7 @@ import { cn } from "@/lib/utils";
 interface SavingsGoalItemProps {
   goal: SavingsGoal;
   onDeleteGoal: (id: string) => void;
-  onEditGoal: (goal: SavingsGoal) => void;
+  onEditGoal: (goal: SavingsGoal) => void; // Kept for potential future use, though UI is removed
   onContribute: (goal: SavingsGoal) => void;
   onWithdraw: (goal: SavingsGoal) => void;
 }
@@ -84,17 +84,18 @@ export function SavingsGoalItem({ goal, onDeleteGoal, onEditGoal, onContribute, 
     timeRemainingDisplay = "Goal cancelled.";
   }
 
+  const terminalStatus = goal.status === 'completed' || goal.status === 'withdrawnEarly' || goal.status === 'cancelled';
 
-  const canContribute = goal.status === 'active' && !isGoalFunded;
-  const canWithdraw = (goal.status === 'active' || goal.status === 'matured') && goal.currentAmount > 0 && (isReadyForWithdrawal || goal.allowsEarlyWithdrawal);
-  const canEdit = goal.status === 'active';
-  const canDelete = true;
+  const canContribute = goal.status === 'active' && !isGoalFunded && !terminalStatus;
+  const canWithdraw = (goal.status === 'active' || goal.status === 'matured') && goal.currentAmount > 0 && (isReadyForWithdrawal || goal.allowsEarlyWithdrawal) && !terminalStatus;
+  // const canEdit = goal.status === 'active' && !terminalStatus; // Edit UI is removed
+  const canDelete = true; // Deletion is always allowed for now
 
   const getStatusBadgeVariant = (status: SavingsGoalStatus): "default" | "secondary" | "destructive" | "outline" => {
     switch (status) {
       case 'active': return 'default';
       case 'matured': return 'secondary';
-      case 'completed': return 'default';
+      case 'completed': return 'default'; // Should look like a success
       case 'withdrawnEarly': return 'outline';
       case 'cancelled': return 'destructive';
       default: return 'outline';
@@ -106,7 +107,7 @@ export function SavingsGoalItem({ goal, onDeleteGoal, onEditGoal, onContribute, 
       case 'active': return 'Active';
       case 'matured': return 'Matured';
       case 'completed': return 'Completed';
-      case 'withdrawnEarly': return 'Early Withdrawal';
+      case 'withdrawnEarly': return 'Withdrawn Early';
       case 'cancelled': return 'Cancelled';
       default: return status.charAt(0).toUpperCase() + status.slice(1);
     }
@@ -130,7 +131,7 @@ export function SavingsGoalItem({ goal, onDeleteGoal, onEditGoal, onContribute, 
         </CardContent>
         <CardFooter className="p-4 pt-0 mt-auto border-t">
           <div className="flex justify-end gap-2 w-full">
-            {[...Array(4)].map((_, i) => (
+            {[...Array(3)].map((_, i) => ( // Reduced to 3 skeleton buttons since Edit is removed
               <div key={i} className="h-8 w-8 bg-muted rounded-md"></div>
             ))}
           </div>
@@ -139,11 +140,139 @@ export function SavingsGoalItem({ goal, onDeleteGoal, onEditGoal, onContribute, 
     );
   }
 
+  let footerContent;
+  if (terminalStatus) {
+    let message = "Goal Concluded";
+    if (goal.status === 'completed') message = "Goal Completed";
+    else if (goal.status === 'withdrawnEarly') message = "Funds Withdrawn";
+    else if (goal.status === 'cancelled') message = "Goal Cancelled";
+
+    footerContent = (
+      <div className="flex justify-between items-center w-full">
+        <span className="text-sm text-muted-foreground px-1">{message}</span>
+        <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <AlertDialogTrigger asChild>
+                  <Button
+                      variant="ghost"
+                      size="icon"
+                      disabled={!canDelete}
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      aria-label="Delete"
+                  >
+                      <Trash2 className="h-4.5 w-4.5" />
+                  </Button>
+              </AlertDialogTrigger>
+            </TooltipTrigger>
+            <TooltipContent>{!canDelete ? "Deletion not allowed" : "Delete Goal"}</TooltipContent>
+          </Tooltip>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete the savings goal "{goal.name}" and all its associated contribution & withdrawal records, including linked expense/income entries. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  onDeleteGoal(goal.id);
+                  setShowDeleteConfirm(false);
+                }}
+                className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+              >
+                Yes, Delete Goal
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    );
+  } else {
+    footerContent = (
+      <div className="flex justify-end gap-1.5 w-full">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onContribute(goal)}
+              disabled={!canContribute}
+              aria-label="Contribute"
+            >
+              <DollarSign className="h-4.5 w-4.5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{!canContribute ? (isGoalFunded ? "Goal fully funded" : "Goal not active for contributions") : "Contribute"}</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onWithdraw(goal)}
+              disabled={!canWithdraw}
+              aria-label="Withdraw"
+            >
+              <Download className="h-4.5 w-4.5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{!canWithdraw ? "Withdrawal conditions not met or no funds" : "Withdraw"}</TooltipContent>
+        </Tooltip>
+        
+        {/* Edit button UI is removed as per request */}
+
+        <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <AlertDialogTrigger asChild>
+                  <Button
+                      variant="ghost"
+                      size="icon"
+                      disabled={!canDelete}
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      aria-label="Delete"
+                  >
+                      <Trash2 className="h-4.5 w-4.5" />
+                  </Button>
+              </AlertDialogTrigger>
+            </TooltipTrigger>
+            <TooltipContent>{!canDelete ? "Deletion not allowed" : "Delete Goal"}</TooltipContent>
+          </Tooltip>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete the savings goal "{goal.name}" and all its associated contribution & withdrawal records, including linked expense/income entries. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  onDeleteGoal(goal.id);
+                  setShowDeleteConfirm(false);
+                }}
+                className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+              >
+                Yes, Delete Goal
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    );
+  }
+
+
   return (
     <Card className={cn(
         "flex flex-col rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300 border",
         goal.status === 'completed' ? 'border-green-500 bg-green-500/5 dark:bg-green-500/10' : 
-        isGoalFunded && goal.status !== 'withdrawnEarly' ? 'border-primary/50' : 
+        isGoalFunded && goal.status !== 'withdrawnEarly' && goal.status !== 'cancelled' ? 'border-primary/50' : 
         'border-border'
     )}>
       <CardHeader className="p-4">
@@ -165,7 +294,7 @@ export function SavingsGoalItem({ goal, onDeleteGoal, onEditGoal, onContribute, 
           <div className="flex justify-between text-sm mb-1">
             <span className={cn(
               "font-medium",
-              isGoalFunded && goal.status !== 'withdrawnEarly' ? "text-green-600 dark:text-green-400" : "text-foreground"
+              isGoalFunded && goal.status !== 'withdrawnEarly' && goal.status !== 'cancelled' ? "text-green-600 dark:text-green-400" : "text-foreground"
             )}>
               {formatCurrency(goal.currentAmount, displayCurrency)}
             </span>
@@ -177,7 +306,7 @@ export function SavingsGoalItem({ goal, onDeleteGoal, onEditGoal, onContribute, 
             value={progressPercent}
             className={cn(
                 "h-2 rounded-full transition-all duration-500",
-                isGoalFunded ? '[&>div]:bg-green-500' : 
+                isGoalFunded && goal.status !== 'withdrawnEarly' && goal.status !== 'cancelled' ? '[&>div]:bg-green-500' : 
                 (goal.status === 'withdrawnEarly' || goal.status === 'cancelled') ? '[&>div]:bg-destructive' :
                 '[&>div]:bg-primary'
             )}
@@ -211,96 +340,12 @@ export function SavingsGoalItem({ goal, onDeleteGoal, onEditGoal, onContribute, 
             <span className="truncate">Withdrawal: On {goal.withdrawalCondition === 'maturityDateReached' ? 'maturity' : 'target met'}</span>
         </div>
 
-
       </CardContent>
 
       <CardFooter className="p-3 border-t mt-auto bg-muted/30 dark:bg-muted/10">
-        <div className="flex justify-end gap-1.5 w-full">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => onContribute(goal)}
-                disabled={!canContribute}
-                aria-label="Contribute"
-              >
-                <DollarSign className="h-4.5 w-4.5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{!canContribute ? (isGoalFunded ? "Goal fully funded" : "Goal not active for contributions") : "Contribute"}</TooltipContent>
-          </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => onWithdraw(goal)}
-                disabled={!canWithdraw}
-                aria-label="Withdraw"
-              >
-                <Download className="h-4.5 w-4.5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{!canWithdraw ? "Withdrawal conditions not met or no funds" : "Withdraw"}</TooltipContent>
-          </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => onEditGoal(goal)}
-                disabled={!canEdit}
-                aria-label="Edit"
-              >
-                <Edit3 className="h-4.5 w-4.5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{!canEdit ? "Cannot edit in current status" : "Edit Goal"}</TooltipContent>
-          </Tooltip>
-          
-          <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <AlertDialogTrigger asChild>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        disabled={!canDelete}
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                        aria-label="Delete"
-                    >
-                        <Trash2 className="h-4.5 w-4.5" />
-                    </Button>
-                </AlertDialogTrigger>
-              </TooltipTrigger>
-              <TooltipContent>{!canDelete ? "Deletion not allowed" : "Delete Goal"}</TooltipContent>
-            </Tooltip>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This will permanently delete the savings goal "{goal.name}" and all its associated contribution & withdrawal records, including linked expense/income entries. This action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => {
-                    onDeleteGoal(goal.id);
-                    setShowDeleteConfirm(false);
-                  }}
-                  className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
-                >
-                  Yes, Delete Goal
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
+        {footerContent}
       </CardFooter>
     </Card>
   );
 }
+

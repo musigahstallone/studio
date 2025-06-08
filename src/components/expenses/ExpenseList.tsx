@@ -3,12 +3,13 @@
 
 import type { Expense } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { Trash2, Edit3, ArrowDownCircle, ArrowUpCircle, Tag, CalendarDays, Building, ChevronLeft, ChevronRight } from "lucide-react";
+import { Trash2, Edit3, ArrowDownCircle, ArrowUpCircle, Tag, CalendarDays, Building, ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { Card, CardContent, CardDescription } from "@/components/ui/card";
 import { useState, useEffect } from "react";
 import { format, parseISO } from 'date-fns';
 import { useSettings } from "@/contexts/SettingsContext"; // Use displayCurrency
 import { formatCurrency } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const ITEMS_PER_PAGE = 5;
 
@@ -26,6 +27,7 @@ function ExpenseListItem({ expense, onDeleteExpense, onEditExpense }: ExpenseLis
   const iconColor = isIncome ? 'text-green-500' : 'text-red-500';
 
   const [formattedDate, setFormattedDate] = useState('');
+  const isSavingsRelatedTransaction = !!expense.relatedSavingsGoalId;
 
   useEffect(() => {
     if (expense.date) {
@@ -60,12 +62,37 @@ function ExpenseListItem({ expense, onDeleteExpense, onEditExpense }: ExpenseLis
     );
   }
 
+  const editButton = (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={() => !isSavingsRelatedTransaction && onEditExpense(expense)}
+      aria-label="Edit"
+      disabled={isSavingsRelatedTransaction}
+    >
+      <Edit3 className="h-4 w-4 sm:mr-1" />
+      <span className="hidden sm:inline">Edit</span>
+    </Button>
+  );
+
   return (
     <div className="p-4 border-b hover:bg-muted/50 transition-colors grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4 sm:gap-6 items-center">
       <div className="flex items-start gap-3">
         <TypeIcon className={`h-6 w-6 mt-1 ${iconColor} flex-shrink-0`} />
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-base sm:text-lg text-foreground truncate">{expense.description}</p>
+          <div className="flex items-center gap-2">
+            <p className="font-semibold text-base sm:text-lg text-foreground truncate">{expense.description}</p>
+            {isSavingsRelatedTransaction && (
+                 <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 text-primary cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>This transaction is linked to a savings goal.</p>
+                    </TooltipContent>
+                </Tooltip>
+            )}
+          </div>
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground mt-1">
             <span className="flex items-center"><Tag className="h-3 w-3 mr-1" />{expense.category}</span>
             <span className="flex items-center"><CalendarDays className="h-3 w-3 mr-1" />{formattedDate || 'Loading date...'}</span>
@@ -78,20 +105,20 @@ function ExpenseListItem({ expense, onDeleteExpense, onEditExpense }: ExpenseLis
 
       <div className="flex sm:flex-col items-end sm:items-end justify-between sm:justify-center gap-2 sm:gap-3">
         <p className={`text-lg sm:text-xl font-bold ${amountColor} text-right sm:text-left`}>
-          {/* expense.amount is in base currency, formatCurrency converts to displayCurrency */}
           {isIncome ? '+' : '-'}{formatCurrency(expense.amount, displayCurrency)}
         </p>
 
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onEditExpense(expense)}
-            aria-label="Edit"
-          >
-            <Edit3 className="h-4 w-4 sm:mr-1" />
-            <span className="hidden sm:inline">Edit</span>
-          </Button>
+          {isSavingsRelatedTransaction ? (
+            <Tooltip>
+              <TooltipTrigger asChild>{editButton}</TooltipTrigger>
+              <TooltipContent>
+                <p>Cannot edit: Linked to a savings goal.</p>
+              </TooltipContent>
+            </Tooltip>
+          ) : (
+            editButton
+          )}
 
           <Button
             variant="outline"
@@ -205,3 +232,4 @@ export function ExpenseList({ expenses, onDeleteExpense, onEditExpense }: Expens
     </div>
   );
 }
+
