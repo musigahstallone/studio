@@ -17,7 +17,8 @@ import {
   orderBy,
   Timestamp,
   writeBatch,
-  getDocs
+  getDocs,
+  setDoc // Added setDoc import
 } from 'firebase/firestore';
 import { useAuth } from './AuthContext'; // Import useAuth
 import { useToast } from '@/hooks/use-toast';
@@ -38,7 +39,7 @@ interface ExpenseContextType {
   expenses: Expense[];
   addExpense: (expense: Omit<Expense, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'receiptUrl'>, receiptUrl?: string) => Promise<void>;
   deleteExpense: (id: string) => Promise<void>;
-  updateExpense: (updatedExpense: Partial<Expense> & { id: string }) => Promise<void>; // Changed type
+  updateExpense: (updatedExpense: Partial<Expense> & { id: string }) => Promise<void>; 
   loadingExpenses: boolean;
   allPlatformExpenses: Expense[]; // For admin view (conceptual, needs secure implementation)
   loadingAllPlatformExpenses: boolean;
@@ -199,15 +200,50 @@ export const ExpenseProvider = ({ children }: { children: ReactNode }) => {
       await updateDoc(expenseDocRef, payloadForUserDoc);
       
       // This payload is for the 'expenses_all' collection document
+      // We want to ensure all fields are present in the expenses_all document,
+      // so we fetch the existing user-specific document to get the full data including createdAt.
+      // However, if it's a new expense being fixed due to an earlier error, we might not have it.
+      // A robust way is to ensure payloadForAllDoc has all necessary fields.
+      // Since dataToUpdate comes from the form, it has all current editable fields.
+      // We need to preserve original `createdAt` from the user's doc if it exists,
+      // or if not (e.g. if expenses_all doc was missing and user doc also had issue), then it's complex.
+      // For simplicity, if the goal is to "heal" a missing expenses_all doc,
+      // we create it with the current state. If createdAt was missing from source, it's an issue.
+      // Let's assume for updating, the source `createdAt` would be `updatedExpenseData.createdAt` if it was passed.
+      // But it's better to rely on the existing `createdAt` from the primary document.
+
+      // Let's refine payloadForAllDoc
+      const existingUserExpenseSnap = await getDoc(expenseDocRef);
+      const existingUserExpenseData = existingUserExpenseSnap.data();
+
       const payloadForAllDoc: Record<string, any> = {
-        ...payloadForUserDoc, // Start with the same base as the user's document update
-        userId: updatedExpenseData.userId || user.uid, // Ensure userId is correctly set for the 'expenses_all' collection
-                                                        // Prefers original userId if available (e.g., for future admin edits), otherwise current user.
+        ...dataToUpdate, // All form-updated fields
+        userId: userId || user.uid, // Ensure userId is correct for the platform document
+        updatedAt: serverTimestamp(), // Always update the timestamp
+        createdAt: existingUserExpenseData?.createdAt || serverTimestamp(), // Use existing createdAt, or set if new
+        receiptUrl: payloadForUserDoc.receiptUrl, // Ensure consistency
+        // Ensure all other fields from the Expense type are present if they exist in existingUserExpenseData
+        amount: dataToUpdate.amount ?? existingUserExpenseData?.amount,
+        category: dataToUpdate.category ?? existingUserExpenseData?.category,
+        date: dataToUpdate.date ?? existingUserExpenseData?.date,
+        description: dataToUpdate.description ?? existingUserExpenseData?.description,
+        merchant: dataToUpdate.merchant ?? existingUserExpenseData?.merchant,
+        type: dataToUpdate.type ?? existingUserExpenseData?.type,
+        relatedSavingsGoalId: dataToUpdate.relatedSavingsGoalId ?? existingUserExpenseData?.relatedSavingsGoalId,
       };
-      // `updatedAt` is already in payloadForUserDoc from serverTimestamp()
+      // Remove any undefined fields from payloadForAllDoc explicitly to avoid issues with setDoc
+      Object.keys(payloadForAllDoc).forEach(key => {
+        if (payloadForAllDoc[key] === undefined) {
+          delete payloadForAllDoc[key];
+        }
+      });
+
 
       const allExpenseDocRef = doc(db, 'expenses_all', id);
-      await updateDoc(allExpenseDocRef, payloadForAllDoc);
+      // Use setDoc which will create if not exists, or overwrite if exists.
+      // Using { merge: true } would behave like updateDoc if document exists and only update specified fields,
+      // but we want to ensure the full current state is written.
+      await setDoc(allExpenseDocRef, payloadForAllDoc); 
       
       toast({ title: "Transaction Updated" });
     } catch (e) {
