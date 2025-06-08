@@ -11,7 +11,7 @@ import { useSettings } from "@/contexts/SettingsContext"; // Use displayCurrency
 import { formatCurrency } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
-const ITEMS_PER_PAGE = 5;
+const ITEMS_PER_PAGE = 10; // Updated from 5 to 10
 
 interface ExpenseListItemProps {
   expense: Expense;

@@ -46,7 +46,7 @@ export async function processTextExpense(input: CategorizeExpenseInput): Promise
       amount: result.amount,
       date: result.date, 
       category: mapAiCategory(result.category),
-      description: input.description,
+      description: result.description, // Use AI-generated/refined description from the flow
       type: result.type,
     };
   } catch (error) {
@@ -73,3 +73,4 @@ export async function processReceiptExpense(input: ExtractExpenseDataInput): Pro
     throw new Error("Failed to extract transaction data from receipt. Please try entering manually.");
   }
 }
+

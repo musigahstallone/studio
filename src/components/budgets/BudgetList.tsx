@@ -10,7 +10,7 @@ import { useState } from "react";
 import { useSettings } from "@/contexts/SettingsContext"; // Use displayCurrency
 import { formatCurrency } from "@/lib/utils";
 
-const ITEMS_PER_PAGE = 5;
+const ITEMS_PER_PAGE = 10; // Updated from 5 to 10
 
 interface BudgetListItemProps {
   budget: Budget;
@@ -186,3 +186,4 @@ export function BudgetList({ budgets, onDeleteBudget, onEditBudget }: BudgetList
     </div>
   );
 }
+

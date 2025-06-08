@@ -27,6 +27,7 @@ const CategorizeExpenseOutputSchema = z.object({
   date: z.string().describe('The date of the transaction in YYYY-MM-DD format. If not specified, use the current date.'),
   category: CategoryEnumSchema.describe(`The budget category of the transaction. Choose from: ${CategoryEnumSchema.options.join(', ')}. If unsure, or if the description doesn't fit a specific category, use "Other".`),
   type: z.enum(["expense", "income"]).describe('Whether the transaction is an expense or income. Infer based on context (e.g., "received salary" implies income, "paid for lunch" implies expense). If unclear, default to "expense".'),
+  description: z.string().describe('A concise summary of the transaction based on the input text. This could be a refined version of the input or a newly generated summary. If no refinement is possible, use the original input text.'),
 });
 
 export type CategorizeExpenseOutput = z.infer<typeof CategorizeExpenseOutputSchema>;
@@ -36,15 +37,15 @@ export async function categorizeExpense(
 ): Promise<CategorizeExpenseOutput> {
   return categorizeExpenseFlow(input);
 }
-// - category: The budget category. Choose from the following: ${CategoryEnumSchema.options.join(', ')}. If unsure, or if the description doesn't fit a specific category, YOU MUST use "Other".
+
 const prompt = ai.definePrompt({
   name: 'categorizeExpensePrompt',
   input: {schema: CategorizeExpenseInputSchema},
   output: {schema: CategorizeExpenseOutputSchema},
   prompt: `You are an AI assistant that categorizes transactions based on a free-form text description. Your goal is to extract as much information as possible and return a complete JSON object matching the specified output schema.
 
-Analyze the following description:
-Description: {{{description}}}
+Analyze the following input text:
+Input Text: {{{description}}}
 
 Extract the following details. It is CRITICAL to return ALL fields in the JSON output, even if some values are defaults.
 - merchant: The name of the merchant. If not clearly identifiable, set to an empty string or omit.
@@ -52,6 +53,7 @@ Extract the following details. It is CRITICAL to return ALL fields in the JSON o
 - date: The transaction date in YYYY-MM-DD format. If not specified or unparsable, YOU MUST use the current date.
 - category: The budget category. Choose from the following: ${allCategories.join(', ')}. If unsure, or if the description doesn't fit a specific category, YOU MUST use "Other".
 - type: Classify as "expense" or "income" based on context (e.g., "received salary" implies income, "paid for lunch" implies expense). If unclear, YOU MUST default to "expense".
+- description: Create a concise and clear summary of the transaction based on the input text. For example, if the input is "bought some coffee and a sandwich for lunch at The Corner Cafe on my way to work", a good summary would be "Lunch at The Corner Cafe". If the input is already concise, or if a better summary cannot be generated, use the original input text. The summary should be suitable for display in a transaction list.
 
 Provide your best interpretation for all fields, ensuring the output is a valid JSON object matching the requested structure.
   `,
@@ -67,18 +69,18 @@ const categorizeExpenseFlow = ai.defineFlow(
     const {output} = await prompt(input);
 
     // Fallback logic in case the AI fails to adhere perfectly to instructions
-    // or if Zod parsing of the output has issues (though ai.definePrompt handles parsing)
     const result: CategorizeExpenseOutput = {
-      merchant: output?.merchant || undefined, // Allow undefined if AI omits
+      merchant: output?.merchant || undefined, 
       amount: (typeof output?.amount === 'number' && !isNaN(output.amount)) ? output.amount : 0,
       date: (output?.date && /^\d{4}-\d{2}-\d{2}$/.test(output.date)) ? output.date : new Date().toISOString().split('T')[0],
       category: (output?.category && allCategories.includes(output.category as any)) ? output.category : 'Other',
       type: (output?.type === 'income' || output?.type === 'expense') ? output.type : 'expense',
+      description: output?.description || input.description, // Use AI description or fallback to original
     };
     
     // Further refine type classification if it was defaulted by our code or AI was unsure
     if (result.type === 'expense' && (!output?.type || (output.type !== 'income' && output.type !== 'expense'))) {
-        const descriptionLower = input.description.toLowerCase();
+        const descriptionLower = input.description.toLowerCase(); // Check original input for keywords
         if (descriptionLower.includes('salary') || 
             descriptionLower.includes('received') || 
             descriptionLower.includes('deposit') || 
@@ -89,7 +91,7 @@ const categorizeExpenseFlow = ai.defineFlow(
             // If it's income, and category was defaulted to 'Other' or a common expense category, re-evaluate
             if (result.category === 'Other' || !incomeCategories.includes(result.category as any)) {
                 if (descriptionLower.includes('salary')) result.category = 'Salary';
-                else result.category = 'Other'; // Or a more sophisticated income category detection
+                else result.category = 'Other'; 
             }
         }
     }
@@ -103,7 +105,6 @@ const categorizeExpenseFlow = ai.defineFlow(
         result.category = input.description.toLowerCase().includes('salary') ? 'Salary' : 'Other';
     }
 
-
     return result;
   }
 );
@@ -114,3 +115,4 @@ const incomeCategories: Category[] = [ // Define locally if not already imported
   'Gifts & Donations',
   'Other',
 ];
+

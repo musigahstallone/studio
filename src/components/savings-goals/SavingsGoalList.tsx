@@ -9,7 +9,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { useSettings } from "@/contexts/SettingsContext";
 
-const ITEMS_PER_PAGE = 6;
+const ITEMS_PER_PAGE = 9; // Updated from 6 to 9
 
 interface SavingsGoalListProps {
   savingsGoals: SavingsGoal[];
@@ -117,3 +117,4 @@ export function SavingsGoalList({
     </div>
   );
 }
+

@@ -19,15 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 export default function SavingsGoalsPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const {
-    savingsGoals,
-    addSavingsGoal,
-    updateSavingsGoal,
-    deleteSavingsGoal,
-    contributeToGoal,
-    withdrawFromGoal, // New from context
-    loadingSavingsGoals,
-  } = useSavingsGoals();
+  const { savingsGoals, addSavingsGoal, updateSavingsGoal, deleteSavingsGoal, contributeToGoal, withdrawFromGoal, loadingSavingsGoals } = useSavingsGoals();
   const { toast } = useToast();
 
   const [isGoalFormOpen, setIsGoalFormOpen] = useState(false);
