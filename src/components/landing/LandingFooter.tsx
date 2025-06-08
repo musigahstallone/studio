@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { PiggyBank, MessageSquare, Shield, FileText, LayoutGrid, Info, HelpCircleIcon } from 'lucide-react'; // Added HelpCircleIcon
+import { PiggyBank } from 'lucide-react';
 
 export function LandingFooter() {
   return (
@@ -24,18 +24,18 @@ export function LandingFooter() {
             <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground mb-4">Quick Links</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/features" className="text-sm text-muted-foreground hover:text-primary flex items-center">
-                  <LayoutGrid className="h-4 w-4 mr-2 opacity-75"/> Features
+                <Link href="/features" className="text-sm text-muted-foreground hover:text-primary">
+                  Features
                 </Link>
               </li>
               <li>
-                <Link href="/#how-it-works" className="text-sm text-muted-foreground hover:text-primary flex items-center">
-                  <Info className="h-4 w-4 mr-2 opacity-75"/> How It Works
+                <Link href="/#how-it-works" className="text-sm text-muted-foreground hover:text-primary">
+                  How It Works
                 </Link>
               </li>
                <li>
-                <Link href="/faq" className="text-sm text-muted-foreground hover:text-primary flex items-center">
-                  <HelpCircleIcon className="h-4 w-4 mr-2 opacity-75"/> FAQ
+                <Link href="/faq" className="text-sm text-muted-foreground hover:text-primary">
+                  FAQ
                 </Link>
               </li>
             </ul>
@@ -44,18 +44,18 @@ export function LandingFooter() {
             <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground mb-4">Legal & Support</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/privacy" className="text-sm text-muted-foreground hover:text-primary flex items-center">
-                  <Shield className="h-4 w-4 mr-2 opacity-75"/> Privacy Policy
+                <Link href="/privacy" className="text-sm text-muted-foreground hover:text-primary">
+                  Privacy Policy
                 </Link>
               </li>
               <li>
-                <Link href="/terms" className="text-sm text-muted-foreground hover:text-primary flex items-center">
-                  <FileText className="h-4 w-4 mr-2 opacity-75"/> Terms of Service
+                <Link href="/terms" className="text-sm text-muted-foreground hover:text-primary">
+                  Terms of Service
                 </Link>
               </li>
               <li>
-                <Link href="/contact" className="text-sm text-muted-foreground hover:text-primary flex items-center">
-                  <MessageSquare className="h-4 w-4 mr-2 opacity-75"/> Contact Us
+                <Link href="/contact" className="text-sm text-muted-foreground hover:text-primary">
+                  Contact Us
                 </Link>
               </li>
             </ul>
