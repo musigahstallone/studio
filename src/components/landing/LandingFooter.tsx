@@ -41,6 +41,9 @@ export function LandingFooter() {
           <p className="text-xs text-muted-foreground">
             &copy; {new Date().getFullYear()} PennyPincher AI. All rights reserved.
           </p>
+          <p className="text-xs text-muted-foreground mt-2">
+            Made with ❤️ by <a href="https://musigahstallone.tech" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Stallone Musigah</a>.
+          </p>
         </div>
       </div>
     </footer>
