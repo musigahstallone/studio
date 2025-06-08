@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { PiggyBank, Menu, X, ShieldCheck, LogIn, LogOut, UserCircle, Settings as CogIcon } from 'lucide-react';
+import { PiggyBank, Menu, X, ShieldCheck, LogIn, LogOut, UserCircle, Settings as CogIcon, Landmark } from 'lucide-react'; // Added Landmark
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -71,6 +71,7 @@ export function AppHeader() {
             <ButtonLink href="/" isActive={pathname === '/'}>Dashboard</ButtonLink>
             <ButtonLink href="/expenses" isActive={pathname === '/expenses'}>Transactions</ButtonLink>
             <ButtonLink href="/budgets" isActive={pathname === '/budgets'}>Budgets</ButtonLink>
+            <ButtonLink href="/savings-goals" isActive={pathname === '/savings-goals'}>Savings Goals</ButtonLink> {/* Added Savings Goals link */}
           </nav>
         )}
 
