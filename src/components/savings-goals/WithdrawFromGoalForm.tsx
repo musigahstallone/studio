@@ -21,7 +21,7 @@ import { useSettings } from "@/contexts/SettingsContext";
 import { formatCurrency } from "@/lib/utils";
 import { Download, AlertTriangle, Info } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
-import { addMonths, isPast, isValid, parseISO, isToday } from "date-fns";
+import { addMonths, isPast, isValid, parseISO, isToday, format } from "date-fns"; // Added format import
 import { useEffect, useState } from "react";
 
 // For this iteration, we assume full withdrawal of currentAmount
@@ -201,3 +201,4 @@ export function WithdrawFromGoalForm({ goal, onConfirmWithdrawal, onSubmissionDo
     </Form>
   );
 }
+
