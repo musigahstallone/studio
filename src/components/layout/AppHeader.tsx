@@ -6,7 +6,7 @@ import { PiggyBank, Menu, X, ShieldCheck, LogIn, LogOut, UserCircle, Settings as
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { AppSidebarNav } from './AppSidebarNav'; 
+import { AppSidebarNav } from './AppSidebarNav';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,14 +21,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useToast } from '@/hooks/use-toast';
 
 
 export function AppHeader() {
   const pathname = usePathname();
   const router = useRouter();
+  const { toast } = useToast();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
-  const { user, appUser, isAdminUser, loading } = useAuth(); 
+  const { user, appUser, isAdminUser, loading } = useAuth();
 
   const handleMobileLinkClick = () => {
     setIsMobileMenuOpen(false);
@@ -37,20 +39,23 @@ export function AppHeader() {
   const handleLogout = async () => {
     try {
       await auth.signOut();
-      router.push('/login'); 
-      setIsMobileMenuOpen(false); 
+      // Set a flag to indicate logout, so homepage can show a toast
+      sessionStorage.setItem('justLoggedOut', 'true');
+      router.push('/'); // Redirect to homepage
+      setIsMobileMenuOpen(false);
     } catch (error) {
       console.error("Logout error:", error);
+      toast({ variant: "destructive", title: "Logout Failed", description: "Could not log you out. Please try again." });
     }
   };
-  
+
   const [hasMounted, setHasMounted] = useState(false);
   useEffect(() => {
     setHasMounted(true);
   }, []);
 
 
-  if (pathname === '/login' || pathname === '/' || pathname === '/privacy' || pathname === '/terms' || pathname === '/contact' ) { // Don't show app header on public pages
+  if (pathname === '/login' || pathname === '/' || pathname === '/privacy' || pathname === '/terms' || pathname === '/contact' || pathname === '/features') { // Don't show app header on public pages
     return null;
   }
 
@@ -76,7 +81,7 @@ export function AppHeader() {
         )}
 
         <div className="flex items-center gap-3">
-          {hasMounted && !loading && !user && ( // This condition might be redundant due to page-level check
+          {hasMounted && !loading && !user && (
             <Button asChild variant="outline" size="sm">
               <Link href="/login">
                 <LogIn className="mr-1.5 h-4 w-4" /> Login
@@ -84,7 +89,7 @@ export function AppHeader() {
             </Button>
           )}
 
-          {hasMounted && user && appUser && ( 
+          {hasMounted && user && appUser && (
              <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
@@ -112,7 +117,7 @@ export function AppHeader() {
                 <DropdownMenuItem asChild>
                   <Link href="/settings"><CogIcon className="mr-2 h-4 w-4" /> Settings</Link>
                 </DropdownMenuItem>
-                {isAdminUser && ( 
+                {isAdminUser && (
                   <DropdownMenuItem asChild>
                     <Link href="/admin"><ShieldCheck className="mr-2 h-4 w-4" /> Admin Panel</Link>
                   </DropdownMenuItem>
@@ -126,7 +131,7 @@ export function AppHeader() {
             </DropdownMenu>
           )}
 
-          {hasMounted && user && ( 
+          {hasMounted && user && (
             <div className="md:hidden">
               <button
                 onClick={() => setIsMobileMenuOpen(true)}
@@ -155,6 +160,7 @@ export function AppHeader() {
              <button
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                aria-label="Close menu"
               >
                 <X className="h-5 w-5" />
                 <span className="sr-only">Close</span>
@@ -187,5 +193,3 @@ function ButtonLink({ href, isActive, children }: ButtonLinkProps) {
     </Link>
   );
 }
-
-    

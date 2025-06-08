@@ -6,7 +6,7 @@ import { PiggyBank } from 'lucide-react';
 
 export function LandingFooter() {
   return (
-    <footer className="border-t bg-muted/50">
+    <footer className="border-t bg-muted/50 dark:bg-muted/10">
       <div className="container mx-auto px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
@@ -23,16 +23,17 @@ export function LandingFooter() {
           <div>
             <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground mb-4">Quick Links</h3>
             <ul className="space-y-2">
-              <li><Link href="/#features" className="text-sm text-muted-foreground hover:text-primary">Features</Link></li>
-              <li><Link href="/login" className="text-sm text-muted-foreground hover:text-primary">Login</Link></li>
-              <li><Link href="/contact" className="text-sm text-muted-foreground hover:text-primary">Contact Us</Link></li>
+              <li><Link href="/features" className="text-sm text-muted-foreground hover:text-primary">Features</Link></li>
+              <li><Link href="/#how-it-works" className="text-sm text-muted-foreground hover:text-primary">How It Works</Link></li>
+              <li><Link href="/login" className="text-sm text-muted-foreground hover:text-primary">Login/Sign Up</Link></li>
             </ul>
           </div>
           <div>
-            <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground mb-4">Legal</h3>
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground mb-4">Legal & Support</h3>
             <ul className="space-y-2">
               <li><Link href="/privacy" className="text-sm text-muted-foreground hover:text-primary">Privacy Policy</Link></li>
               <li><Link href="/terms" className="text-sm text-muted-foreground hover:text-primary">Terms of Service</Link></li>
+              <li><Link href="/contact" className="text-sm text-muted-foreground hover:text-primary">Contact Us</Link></li>
             </ul>
           </div>
         </div>
@@ -45,5 +46,3 @@ export function LandingFooter() {
     </footer>
   );
 }
-
-    
