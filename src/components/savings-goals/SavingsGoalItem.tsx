@@ -2,10 +2,10 @@
 "use client";
 
 import type { SavingsGoal, SavingsGoalStatus } from "@/lib/types";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardFooter, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Trash2, Edit3, Target, DollarSign, CalendarClock, Download, Lock, Unlock } from "lucide-react";
+import { Trash2, Edit3, Target, DollarSign, CalendarClock, Download, Lock, Unlock, Info } from "lucide-react";
 import { useSettings } from "@/contexts/SettingsContext";
 import { formatCurrency } from "@/lib/utils";
 import { format, differenceInDays, addMonths, isValid, parseISO, isPast, isToday } from 'date-fns';
@@ -22,6 +22,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 interface SavingsGoalItemProps {
   goal: SavingsGoal;
@@ -65,7 +67,7 @@ export function SavingsGoalItem({ goal, onDeleteGoal, onEditGoal, onContribute, 
   let timeRemainingDisplay = "";
   if (effectiveMaturityDate && goal.status === 'active') {
     const daysLeft = differenceInDays(effectiveMaturityDate, new Date());
-    if (daysLeft < 0) { // Should ideally transition to 'matured' status via a backend job or context update
+    if (daysLeft < 0) {
       timeRemainingDisplay = `Matured on ${format(effectiveMaturityDate, "PP")}`;
     } else if (daysLeft === 0) {
       timeRemainingDisplay = "Matures today!";
@@ -86,19 +88,19 @@ export function SavingsGoalItem({ goal, onDeleteGoal, onEditGoal, onContribute, 
   const canContribute = goal.status === 'active' && !isGoalFunded;
   const canWithdraw = (goal.status === 'active' || goal.status === 'matured') && goal.currentAmount > 0 && (isReadyForWithdrawal || goal.allowsEarlyWithdrawal);
   const canEdit = goal.status === 'active';
-  const canDelete = true; // Always allow delete for now, might change based on business rules (e.g. if funds exist)
+  const canDelete = true;
 
   const getStatusBadgeVariant = (status: SavingsGoalStatus): "default" | "secondary" | "destructive" | "outline" => {
     switch (status) {
       case 'active': return 'default';
-      case 'matured': return 'secondary'; // Use secondary for matured, as it's a step before completion
-      case 'completed': return 'default'; // Keep default (primary color) for completed for positive feedback
+      case 'matured': return 'secondary';
+      case 'completed': return 'default';
       case 'withdrawnEarly': return 'outline';
       case 'cancelled': return 'destructive';
       default: return 'outline';
     }
   };
-
+  
   const getStatusBadgeText = (status: SavingsGoalStatus): string => {
     switch (status) {
       case 'active': return 'Active';
@@ -106,151 +108,176 @@ export function SavingsGoalItem({ goal, onDeleteGoal, onEditGoal, onContribute, 
       case 'completed': return 'Completed';
       case 'withdrawnEarly': return 'Early Withdrawal';
       case 'cancelled': return 'Cancelled';
-      default: return status.charAt(0).toUpperCase() + status.slice(1); // Capitalize if unknown
+      default: return status.charAt(0).toUpperCase() + status.slice(1);
     }
   };
 
   if (!settingsMounted) {
     return (
-      <Card className="animate-pulse bg-muted/30 rounded-lg shadow-md max-w-full">
-        <CardHeader className="p-4 pb-2">
-            <div className="flex items-center justify-between gap-2">
-                <div className="h-5 w-3/5 bg-muted rounded"></div>
-                <div className="h-5 w-1/5 bg-muted rounded-full"></div>
-            </div>
-            <div className="h-3 w-2/5 bg-muted rounded mt-1"></div>
+      <Card className="animate-pulse bg-muted/30 rounded-lg shadow-sm flex flex-col">
+        <CardHeader className="p-4">
+          <div className="h-5 w-3/5 bg-muted rounded mb-1"></div>
+          <div className="h-4 w-1/4 bg-muted rounded"></div>
         </CardHeader>
-        <CardContent className="p-4 pt-2 space-y-3">
+        <CardContent className="p-4 pt-0 space-y-3 flex-grow">
           <div className="h-3 w-full bg-muted rounded-full"></div>
           <div className="flex justify-between">
-            <div className="h-3 w-1/4 bg-muted rounded"></div>
+            <div className="h-3 w-2/5 bg-muted rounded"></div>
             <div className="h-3 w-1/4 bg-muted rounded"></div>
           </div>
-          <div className="h-3 w-1/3 bg-muted rounded"></div>
-          <div className="h-3 w-2/3 bg-muted rounded"></div>
+          <div className="h-3 w-3/5 bg-muted rounded"></div>
+          <div className="h-3 w-1/2 bg-muted rounded"></div>
         </CardContent>
-         <div className="p-4 pt-0 border-t">
-            <div className="flex flex-wrap justify-end gap-2">
-                <div className="h-8 w-24 bg-muted rounded-md"></div>
-                <div className="h-8 w-24 bg-muted rounded-md"></div>
-                <div className="h-8 w-20 bg-muted rounded-md"></div>
-                <div className="h-8 w-20 bg-muted rounded-md"></div>
-            </div>
-        </div>
+        <CardFooter className="p-4 pt-0 mt-auto border-t">
+          <div className="flex justify-end gap-2 w-full">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-8 w-8 bg-muted rounded-md"></div>
+            ))}
+          </div>
+        </CardFooter>
       </Card>
     );
   }
 
   return (
-    <Card className={`flex flex-col rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300 max-w-full border ${
-        goal.status === 'completed' ? 'border-green-600 bg-green-50 dark:bg-green-900/20' 
-        : (isGoalFunded && goal.status !== 'withdrawnEarly' ? 'border-green-500' 
-        : 'border-border')
-    }`}>
-      <CardHeader className="p-4 pb-2">
-        <div className="flex items-center justify-between gap-2">
-          <CardTitle className="text-base font-semibold text-foreground flex items-center truncate max-w-[calc(100%-80px)]"> {/* Adjust max-width if badge is too wide */}
-            <Target className="h-4 w-4 mr-2 text-primary flex-shrink-0" />
-            <span className="truncate" title={goal.name}>{goal.name}</span>
-          </CardTitle>
-          <Badge variant={getStatusBadgeVariant(goal.status)} className="text-xs flex-shrink-0">
+    <Card className={cn(
+        "flex flex-col rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300 border",
+        goal.status === 'completed' ? 'border-green-500 bg-green-500/5 dark:bg-green-500/10' : 
+        isGoalFunded && goal.status !== 'withdrawnEarly' ? 'border-primary/50' : 
+        'border-border'
+    )}>
+      <CardHeader className="p-4">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <Target className="h-5 w-5 text-primary flex-shrink-0" />
+            <CardTitle className="text-lg font-semibold text-foreground truncate" title={goal.name}>
+              {goal.name}
+            </CardTitle>
+          </div>
+          <Badge variant={getStatusBadgeVariant(goal.status)} className="text-xs flex-shrink-0 capitalize">
             {getStatusBadgeText(goal.status)}
           </Badge>
         </div>
-        <CardDescription className="text-xs text-muted-foreground truncate">
-          Target: {formatCurrency(goal.targetAmount, displayCurrency)}
-          {goal.withdrawalCondition === 'targetAmountReached' && effectiveMaturityDate ? ` (Withdraw when funded or on ${format(effectiveMaturityDate, "PP")})` 
-           : goal.withdrawalCondition === 'targetAmountReached' ? " (Withdraw when funded)"
-           : effectiveMaturityDate ? ` (Withdraw on ${format(effectiveMaturityDate, "PP")})` 
-           : ""}
-        </CardDescription>
       </CardHeader>
-      <CardContent className="p-4 pt-2 space-y-2 flex-grow">
-        <Progress
-          value={progressPercent}
-          className={`h-2 rounded-full ${isGoalFunded ? '[&>div]:bg-green-500' : '[&>div]:bg-primary'} transition-all duration-500`}
-        />
-        <div className="flex justify-between text-sm">
-          <span className={`${isGoalFunded && goal.status !== 'withdrawnEarly' ? "text-green-600 dark:text-green-400 font-medium" : "text-muted-foreground"}`}>
-            Saved: {formatCurrency(goal.currentAmount, displayCurrency)}
-          </span>
-          <span className="text-muted-foreground">{Math.round(progressPercent)}%</span>
+
+      <CardContent className="p-4 pt-0 space-y-2 flex-grow">
+        <div className="mb-3">
+          <div className="flex justify-between text-sm mb-1">
+            <span className={cn(
+              "font-medium",
+              isGoalFunded && goal.status !== 'withdrawnEarly' ? "text-green-600 dark:text-green-400" : "text-foreground"
+            )}>
+              {formatCurrency(goal.currentAmount, displayCurrency)}
+            </span>
+            <span className="text-muted-foreground">
+              / {formatCurrency(goal.targetAmount, displayCurrency)} ({Math.round(progressPercent)}%)
+            </span>
+          </div>
+          <Progress
+            value={progressPercent}
+            className={cn(
+                "h-2 rounded-full transition-all duration-500",
+                isGoalFunded ? '[&>div]:bg-green-500' : 
+                (goal.status === 'withdrawnEarly' || goal.status === 'cancelled') ? '[&>div]:bg-destructive' :
+                '[&>div]:bg-primary'
+            )}
+            aria-label={`${Math.round(progressPercent)}% funded`}
+          />
         </div>
-        
+
         {timeRemainingDisplay && (
           <div className="flex items-center text-xs text-muted-foreground">
-            <CalendarClock className="h-3.5 w-3.5 mr-1" />
+            <CalendarClock className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />
             <span className="truncate">{timeRemainingDisplay}</span>
           </div>
         )}
 
-        {goal.status === 'active' && (
-            isGoalMatureByDate && !isGoalFunded ? (
-            <div className="flex items-center text-xs text-amber-600 dark:text-amber-400">
-                <span className="truncate">Past maturity date, not fully funded.</span>
-            </div>
-            ) : !isReadyForWithdrawal && (
-                <div className="flex items-center text-xs text-muted-foreground">
-                {goal.allowsEarlyWithdrawal ? (
-                    <>
-                    <Unlock className="h-3.5 w-3.5 mr-1 text-green-500" />
-                    <span className="truncate">Early withdrawal allowed (penalty: {(goal.earlyWithdrawalPenaltyRate * 100).toFixed(0)}%).</span>
-                    </>
-                ) : (
-                    <>
-                    <Lock className="h-3.5 w-3.5 mr-1 text-red-500" />
-                    <span className="truncate">Early withdrawal not allowed.</span>
-                    </>
-                )}
-                </div>
-            )
-        )}
+        <div className="flex items-center text-xs text-muted-foreground">
+          {goal.allowsEarlyWithdrawal ? (
+            <>
+              <Unlock className="h-3.5 w-3.5 mr-1.5 text-green-500 flex-shrink-0" />
+              <span className="truncate">Early withdrawal: Yes ({(goal.earlyWithdrawalPenaltyRate * 100).toFixed(0)}% penalty)</span>
+            </>
+          ) : (
+            <>
+              <Lock className="h-3.5 w-3.5 mr-1.5 text-red-500 flex-shrink-0" />
+              <span className="truncate">Early withdrawal: No</span>
+            </>
+          )}
+        </div>
+        
+        <div className="flex items-center text-xs text-muted-foreground">
+            <Info className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />
+            <span className="truncate">Withdrawal: On {goal.withdrawalCondition === 'maturityDateReached' ? 'maturity' : 'target met'}</span>
+        </div>
+
 
       </CardContent>
-      <div className="p-4 pt-0 border-t mt-auto"> {/* Ensure footer is always at bottom */}
-        <div className="flex flex-wrap justify-end gap-2">
-          <Button
-            variant="default"
-            size="sm"
-            onClick={() => onContribute(goal)}
-            disabled={!canContribute}
-            className="hover:bg-primary/90 transition-colors"
-            title={!canContribute ? (isGoalFunded ? "Goal fully funded" : "Goal not active for contributions") : "Contribute funds"}
-          >
-            <DollarSign className="h-4 w-4 mr-1" /> Contribute
-          </Button>
-          <Button
-            variant="secondary" 
-            size="sm"
-            onClick={() => onWithdraw(goal)}
-            disabled={!canWithdraw}
-            className="hover:bg-secondary/80 transition-colors"
-            title={!canWithdraw ? "Withdrawal conditions not met or no funds" : "Withdraw funds"}
-          >
-            <Download className="h-4 w-4 mr-1" /> Withdraw
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onEditGoal(goal)}
-            disabled={!canEdit}
-            className="hover:bg-muted/50 transition-colors"
-            title={!canEdit ? "Goal cannot be edited in current status" : "Edit goal"}
-          >
-            <Edit3 className="h-4 w-4 mr-1" /> Edit
-          </Button>
-          <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-            <AlertDialogTrigger asChild>
+
+      <CardFooter className="p-3 border-t mt-auto bg-muted/30 dark:bg-muted/10">
+        <div className="flex justify-end gap-1.5 w-full">
+          <Tooltip>
+            <TooltipTrigger asChild>
               <Button
-                variant="outline"
-                size="sm"
-                disabled={!canDelete}
-                className="text-destructive hover:text-destructive hover:bg-destructive/10 transition-colors"
-                title={!canDelete ? "Deletion not allowed" : "Delete goal"}
+                variant="ghost"
+                size="icon"
+                onClick={() => onContribute(goal)}
+                disabled={!canContribute}
+                aria-label="Contribute"
               >
-                <Trash2 className="h-4 w-4 mr-1" /> Delete
+                <DollarSign className="h-4.5 w-4.5" />
               </Button>
-            </AlertDialogTrigger>
+            </TooltipTrigger>
+            <TooltipContent>{!canContribute ? (isGoalFunded ? "Goal fully funded" : "Goal not active for contributions") : "Contribute"}</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onWithdraw(goal)}
+                disabled={!canWithdraw}
+                aria-label="Withdraw"
+              >
+                <Download className="h-4.5 w-4.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{!canWithdraw ? "Withdrawal conditions not met or no funds" : "Withdraw"}</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onEditGoal(goal)}
+                disabled={!canEdit}
+                aria-label="Edit"
+              >
+                <Edit3 className="h-4.5 w-4.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{!canEdit ? "Cannot edit in current status" : "Edit Goal"}</TooltipContent>
+          </Tooltip>
+          
+          <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <AlertDialogTrigger asChild>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        disabled={!canDelete}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        aria-label="Delete"
+                    >
+                        <Trash2 className="h-4.5 w-4.5" />
+                    </Button>
+                </AlertDialogTrigger>
+              </TooltipTrigger>
+              <TooltipContent>{!canDelete ? "Deletion not allowed" : "Delete Goal"}</TooltipContent>
+            </Tooltip>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Are you sure?</AlertDialogTitle>
@@ -267,15 +294,13 @@ export function SavingsGoalItem({ goal, onDeleteGoal, onEditGoal, onContribute, 
                   }}
                   className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
                 >
-                  Yes, Delete
+                  Yes, Delete Goal
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
         </div>
-      </div>
+      </CardFooter>
     </Card>
   );
 }
-
-    
