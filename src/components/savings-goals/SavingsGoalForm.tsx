@@ -138,12 +138,21 @@ export function SavingsGoalForm({ onSaveGoal, existingGoals, initialData, onSubm
     const goalDataForContext: Omit<SavingsGoal, 'id' | 'userId' | 'currentAmount' | 'createdAt' | 'updatedAt' | 'status'> = {
       name: values.name,
       targetAmount: targetAmountInBaseCurrency,
-      targetDate: values.goalType === "targetDate" ? values.targetDate : undefined,
-      startDate: values.goalType === "duration" ? values.startDate : undefined,
-      durationMonths: values.goalType === "duration" ? values.durationMonths : undefined,
       allowsEarlyWithdrawal: values.allowsEarlyWithdrawal,
       earlyWithdrawalPenaltyRate: penaltyRateDecimal,
+      // Initialize optional fields to null to avoid 'undefined' in Firestore
+      targetDate: null,
+      startDate: null,
+      durationMonths: null,
     };
+
+    if (values.goalType === "targetDate" && values.targetDate) {
+      goalDataForContext.targetDate = values.targetDate;
+    } else if (values.goalType === "duration" && values.startDate && typeof values.durationMonths === 'number') {
+      goalDataForContext.startDate = values.startDate;
+      goalDataForContext.durationMonths = values.durationMonths;
+    }
+    
 
     onSaveGoal(goalDataForContext, values.id);
 
@@ -414,6 +423,8 @@ const CONVERSION_RATES_TO_BASE_SAVINGS: Record<string, number> = {
   EUR: 1 / 0.92, // Example: 1 EUR = 1/0.92 USD
   KES: 1 / 130,  // Example: 1 KES = 1/130 USD
 };
+
+    
 
     
 
