@@ -214,17 +214,17 @@ export function SavingsGoalItem({ goal, onDeleteGoal, onEditGoal, onContribute, 
             size="sm"
             onClick={() => onContribute(goal)}
             disabled={!canContribute}
-            className="min-w-[100px] hover:bg-primary/90 transition-colors"
+            className="hover:bg-primary/90 transition-colors"
             title={!canContribute ? (isGoalFunded ? "Goal fully funded" : "Goal not active for contributions") : "Contribute funds"}
           >
             <DollarSign className="h-4 w-4 mr-1" /> Contribute
           </Button>
           <Button
-            variant="outline"
+            variant="secondary" 
             size="sm"
             onClick={() => onWithdraw(goal)}
             disabled={!canWithdraw}
-            className="min-w-[100px] hover:bg-muted/50 transition-colors"
+            className="hover:bg-secondary/80 transition-colors"
             title={!canWithdraw ? "Withdrawal conditions not met or no funds" : "Withdraw funds"}
           >
             <Download className="h-4 w-4 mr-1" /> Withdraw
@@ -234,7 +234,7 @@ export function SavingsGoalItem({ goal, onDeleteGoal, onEditGoal, onContribute, 
             size="sm"
             onClick={() => onEditGoal(goal)}
             disabled={!canEdit}
-            className="min-w-[80px] hover:bg-muted/50 transition-colors"
+            className="hover:bg-muted/50 transition-colors"
             title={!canEdit ? "Goal cannot be edited in current status" : "Edit goal"}
           >
             <Edit3 className="h-4 w-4 mr-1" /> Edit
@@ -245,7 +245,7 @@ export function SavingsGoalItem({ goal, onDeleteGoal, onEditGoal, onContribute, 
                 variant="outline"
                 size="sm"
                 disabled={!canDelete}
-                className="min-w-[80px] text-destructive hover:text-destructive hover:bg-destructive/10 transition-colors"
+                className="text-destructive hover:text-destructive hover:bg-destructive/10 transition-colors"
                 title={!canDelete ? "Deletion not allowed" : "Delete goal"}
               >
                 <Trash2 className="h-4 w-4 mr-1" /> Delete
