@@ -26,7 +26,7 @@ const quickLinksSheetItems = [
 const legalSupportSheetItems = [
   { href: "/privacy", label: "Privacy Policy", icon: Shield },
   { href: "/terms", label: "Terms of Service", icon: FileText },
-  { href: "/contact", label: "Contact Us", icon: MessageSquare },
+  // Contact Us is now in mainNavItems to avoid duplication
 ];
 
 
@@ -80,17 +80,6 @@ export function LandingHeader() {
 
         {hasMounted && (
           <>
-            {/* Desktop Navigation is removed as per request, links only in mobile sheet */}
-            {/* 
-            <nav className="hidden md:flex items-center gap-2">
-              {mainNavItems.map((item) => (
-                <Button variant="ghost" asChild key={item.href}>
-                  <Link href={item.href}>{item.label}</Link>
-                </Button>
-              ))}
-            </nav>
-            */}
-
             <div className="flex items-center gap-2">
               {settingsAreMounted && (
                 <Button
@@ -118,14 +107,7 @@ export function LandingHeader() {
                         <PiggyBank className="h-7 w-7 text-primary" />
                         <span className="font-headline text-xl font-semibold tracking-tight text-foreground">PennyPincher AI</span>
                       </SheetTitle>
-                      <button
-                          onClick={() => setIsMobileMenuOpen(false)}
-                          className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                          aria-label="Close menu"
-                        >
-                          <X className="h-5 w-5" />
-                          <span className="sr-only">Close</span>
-                        </button>
+                       {/* The X close button from SheetContent itself will be used. Removed manual button. */}
                     </SheetHeader>
                     <nav className="flex-grow p-4 space-y-2 overflow-y-auto">
                       {mainNavItems.map((item) => (

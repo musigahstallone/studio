@@ -7,7 +7,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { HelpCircle, Users, Cpu, Shield, CoinsIcon, SlidersHorizontal, LandmarkIcon } from 'lucide-react';
+import { HelpCircle, Users, Cpu, Shield, CoinsIcon, SlidersHorizontal, LandmarkIcon, Palette } from 'lucide-react'; // Added Palette
 
 const faqData = [
   {
@@ -29,7 +29,7 @@ const faqData = [
     icon: Users,
     question: "Is PennyPincher AI free to use?",
     answer:
-      "Yes, PennyPincher AI offers a comprehensive set of features for free. We are focused on providing a great core experience for all users. (Future premium features or tiers may be considered, but the current application is free).",
+      "Yes, PennyPincher AI offers a comprehensive set of features for free. We are focused on providing a great core experience for all users.",
   },
   {
     id: "currencies",
@@ -60,11 +60,18 @@ const faqData = [
       "You can create personalized savings goals with specific target amounts and timelines (either a target date or a duration). Contribute funds towards your goals (which automatically creates linked expense transactions for tracking) and withdraw funds when needed, with options for early withdrawal penalties where applicable. The app helps you visualize your progress towards achieving your financial objectives.",
   },
   {
+    id: "theme-customization",
+    icon: Palette,
+    question: "Can I customize the app's appearance?",
+    answer:
+      "Yes, you can personalize your experience by choosing between Light, Dark, or System preference themes directly from the settings page. The app features a modern, responsive design suitable for both desktop and mobile devices."
+  },
+  {
     id: "developer",
-    icon: Users, // Re-using Users icon
+    icon: Users, 
     question: "Who developed PennyPincher AI?",
     answer:
-      "PennyPincher AI was developed by Stallone Musigah. You can find more information about the developer on the Contact Us page."
+      "PennyPincher AI was developed by Stallone Musigah. You can find more information about the developer on the <a href='/contact' class='text-primary hover:underline'>Contact Us page</a>."
   }
 ];
 
@@ -96,7 +103,7 @@ export default function FAQPage() {
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="px-6 pb-5 pt-1 text-sm md:text-base text-muted-foreground leading-relaxed">
-                    {faq.answer}
+                    <span dangerouslySetInnerHTML={{ __html: faq.answer }} />
                   </AccordionContent>
                 </AccordionItem>
               ))}

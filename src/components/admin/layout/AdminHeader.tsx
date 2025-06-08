@@ -51,13 +51,7 @@ export function AdminHeader() {
                   <ShieldAlert className="h-7 w-7 text-primary" />
                   <span className="font-headline text-xl font-semibold tracking-tight text-foreground">Admin Menu</span>
                 </SheetTitle>
-                 <button
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 md:hidden"
-                    aria-label="Close admin menu"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
+                 {/* The X close button from SheetContent itself will be used. Removed manual button. */}
               </SheetHeader>
               <AdminMobileNav onLinkClick={() => setIsMobileMenuOpen(false)} />
             </SheetContent>
@@ -77,7 +71,7 @@ export function AdminHeader() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
                 <Avatar className="h-9 w-9 border">
-                  <AvatarImage src={appUser.photoURL || user.photoURL || undefined} alt={appUser.name || user.displayName || user.email || 'Admin'} data-ai-hint="admin avatar" />
+                  <AvatarImage src={appUser.photoURL || user.photoURL || undefined} alt={appUser.name || user.displayName || user.email || 'Admin'} data-ai-hint="admin avatar"/>
                   <AvatarFallback>
                     {appUser.email ? appUser.email.charAt(0).toUpperCase() : <UserCircle className="h-5 w-5" />}
                   </AvatarFallback>
@@ -112,5 +106,3 @@ export function AdminHeader() {
     </header>
   );
 }
-
-    
