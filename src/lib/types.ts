@@ -121,8 +121,8 @@ export const DEFAULT_STORED_CURRENCY: CurrencyCode = 'USD';
 
 export const CurrencyCodeSchema = z.enum(supportedCurrencies);
 
-export type Theme = 'light' | 'dark' | 'system';
-export const DEFAULT_THEME: Theme = 'system';
+export type Theme = 'light' | 'dark'; // Removed 'system'
+export const DEFAULT_THEME: Theme = 'light'; // Default to light, context will adjust to system preference if no local storage
 
 // --- Savings Goal Specific Types ---
 export type SavingsGoalStatus = 'active' | 'matured' | 'completed' | 'withdrawnEarly' | 'cancelled';

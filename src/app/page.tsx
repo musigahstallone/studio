@@ -10,7 +10,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ArrowRight, Cpu, SlidersHorizontal, LandmarkIcon, Coins, ScanLine, TextSearch, Edit, LogIn } from 'lucide-react';
 import Image from 'next/image';
-import { useToast } from '@/hooks/use-toast'; // Import useToast
+import { useToast } from '@/hooks/use-toast'; 
 
 const featuresSummary = [
   {
@@ -60,36 +60,34 @@ const howItWorksSteps = [
 export default function LandingPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const { toast } = useToast(); // Initialize useToast
+  const { toast } = useToast(); 
 
   useEffect(() => {
     if (!authLoading && user) {
       router.push('/dashboard');
+    } else if (!authLoading && !user) {
+      // Show login prompt toast if user is unauthenticated and not loading
+      const loginPromptShown = sessionStorage.getItem('loginPromptShown');
+      if (!loginPromptShown) { // Show only once per session, or remove this check for "every refresh"
+        toast({
+          title: 'Welcome to PennyPincher AI!',
+          description: 'Ready to manage your finances? Log in or create an account.',
+          action: (
+            <Button asChild variant="outline" size="sm">
+              <Link href="/login">
+                <LogIn className="mr-2 h-4 w-4" /> Login / Sign Up
+              </Link>
+            </Button>
+          ),
+          duration: 10000, // Keep toast longer
+        });
+        // sessionStorage.setItem('loginPromptShown', 'true'); // Uncomment to show only once per session
+      }
     }
-  }, [user, authLoading, router]);
-
-  useEffect(() => {
-    // Check if user just logged out
-    const justLoggedOut = sessionStorage.getItem('justLoggedOut');
-    if (justLoggedOut === 'true') {
-      toast({
-        title: 'Logged Out Successfully',
-        description: 'Want to log back in?',
-        action: (
-          <Button asChild variant="outline" size="sm">
-            <Link href="/login">
-              <LogIn className="mr-2 h-4 w-4" /> Login
-            </Link>
-          </Button>
-        ),
-        duration: 8000, // Keep toast longer
-      });
-      sessionStorage.removeItem('justLoggedOut'); // Clear the flag
-    }
-  }, [toast]);
+  }, [user, authLoading, router, toast]);
 
 
-  if (authLoading || user) {
+  if (authLoading || (!authLoading && user)) { // Keep showing loader if redirecting authed user
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>

@@ -3,9 +3,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { AppProviders } from '@/components/layout/AppProviders';
-// import { fontPairings } from '@/lib/fonts'; // Commented out
-// Import new defaults for currency and font
-import { DEFAULT_THEME, DEFAULT_DISPLAY_CURRENCY, DEFAULT_LOCAL_CURRENCY } from '@/lib/types'; // DEFAULT_FONT_THEME_ID_CONST removed
+import { DEFAULT_THEME, DEFAULT_DISPLAY_CURRENCY, DEFAULT_LOCAL_CURRENCY } from '@/lib/types';
 
 const APP_NAME = 'PennyPincher AI';
 const APP_DESCRIPTION = 'Effortlessly manage your expenses, budgets, and savings goals with PennyPincher AI. AI-powered expense tracking from text & receipts, multi-currency support, and intelligent financial insights.';
@@ -17,7 +15,7 @@ export const metadata: Metadata = {
     template: `%s | ${APP_NAME}`,
   },
   description: APP_DESCRIPTION,
-  manifest: "/manifest.json", // Assuming you might add a manifest later
+  manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -30,7 +28,7 @@ export const metadata: Metadata = {
   authors: [{ name: 'Stallone Musigah', url: 'https://musigahstallone.tech' }],
   creator: 'Stallone Musigah',
   publisher: 'PennyPincher AI',
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002'), // Replace with your actual domain in .env
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002'),
   openGraph: {
     type: 'website',
     siteName: APP_NAME,
@@ -39,13 +37,14 @@ export const metadata: Metadata = {
         template: `%s | ${APP_NAME}`,
     },
     description: APP_DESCRIPTION,
-    url: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002'), // Replace with your actual domain
+    url: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002'),
     images: [
       {
-        url: 'https://placehold.co/1200x630.png?text=PennyPincher+AI', // Replace with your actual OG image
+        url: 'https://placehold.co/1200x630.png',
         width: 1200,
         height: 630,
         alt: `${APP_NAME} - Smart Financial Management`,
+        'data-ai-hint': 'finance app logo',
       },
     ],
     locale: 'en_US',
@@ -57,8 +56,7 @@ export const metadata: Metadata = {
         template: `%s | ${APP_NAME}`,
     },
     description: APP_DESCRIPTION,
-    images: ['https://placehold.co/1200x630.png?text=PennyPincher+AI'], // Replace with your actual Twitter image
-    // creator: '@yourtwitterhandle', // Optional: if you have a Twitter handle
+    images: ['https://placehold.co/1200x630.png'],
   },
   robots: {
     index: true,
@@ -82,40 +80,24 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        {/*
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        {fontPairings.map(fp => (
-          fp.googleFontLink && <link key={fp.id} href={fp.googleFontLink} rel="stylesheet" />
-        ))}
-        */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
                 try {
-                  var theme = localStorage.getItem('theme') || '${DEFAULT_THEME}';
-                  if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                  var storedTheme = localStorage.getItem('theme');
+                  if (storedTheme === 'dark' || (!storedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
                     document.documentElement.classList.add('dark');
                   } else {
                     document.documentElement.classList.remove('dark');
                   }
-
-                  // var fontTheme = localStorage.getItem('fontTheme') || 'default-font-placeholder'; // Commented out: DEFAULT_FONT_THEME_ID_CONST was here
-                  // var fontThemeClass = 'font-theme-' + fontTheme; // Commented out
-                  
-                  // var allFontThemeClasses = []; // Commented out: fontPairings.map was here
-                  // allFontThemeClasses.forEach(cls => document.documentElement.classList.remove(cls)); // Commented out
-                  
-                  // document.documentElement.classList.add(fontThemeClass); // Commented out
-                  
-                } catch (e) { console.error('Error applying initial settings:', e); }
+                } catch (e) { console.error('Error applying initial theme:', e); }
               })();
             `,
           }}
         />
       </head>
-      <body className="font-sans antialiased bg-background text-foreground"> {/* Changed to font-sans for default */}
+      <body className="font-sans antialiased bg-background text-foreground">
         <AppProviders>
           {children}
           <Toaster />
