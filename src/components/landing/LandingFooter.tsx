@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { PiggyBank } from 'lucide-react';
+import { PiggyBank, MessageSquare, Shield, FileText, LayoutGrid, Info, HelpCircleIcon } from 'lucide-react'; // Added HelpCircleIcon
 
 export function LandingFooter() {
   return (
@@ -23,17 +23,41 @@ export function LandingFooter() {
           <div>
             <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground mb-4">Quick Links</h3>
             <ul className="space-y-2">
-              <li><Link href="/features" className="text-sm text-muted-foreground hover:text-primary">Features</Link></li>
-              <li><Link href="/#how-it-works" className="text-sm text-muted-foreground hover:text-primary">How It Works</Link></li>
-              <li><Link href="/login" className="text-sm text-muted-foreground hover:text-primary">Login/Sign Up</Link></li>
+              <li>
+                <Link href="/features" className="text-sm text-muted-foreground hover:text-primary flex items-center">
+                  <LayoutGrid className="h-4 w-4 mr-2 opacity-75"/> Features
+                </Link>
+              </li>
+              <li>
+                <Link href="/#how-it-works" className="text-sm text-muted-foreground hover:text-primary flex items-center">
+                  <Info className="h-4 w-4 mr-2 opacity-75"/> How It Works
+                </Link>
+              </li>
+               <li>
+                <Link href="/faq" className="text-sm text-muted-foreground hover:text-primary flex items-center">
+                  <HelpCircleIcon className="h-4 w-4 mr-2 opacity-75"/> FAQ
+                </Link>
+              </li>
             </ul>
           </div>
           <div>
             <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground mb-4">Legal & Support</h3>
             <ul className="space-y-2">
-              <li><Link href="/privacy" className="text-sm text-muted-foreground hover:text-primary">Privacy Policy</Link></li>
-              <li><Link href="/terms" className="text-sm text-muted-foreground hover:text-primary">Terms of Service</Link></li>
-              <li><Link href="/contact" className="text-sm text-muted-foreground hover:text-primary">Contact Us</Link></li>
+              <li>
+                <Link href="/privacy" className="text-sm text-muted-foreground hover:text-primary flex items-center">
+                  <Shield className="h-4 w-4 mr-2 opacity-75"/> Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link href="/terms" className="text-sm text-muted-foreground hover:text-primary flex items-center">
+                  <FileText className="h-4 w-4 mr-2 opacity-75"/> Terms of Service
+                </Link>
+              </li>
+              <li>
+                <Link href="/contact" className="text-sm text-muted-foreground hover:text-primary flex items-center">
+                  <MessageSquare className="h-4 w-4 mr-2 opacity-75"/> Contact Us
+                </Link>
+              </li>
             </ul>
           </div>
         </div>
@@ -41,8 +65,8 @@ export function LandingFooter() {
           <p className="text-xs text-muted-foreground">
             &copy; {new Date().getFullYear()} PennyPincher AI. All rights reserved.
           </p>
-          <p className="text-xs text-muted-foreground mt-2">
-            Made with ❤️ by <a href="https://musigahstallone.tech" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Stallone Musigah</a>.
+          <p className="text-xs text-muted-foreground mt-1">
+            Made with ❤️ by <a href="https://musigahstallone.tech" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">Stallone Musigah</a>.
           </p>
         </div>
       </div>
