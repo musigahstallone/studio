@@ -38,7 +38,7 @@ interface ExpenseContextType {
   expenses: Expense[];
   addExpense: (expense: Omit<Expense, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'receiptUrl'>, receiptUrl?: string) => Promise<void>;
   deleteExpense: (id: string) => Promise<void>;
-  updateExpense: (updatedExpense: Omit<Expense, 'userId' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  updateExpense: (updatedExpense: Partial<Expense> & { id: string }) => Promise<void>; // Changed type
   loadingExpenses: boolean;
   allPlatformExpenses: Expense[]; // For admin view (conceptual, needs secure implementation)
   loadingAllPlatformExpenses: boolean;
@@ -173,23 +173,41 @@ export const ExpenseProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user, toast]);
 
-  const updateExpense = useCallback(async (updatedExpenseData: Omit<Expense, 'userId' | 'createdAt' | 'updatedAt'>) => {
+  const updateExpense = useCallback(async (updatedExpenseData: Partial<Expense> & { id: string }) => {
     if (!user?.uid) {
       toast({ variant: "destructive", title: "Not Authenticated", description: "You must be logged in to update an expense." });
       return;
     }
-    const { id, ...dataToUpdate } = updatedExpenseData;
-    const expensePayload = {
-      ...dataToUpdate,
-      userId: user.uid, // Ensure userId is part of the update, though it shouldn't change
+    // Destructure to explicitly exclude id, createdAt, userId, and updatedAt from the initial spread
+    const { id, createdAt, userId, updatedAt, ...dataToUpdate } = updatedExpenseData;
+
+    // This payload is for the user-specific document
+    const payloadForUserDoc: Record<string, any> = {
+      ...dataToUpdate, // Contains all form-modifiable fields
       updatedAt: serverTimestamp(),
+      // userId is not included here as it's part of the document path and shouldn't change for user's own expense
     };
+    
+    // Handle receiptUrl explicitly: if it's present in updatedExpenseData, use its value (can be null or a string)
+    // If not present in updatedExpenseData, it means the form didn't touch this field, so don't include it in the payload.
+    if (updatedExpenseData.hasOwnProperty('receiptUrl')) {
+      payloadForUserDoc.receiptUrl = updatedExpenseData.receiptUrl === undefined ? null : updatedExpenseData.receiptUrl;
+    }
+
     try {
       const expenseDocRef = doc(db, 'users', user.uid, 'expenses', id);
-      await updateDoc(expenseDocRef, expensePayload);
-      // Also update in 'expenses_all'
+      await updateDoc(expenseDocRef, payloadForUserDoc);
+      
+      // This payload is for the 'expenses_all' collection document
+      const payloadForAllDoc: Record<string, any> = {
+        ...payloadForUserDoc, // Start with the same base as the user's document update
+        userId: updatedExpenseData.userId || user.uid, // Ensure userId is correctly set for the 'expenses_all' collection
+                                                        // Prefers original userId if available (e.g., for future admin edits), otherwise current user.
+      };
+      // `updatedAt` is already in payloadForUserDoc from serverTimestamp()
+
       const allExpenseDocRef = doc(db, 'expenses_all', id);
-      await updateDoc(allExpenseDocRef, expensePayload);
+      await updateDoc(allExpenseDocRef, payloadForAllDoc);
       
       toast({ title: "Transaction Updated" });
     } catch (e) {
@@ -414,3 +432,4 @@ export const useBudgets = (): BudgetContextActualType => {
   }
   return context;
 };
+
