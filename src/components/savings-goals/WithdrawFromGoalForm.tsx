@@ -82,24 +82,35 @@ export function WithdrawFromGoalForm({ goal, onConfirmWithdrawal, onSubmissionDo
     netAmountToUser,
     effectiveMaturityDate
   } = useMemo(() => {
-    let early = false;
+    let early = true; // Assume early by default
     let maturityDate: Date | null = null;
-    if (goal.targetDate) {
-        try {
-            const tDate = parseISO(goal.targetDate);
-            if(isValid(tDate)) {
-                maturityDate = tDate;
-                early = !isPast(tDate) && !isToday(tDate);
-            }
-        } catch (e) {/* ignore */}
-    } else if (goal.startDate && goal.durationMonths) {
-        try {
-            const sDate = parseISO(goal.startDate);
-             if(isValid(sDate)) {
-                maturityDate = addMonths(sDate, goal.durationMonths);
-                early = !isPast(maturityDate) && !isToday(maturityDate);
-            }
-        } catch (e) {/* ignore */}
+    const isFunded = goal.currentAmount >= goal.targetAmount;
+
+    if (goal.withdrawalCondition === 'targetAmountReached' && isFunded) {
+        early = false; // Mature if condition is targetAmountReached and it's met
+    } else {
+        // Fallback to date-based maturity
+        if (goal.targetDate) {
+            try {
+                const tDate = parseISO(goal.targetDate);
+                if (isValid(tDate)) {
+                    maturityDate = tDate;
+                    if (isPast(tDate) || isToday(tDate)) {
+                        early = false;
+                    }
+                }
+            } catch (e) { console.error("Error parsing targetDate for early check in form:", e); }
+        } else if (goal.startDate && goal.durationMonths) {
+            try {
+                const sDate = parseISO(goal.startDate);
+                if (isValid(sDate)) {
+                    maturityDate = addMonths(sDate, goal.durationMonths);
+                    if (isPast(maturityDate) || isToday(maturityDate)) {
+                        early = false;
+                    }
+                }
+            } catch (e) { console.error("Error parsing startDate/duration for early check in form:", e); }
+        }
     }
 
     const penaltyRate = goal.earlyWithdrawalPenaltyRate;
@@ -147,7 +158,18 @@ export function WithdrawFromGoalForm({ goal, onConfirmWithdrawal, onSubmissionDo
       toast({ variant: "destructive", title: "Error", description: "Settings not loaded. Please try again." });
       return;
     }
-    if (isActuallyEarly && !goal.allowsEarlyWithdrawal) {
+    // Re-check isActuallyEarly for submission based on latest goal state
+    // (although useMemo should update if goal prop changes, this is an extra check against stale form state if needed)
+    let currentIsEarly = true;
+    const currentIsFunded = goal.currentAmount >= goal.targetAmount;
+    if (goal.withdrawalCondition === 'targetAmountReached' && currentIsFunded) {
+        currentIsEarly = false;
+    } else if (effectiveMaturityDate && (isPast(effectiveMaturityDate) || isToday(effectiveMaturityDate))) {
+        currentIsEarly = false;
+    }
+
+
+    if (currentIsEarly && !goal.allowsEarlyWithdrawal) {
         toast({variant: "destructive", title: "Withdrawal Blocked", description: "Early withdrawal is not permitted for this goal."});
         return;
     }
@@ -184,7 +206,7 @@ export function WithdrawFromGoalForm({ goal, onConfirmWithdrawal, onSubmissionDo
             </p>
             {effectiveMaturityDate && (
               <p>
-                  <span className="text-muted-foreground">Maturity Date:</span> {format(effectiveMaturityDate, "PP")}
+                  <span className="text-muted-foreground">Target/Maturity Date:</span> {format(effectiveMaturityDate, "PP")}
               </p>
             )}
              <p>
@@ -300,3 +322,4 @@ export function WithdrawFromGoalForm({ goal, onConfirmWithdrawal, onSubmissionDo
     </Form>
   );
 }
+

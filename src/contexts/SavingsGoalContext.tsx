@@ -25,6 +25,7 @@ import { useAuth } from './AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useExpenses } from './ExpenseContext'; // To calculate available income
 import { DEFAULT_STORED_CURRENCY } from '@/lib/types'; // Import DEFAULT_STORED_CURRENCY
+import { addMonths, isPast, isValid, parseISO, isToday } from "date-fns"; // Added date-fns imports
 
 interface SavingsGoalContextType {
   savingsGoals: SavingsGoal[];
@@ -341,15 +342,35 @@ export const SavingsGoalProvider = ({ children }: { children: ReactNode }) => {
     const withdrawalLogColRef = collection(db, 'users', user.uid, 'savingsGoalWithdrawals');
     const platformRevenueColRef = collection(db, 'platformRevenue');
 
-    let isEarly = false;
+    let isEarly = true; // Assume early by default, prove otherwise
     let effectiveMaturityDate: Date | null = null;
-    if (goal.targetDate) {
-        effectiveMaturityDate = new Date(goal.targetDate);
-        isEarly = new Date() < effectiveMaturityDate;
-    } else if (goal.startDate && goal.durationMonths) {
-        const sDate = new Date(goal.startDate);
-        effectiveMaturityDate = new Date(sDate.setMonth(sDate.getMonth() + goal.durationMonths));
-        isEarly = new Date() < effectiveMaturityDate;
+    const isGoalFunded = goal.currentAmount >= goal.targetAmount;
+
+    if (goal.withdrawalCondition === 'targetAmountReached' && isGoalFunded) {
+        isEarly = false; // Mature if condition is targetAmountReached and it's met
+    } else {
+        // Fallback to date-based maturity if the primary condition isn't "targetAmountReached" or if it is but not yet funded
+        if (goal.targetDate) {
+            try {
+                const tDate = parseISO(goal.targetDate);
+                if (isValid(tDate)) {
+                    effectiveMaturityDate = tDate;
+                    if (isPast(tDate) || isToday(tDate)) {
+                        isEarly = false;
+                    }
+                }
+            } catch (e) { console.error("Error parsing targetDate for early check in context:", e); }
+        } else if (goal.startDate && goal.durationMonths) {
+            try {
+                const sDate = parseISO(goal.startDate);
+                if (isValid(sDate)) {
+                    effectiveMaturityDate = addMonths(sDate, goal.durationMonths);
+                    if (isPast(effectiveMaturityDate) || isToday(effectiveMaturityDate)) {
+                        isEarly = false;
+                    }
+                }
+            } catch (e) { console.error("Error parsing startDate/duration for early check in context:", e); }
+        }
     }
     
     if (isEarly && !goal.allowsEarlyWithdrawal) {
@@ -406,9 +427,14 @@ export const SavingsGoalProvider = ({ children }: { children: ReactNode }) => {
         const newGoalCurrentAmount = currentGoalData.currentAmount - grossAmountToWithdrawFromGoal;
         let newGoalStatus = currentGoalData.status;
         
-        if (isEarly) newGoalStatus = 'withdrawnEarly';
-        else if (newGoalCurrentAmount <= 0 && currentGoalData.currentAmount >= currentGoalData.targetAmount) newGoalStatus = 'completed';
-        else if (newGoalCurrentAmount <= 0) newGoalStatus = 'active'; // Or 'cancelled' if implies choice, current keeps it active if partially withdrawn
+        if (isEarly && goal.allowsEarlyWithdrawal) newGoalStatus = 'withdrawnEarly'; // Only set to withdrawnEarly if it was actually an early withdrawal
+        else if (newGoalCurrentAmount <= 0 && ( (currentGoalData.withdrawalCondition === 'targetAmountReached' && isGoalFunded) || (currentGoalData.withdrawalCondition === 'maturityDateReached' && !isEarly) ) ) {
+            newGoalStatus = 'completed';
+        } else if (newGoalCurrentAmount <= 0) {
+            // This case might occur if goal was partially withdrawn, and now fully depleted before formal maturity/target completion
+            newGoalStatus = currentGoalData.status; // Keep existing status or decide a specific one like 'depleted'
+        }
+
 
         transaction.update(goalDocRef, {
           currentAmount: newGoalCurrentAmount,
@@ -469,7 +495,7 @@ export const SavingsGoalProvider = ({ children }: { children: ReactNode }) => {
             transactionCost: actualTransactionCostCollected,
             netAmountToUser: netAmountToUser,
             date: new Date().toISOString().split('T')[0],
-            isEarlyWithdrawal: isEarly,
+            isEarlyWithdrawal: isEarly, // This now correctly reflects if it was an early withdrawal based on combined conditions
             createdAt: serverTimestamp(),
         } as Omit<SavingsGoalWithdrawal, 'id'>);
 
@@ -508,3 +534,4 @@ export const useSavingsGoals = (): SavingsGoalContextType => {
   }
   return context;
 };
+
