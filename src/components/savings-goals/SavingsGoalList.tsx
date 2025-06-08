@@ -9,20 +9,22 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { useSettings } from "@/contexts/SettingsContext";
 
-const ITEMS_PER_PAGE = 6; // Adjusted for potentially larger cards
+const ITEMS_PER_PAGE = 6;
 
 interface SavingsGoalListProps {
   savingsGoals: SavingsGoal[];
   onDeleteGoal: (id: string) => void;
   onEditGoal: (goal: SavingsGoal) => void;
-  onContributeToGoal: (goal: SavingsGoal) => void; // New prop
+  onContributeToGoal: (goal: SavingsGoal) => void;
+  onWithdrawFromGoal: (goal: SavingsGoal) => void; // New prop
 }
 
 export function SavingsGoalList({
   savingsGoals,
   onDeleteGoal,
   onEditGoal,
-  onContributeToGoal, // Destructure new prop
+  onContributeToGoal,
+  onWithdrawFromGoal, // Destructure new prop
 }: SavingsGoalListProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const { isMounted: settingsMounted } = useSettings();
@@ -82,7 +84,8 @@ export function SavingsGoalList({
             goal={goal}
             onDeleteGoal={onDeleteGoal}
             onEditGoal={onEditGoal}
-            onContribute={onContributeToGoal} // Pass the handler here
+            onContribute={onContributeToGoal}
+            onWithdraw={onWithdrawFromGoal} // Pass the handler here
           />
         ))}
       </div>
