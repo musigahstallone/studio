@@ -1,6 +1,7 @@
 
 import { PublicPageShell } from '@/components/layout/PublicPageShell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import Link from 'next/link'; // Added import
 
 export default function PrivacyPolicyPage() {
   return (
