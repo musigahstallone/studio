@@ -3,18 +3,17 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Users, Home } from 'lucide-react'; // Removed LogOut, it's in AdminHeader
+import { LayoutDashboard, Users, Home, LineChart } from 'lucide-react'; // Added LineChart for clarity, Home is for app root
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
-// These items will also be used by AdminMobileNav
 export const adminNavItems = [
-  { href: '/admin', label: 'Platform Stats', icon: LayoutDashboard },
+  { href: '/admin', label: 'Platform Stats', icon: LineChart }, // Changed icon to LineChart
   { href: '/admin/users', label: 'User Management', icon: Users },
 ];
 
 export const utilityNavItems = [
-   { href: '/', label: 'Back to Main App', icon: Home }
+   { href: '/dashboard', label: 'Back to Main App', icon: LayoutDashboard } // Link to /dashboard
 ];
 
 interface AdminSidebarNavItemProps {
@@ -34,7 +33,7 @@ export function AdminSidebarNavItem({ href, label, icon: Icon, pathname, isMobil
             variant={pathname === href ? (isMobile ? "secondary" : "secondary") : "ghost"}
             className={cn(
             "w-full justify-start text-base md:text-sm h-10",
-            isMobile ? "py-3 px-3 text-foreground" : "", // Specific styles for mobile if needed
+            isMobile ? "py-3 px-3 text-foreground" : "", 
             pathname === href && (
                 isMobile 
                 ? "bg-muted text-primary font-semibold" 
@@ -57,7 +56,6 @@ export function AdminSidebar() {
   const pathname = usePathname();
 
   return (
-    // Hidden on mobile (md:block), shown on medium screens and up
     <aside className="hidden md:block sticky top-16 h-[calc(100vh-4rem)] w-64 border-r bg-background p-4 md:flex flex-col justify-between shadow-md">
       <nav className="flex flex-col gap-2">
         <p className="px-2 py-1 text-xs font-semibold text-muted-foreground tracking-wider uppercase">Management</p>
@@ -86,3 +84,5 @@ export function AdminSidebar() {
     </aside>
   );
 }
+
+    

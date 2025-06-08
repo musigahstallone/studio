@@ -1,9 +1,12 @@
 
-"use client"; // Add "use client" if AppHeader or other children require it
+"use client";
 
 import type { ReactNode } from 'react';
 import { AppHeader } from './AppHeader';
-import { usePathname } from 'next/navigation'; // Import usePathname
+import { usePathname } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext'; // Import useAuth
+import { useRouter } from 'next/navigation'; // Import useRouter
+import { useEffect } from 'react'; // Import useEffect
 
 interface AppShellProps {
   children: ReactNode;
@@ -11,10 +14,30 @@ interface AppShellProps {
 
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
+  const { user, loading } = useAuth();
+  const router = useRouter();
 
-  // Don't render AppShell (which includes AppHeader) for the login page
-  if (pathname === '/login') {
-    return <>{children}</>; // Render children directly, e.g. the LoginPage content
+  useEffect(() => {
+    // If auth is not loading and there's no user, redirect to login
+    // This protects all pages wrapped by AppShell
+    if (!loading && !user && pathname !== '/login') { // Ensure we are not already on login
+      router.push('/login');
+    }
+  }, [user, loading, router, pathname]);
+
+  // Don't render AppShell for public pages or login page
+  if (pathname === '/login' || pathname === '/' || pathname === '/privacy' || pathname === '/terms' || pathname === '/contact') {
+    return <>{children}</>; 
+  }
+  
+  // If still loading auth state, or if no user and redirect hasn't happened, show a loader or null
+  // This prevents flashing AppHeader for users who will be redirected
+  if (loading || !user) {
+     return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
   }
 
   return (
@@ -26,3 +49,5 @@ export function AppShell({ children }: AppShellProps) {
     </div>
   );
 }
+
+    

@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { PiggyBank, LogOut, UserCircle, Settings, ShieldAlert, Menu, X } from 'lucide-react';
+import { PiggyBank, LogOut, UserCircle, Settings, ShieldAlert, Menu, X, LayoutDashboard } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { auth } from '@/lib/firebase';
@@ -98,7 +98,7 @@ export function AdminHeader() {
                 <Link href="/settings"><Settings className="mr-2 h-4 w-4" /> App Settings</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/"><PiggyBank className="mr-2 h-4 w-4" /> Back to Main App</Link>
+                <Link href="/dashboard"><LayoutDashboard className="mr-2 h-4 w-4" /> Back to Main App</Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer">
@@ -112,3 +112,5 @@ export function AdminHeader() {
     </header>
   );
 }
+
+    

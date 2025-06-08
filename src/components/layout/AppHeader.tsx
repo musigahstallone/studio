@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { PiggyBank, Menu, X, ShieldCheck, LogIn, LogOut, UserCircle, Settings as CogIcon, Landmark } from 'lucide-react'; // Added Landmark
+import { PiggyBank, Menu, X, ShieldCheck, LogIn, LogOut, UserCircle, Settings as CogIcon, LayoutDashboard } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -28,7 +28,7 @@ export function AppHeader() {
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
-  const { user, appUser, isAdminUser, loading } = useAuth(); // Use isAdminUser from AuthContext
+  const { user, appUser, isAdminUser, loading } = useAuth(); 
 
   const handleMobileLinkClick = () => {
     setIsMobileMenuOpen(false);
@@ -50,7 +50,7 @@ export function AppHeader() {
   }, []);
 
 
-  if (pathname === '/login') {
+  if (pathname === '/login' || pathname === '/' || pathname === '/privacy' || pathname === '/terms' || pathname === '/contact' ) { // Don't show app header on public pages
     return null;
   }
 
@@ -58,7 +58,7 @@ export function AppHeader() {
     <>
       <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b bg-background/95 px-4 backdrop-blur-sm sm:px-6 lg:px-8">
         <div className="flex items-center gap-2">
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/dashboard" className="flex items-center gap-2"> {/* Logo now links to dashboard for logged-in users */}
             <PiggyBank className="h-7 w-7 text-primary" />
             <h1 className="font-headline text-xl font-semibold tracking-tight text-foreground">
               PennyPincher AI
@@ -68,15 +68,15 @@ export function AppHeader() {
 
         {hasMounted && user && (
           <nav className="hidden md:flex items-center gap-1">
-            <ButtonLink href="/" isActive={pathname === '/'}>Dashboard</ButtonLink>
+            <ButtonLink href="/dashboard" isActive={pathname === '/dashboard'}>Dashboard</ButtonLink>
             <ButtonLink href="/expenses" isActive={pathname === '/expenses'}>Transactions</ButtonLink>
             <ButtonLink href="/budgets" isActive={pathname === '/budgets'}>Budgets</ButtonLink>
-            <ButtonLink href="/savings-goals" isActive={pathname === '/savings-goals'}>Savings Goals</ButtonLink> {/* Added Savings Goals link */}
+            <ButtonLink href="/savings-goals" isActive={pathname === '/savings-goals'}>Savings Goals</ButtonLink>
           </nav>
         )}
 
         <div className="flex items-center gap-3">
-          {hasMounted && !loading && !user && (
+          {hasMounted && !loading && !user && ( // This condition might be redundant due to page-level check
             <Button asChild variant="outline" size="sm">
               <Link href="/login">
                 <LogIn className="mr-1.5 h-4 w-4" /> Login
@@ -84,7 +84,7 @@ export function AppHeader() {
             </Button>
           )}
 
-          {hasMounted && user && appUser && ( // Ensure appUser is loaded
+          {hasMounted && user && appUser && ( 
              <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
@@ -106,10 +106,13 @@ export function AppHeader() {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                 <DropdownMenuItem asChild>
+                  <Link href="/dashboard"><LayoutDashboard className="mr-2 h-4 w-4" /> Dashboard</Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/settings"><CogIcon className="mr-2 h-4 w-4" /> Settings</Link>
                 </DropdownMenuItem>
-                {isAdminUser && ( // Use isAdminUser from context
+                {isAdminUser && ( 
                   <DropdownMenuItem asChild>
                     <Link href="/admin"><ShieldCheck className="mr-2 h-4 w-4" /> Admin Panel</Link>
                   </DropdownMenuItem>
@@ -184,3 +187,5 @@ function ButtonLink({ href, isActive, children }: ButtonLinkProps) {
     </Link>
   );
 }
+
+    

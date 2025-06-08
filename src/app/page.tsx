@@ -4,189 +4,174 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-
-import { AppShell } from '@/components/layout/AppShell';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { DollarSign, TrendingUp, TrendingDown, ListChecks, Target, Loader2 } from 'lucide-react';
-import { useExpenses, useBudgets } from '@/contexts/ExpenseContext';
-import { useMemo } from 'react';
-import { RecentTransactionsList } from '@/components/dashboard/RecentTransactionsList';
+import { PublicPageShell } from '@/components/layout/PublicPageShell';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Progress } from "@/components/ui/progress";
-import { useSettings } from '@/contexts/SettingsContext'; // Changed from currency to displayCurrency
-import { formatCurrency } from '@/lib/utils';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ArrowRight, Cpu, SlidersHorizontal, LandmarkIcon, Coins, ScanLine, TextSearch, Edit } from 'lucide-react';
+import Image from 'next/image';
 
+const features = [
+  {
+    icon: Cpu,
+    title: 'AI-Powered Tracking',
+    description: 'Automate expense entry from text, receipts, or camera scans. Smart categorization and description refinement.',
+    bgColor: 'bg-primary/10',
+    iconColor: 'text-primary',
+  },
+  {
+    icon: SlidersHorizontal,
+    title: 'Comprehensive Budgets',
+    description: 'Create, manage, and track budgets across categories with real-time progress and over-limit warnings.',
+    bgColor: 'bg-accent/10',
+    iconColor: 'text-accent',
+  },
+  {
+    icon: LandmarkIcon,
+    title: 'Intelligent Savings Goals',
+    description: 'Set savings targets with flexible timelines, contribute funds, and manage withdrawals with smart penalty calculations.',
+    bgColor: 'bg-green-500/10',
+    iconColor: 'text-green-600',
+  },
+  {
+    icon: Coins,
+    title: 'Multi-Currency Support',
+    description: 'Input expenses in your local currency (KES, USD, EUR) and view all financials in your preferred display currency.',
+    bgColor: 'bg-purple-500/10',
+    iconColor: 'text-purple-600',
+  },
+];
 
-export default function DashboardPage() {
+const howItWorksSteps = [
+  {
+    icon: Edit,
+    title: 'Sign Up & Set Up',
+    description: 'Create your free account in minutes. Customize your currency and theme preferences.',
+  },
+  {
+    icon: TextSearch,
+    title: 'Add Transactions Effortlessly',
+    description: 'Use text input, upload receipts, or scan with your camera. Our AI handles the data entry.',
+  },
+  {
+    icon: ScanLine, // Using ScanLine as a generic 'track' icon
+    title: 'Track & Achieve',
+    description: 'Monitor your spending against budgets, watch your savings grow, and gain insights into your financial habits.',
+  },
+];
+
+export default function LandingPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const { expenses, loadingExpenses } = useExpenses();
-  const { budgets, loadingBudgets } = useBudgets();
-  const { displayCurrency, isMounted: settingsMounted } = useSettings(); // Use displayCurrency
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/login');
+    if (!authLoading && user) {
+      router.push('/dashboard');
     }
   }, [user, authLoading, router]);
 
-  const totalIncome = useMemo(() => {
-    return expenses
-      .filter(e => e.type === 'income')
-      .reduce((sum, e) => sum + e.amount, 0); // amount is in base currency
-  }, [expenses]);
-
-  const totalExpensesValue = useMemo(() => { // Renamed to avoid conflict
-    return expenses
-      .filter(e => e.type === 'expense')
-      .reduce((sum, e) => sum + e.amount, 0); // amount is in base currency
-  }, [expenses]);
-
-  const balance = totalIncome - totalExpensesValue; // Use base currency amounts for calculation
-
-  const budgetHighlights = useMemo(() => {
-    return budgets
-      .map(budget => ({
-        ...budget,
-        // budget.amount and budget.spentAmount are in base currency
-        progress: budget.amount > 0 ? Math.min((budget.spentAmount / budget.amount) * 100, 100) : 0,
-        isOverBudget: budget.spentAmount > budget.amount,
-        percentageSpent: budget.amount > 0 ? (budget.spentAmount / budget.amount) * 100 : 0,
-      }))
-      .sort((a, b) => b.percentageSpent - a.percentageSpent)
-      .slice(0, 3);
-  }, [budgets]);
-
-  if (authLoading || (!user && !authLoading) || loadingExpenses || loadingBudgets || !settingsMounted) {
+  // If auth is still loading, or if user is defined (and redirect hasn't happened yet),
+  // show a minimal loader or nothing to prevent flash of landing page content for authenticated users.
+  if (authLoading || user) {
     return (
-      <AppShell>
-        <div className="flex flex-col items-center justify-center h-full py-10">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
-          <p className="mt-4 text-muted-foreground">Loading Dashboard...</p>
-        </div>
-      </AppShell>
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
     );
   }
-
-
+  
   return (
-    <AppShell>
-      <div className="space-y-8">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <h1 className="font-headline text-3xl font-semibold text-foreground">
-            Welcome Back, {user?.displayName || user?.email?.split('@')[0] || 'User'}!
+    <PublicPageShell>
+      {/* Hero Section */}
+      <section className="py-16 md:py-24 bg-gradient-to-br from-background to-muted/50">
+        <div className="container mx-auto px-4 text-center">
+          <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-foreground mb-6 font-headline">
+            PennyPincher AI: <span className="text-primary">Smart</span> Finance, <span className="text-primary">Simplified</span>.
           </h1>
+          <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-10">
+            Effortlessly manage your expenses, budgets, and savings goals with the power of AI. Gain clarity and take control of your financial future today.
+          </p>
+          <Button asChild size="lg" className="shadow-lg hover:shadow-xl transition-shadow">
+            <Link href="/login">
+              Get Started Free <ArrowRight className="ml-2 h-5 w-5" />
+            </Link>
+          </Button>
+           <div className="mt-12 relative aspect-video max-w-4xl mx-auto rounded-xl shadow-2xl overflow-hidden border border-border">
+            <Image 
+                src="https://placehold.co/1200x675.png" // Replace with actual app screenshot or illustration
+                alt="PennyPincher AI Dashboard Preview" 
+                layout="fill"
+                objectFit="cover"
+                priority
+                data-ai-hint="dashboard finance app"
+            />
+          </div>
         </div>
+      </section>
 
-        <p className="text-lg text-muted-foreground">
-          Here&apos;s your financial overview. All amounts displayed in {displayCurrency}.
-        </p>
-
-        <div className="grid gap-6 md:grid-cols-3">
-          <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Income</CardTitle>
-              <TrendingUp className="h-5 w-5 text-green-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-foreground">{formatCurrency(totalIncome, displayCurrency)}</div>
-            </CardContent>
-          </Card>
-          <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Expenses</CardTitle>
-              <TrendingDown className="h-5 w-5 text-red-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-foreground">{formatCurrency(totalExpensesValue, displayCurrency)}</div>
-            </CardContent>
-          </Card>
-          <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Current Balance</CardTitle>
-              <DollarSign className="h-5 w-5 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-foreground">{formatCurrency(balance, displayCurrency)}</div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {budgetHighlights.length > 0 && (
-          <Card className="shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center text-xl">
-                <Target className="h-6 w-6 mr-3 text-primary" />
-                Budget Highlights
-              </CardTitle>
-              <CardDescription>Your top budgets by spending progress (displayed in {displayCurrency}).</CardDescription>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {budgetHighlights.map(budget => (
-                <Card key={budget.id} className="flex flex-col bg-card hover:shadow-md transition-shadow">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg">{budget.name}</CardTitle>
-                    <CardDescription>{budget.category}</CardDescription>
-                  </CardHeader>
-                  <CardContent className="flex-grow space-y-2">
-                    <Progress value={budget.progress} className={`h-2.5 ${budget.isOverBudget ? "[&>div]:bg-destructive" : ""}`} />
-                    <div className="flex justify-between text-sm">
-                      <span className={budget.isOverBudget ? "text-destructive font-medium" : "text-muted-foreground"}>
-                        Spent: {formatCurrency(budget.spentAmount, displayCurrency)}
-                      </span>
-                      <span className="text-muted-foreground">
-                        Budget: {formatCurrency(budget.amount, displayCurrency)}
-                      </span>
-                    </div>
-                    {budget.isOverBudget && (
-                         <p className="text-xs text-destructive text-center">
-                           Over budget by {formatCurrency(budget.spentAmount - budget.amount, displayCurrency)}!
-                         </p>
-                    )}
-                  </CardContent>
-                  <div className="p-4 pt-0 text-right">
-                     <Button variant="link" asChild size="sm" className="text-xs text-primary hover:text-primary/80">
-                        <Link href="/budgets">Manage Budgets</Link>
-                    </Button>
+      {/* Features Section */}
+      <section id="features" className="py-16 md:py-24 bg-background">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground font-headline">All-In-One Financial Hub</h2>
+            <p className="text-md md:text-lg text-muted-foreground mt-3 max-w-2xl mx-auto">
+              From intelligent expense tracking to sophisticated savings management, PennyPincher AI provides the tools you need.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {features.map((feature) => (
+              <Card key={feature.title} className={`shadow-lg hover:shadow-xl transition-shadow duration-300 ${feature.bgColor} border-transparent`}>
+                <CardHeader className="items-center text-center">
+                  <div className={`p-3 rounded-full mb-3 ${feature.bgColor}`}>
+                     <feature.icon className={`h-8 w-8 ${feature.iconColor}`} />
                   </div>
-                </Card>
-              ))}
-            </CardContent>
-             {budgets.length > 3 && (
-              <div className="p-4 pt-0 text-center">
-                 <Button variant="outline" asChild size="sm">
-                    <Link href="/budgets">View All Budgets</Link>
-                </Button>
-              </div>
-            )}
-             {budgets.length === 0 && (
-                <CardContent>
-                    <p className="text-muted-foreground text-center">No budgets set yet.
-                        <Button variant="link" asChild className="p-1 h-auto text-sm">
-                           <Link href="/budgets">Create one</Link>
-                        </Button>
-                         to see highlights here.
-                    </p>
+                  <CardTitle className={`text-xl font-semibold ${feature.iconColor}`}>{feature.title}</CardTitle>
+                </CardHeader>
+                <CardContent className="text-center">
+                  <p className="text-sm text-muted-foreground">{feature.description}</p>
                 </CardContent>
-            )}
-          </Card>
-        )}
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
 
-        <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center text-xl">
-              <ListChecks className="h-6 w-6 mr-3 text-primary" />
-              Recent Transactions
-            </CardTitle>
-             <CardDescription>Your latest financial movements (displayed in {displayCurrency}).</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <RecentTransactionsList count={5} />
-          </CardContent>
-        </Card>
+      {/* How It Works Section */}
+      <section id="how-it-works" className="py-16 md:py-24 bg-muted/50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground font-headline">Get Started in 3 Simple Steps</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {howItWorksSteps.map((step, index) => (
+              <div key={step.title} className="text-center p-6 bg-card rounded-lg shadow-lg">
+                <div className="mb-4 inline-flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 text-primary">
+                  <step.icon className="h-8 w-8" />
+                </div>
+                <h3 className="text-xl font-semibold text-foreground mb-2">{index + 1}. {step.title}</h3>
+                <p className="text-sm text-muted-foreground">{step.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-      </div>
-    </AppShell>
+      {/* Final CTA Section */}
+      <section className="py-16 md:py-24 bg-background">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6 font-headline">Ready to Transform Your Finances?</h2>
+          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10">
+            Join thousands of users who are gaining financial clarity and achieving their goals with PennyPincher AI.
+          </p>
+          <Button asChild size="lg" className="shadow-lg hover:shadow-xl transition-shadow">
+            <Link href="/login">
+              Sign Up Now & Get Started <ArrowRight className="ml-2 h-5 w-5" />
+            </Link>
+          </Button>
+        </div>
+      </section>
+    </PublicPageShell>
   );
 }
+
+    
