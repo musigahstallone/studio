@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { PiggyBank, Menu, X, LayoutGrid, Info, MessageSquare, Sun, Moon, Laptop } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/contexts/AuthContext';
+// Auth import removed as user/loading is not directly used here for nav items
 import { useState, useEffect } from 'react';
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
@@ -18,7 +18,6 @@ const navItems = [
 ];
 
 export function LandingHeader() {
-  const { user, loading } = useAuth();
   const { theme, setTheme, isMounted: settingsAreMounted } = useSettings();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
@@ -28,19 +27,37 @@ export function LandingHeader() {
   }, []);
 
   const toggleTheme = () => {
+    if (!settingsAreMounted) return; // Should not happen if button is rendered
+
+    const isSystemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
     if (theme === 'system') {
-      setTheme('light');
+      if (isSystemDark) {
+        setTheme('light');
+      } else {
+        setTheme('dark');
+      }
     } else if (theme === 'light') {
       setTheme('dark');
-    } else {
+    } else { // theme === 'dark'
       setTheme('system');
     }
   };
 
   const ThemeIcon = theme === 'light' ? Sun : theme === 'dark' ? Moon : Laptop;
-  const themeTooltip = `Switch to ${
-    theme === 'system' ? 'light' : theme === 'light' ? 'dark' : 'system'
-  } mode`;
+  
+  let nextThemeLabel = 'system';
+  if (settingsAreMounted) { 
+    const isSystemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (theme === 'system') {
+      nextThemeLabel = isSystemDark ? 'light' : 'dark';
+    } else if (theme === 'light') {
+      nextThemeLabel = 'dark';
+    } else { // theme === 'dark'
+      nextThemeLabel = 'system';
+    }
+  }
+  const themeTooltip = `Switch to ${nextThemeLabel} mode`;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur-sm">
