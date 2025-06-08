@@ -24,7 +24,10 @@ import { Textarea } from "@/components/ui/textarea";
 
 
 const ContributeToGoalSchema = z.object({
-  contributionAmount: z.number().positive({ message: "Contribution amount must be positive." }),
+  contributionAmount: z.preprocess(
+    (val) => (val === "" ? undefined : parseFloat(String(val))),
+    z.number().positive({ message: "Contribution amount must be positive." })
+  ),
   contributionDescription: z.string().optional(),
 });
 
@@ -43,7 +46,7 @@ export function ContributeToGoalForm({ goal, onSaveContribution, onSubmissionDon
   const form = useForm<ContributeToGoalFormData>({
     resolver: zodResolver(ContributeToGoalSchema),
     defaultValues: {
-      contributionAmount: undefined, // Explicitly undefined for placeholder
+      contributionAmount: "" as unknown as number, // Initialize with empty string for controlled input
       contributionDescription: `Contribution to ${goal.name}`,
     },
   });
@@ -54,6 +57,7 @@ export function ContributeToGoalForm({ goal, onSaveContribution, onSubmissionDon
       return;
     }
 
+    // contributionAmount is already a number due to z.preprocess and schema validation
     const amountInBaseCurrency = convertToBaseCurrency(values.contributionAmount, localCurrency);
 
     if (amountInBaseCurrency <= 0) {
@@ -61,17 +65,17 @@ export function ContributeToGoalForm({ goal, onSaveContribution, onSubmissionDon
         return;
     }
     
-    // Check if contribution exceeds remaining amount (optional, good UX)
     const remainingNeeded = goal.targetAmount - goal.currentAmount;
     if (amountInBaseCurrency > remainingNeeded && remainingNeeded > 0) {
-        // Could confirm with user if they want to over-contribute or cap at remaining.
-        // For now, let's allow it but one might adjust this logic.
+        // Allow over-contribution for now
     }
-
 
     await onSaveContribution(goal.id, amountInBaseCurrency, values.contributionDescription);
     
-    form.reset();
+    form.reset({
+      contributionAmount: "" as unknown as number,
+      contributionDescription: `Contribution to ${goal.name}`,
+    });
     if (onSubmissionDone) {
       onSubmissionDone();
     }
@@ -91,9 +95,11 @@ export function ContributeToGoalForm({ goal, onSaveContribution, onSubmissionDon
                   type="number"
                   placeholder="0.00"
                   {...field}
+                  value={field.value === undefined || field.value === null || isNaN(field.value as number) ? "" : String(field.value)}
                   onChange={e => {
                     const val = e.target.value;
-                    field.onChange(val === "" ? undefined : parseFloat(val));
+                    // Pass string to RHF, let Zod handle parsing
+                    field.onChange(val);
                   }}
                 />
               </FormControl>

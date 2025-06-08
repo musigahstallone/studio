@@ -39,13 +39,22 @@ import {
 const SavingsGoalFormSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(2, { message: "Goal name must be at least 2 characters." }).max(100, { message: "Name must be 100 characters or less."}),
-  targetAmount: z.number().positive({ message: "Target amount must be positive." }),
+  targetAmount: z.preprocess(
+    (val) => (val === "" ? undefined : parseFloat(String(val))),
+    z.number().positive({ message: "Target amount must be positive." })
+  ),
   goalType: z.enum(["targetDate", "duration"]),
   targetDate: z.string().optional(),
   startDate: z.string().optional(),
-  durationMonths: z.number().int().positive().optional(),
+  durationMonths: z.preprocess(
+    (val) => (val === "" ? undefined : parseInt(String(val), 10)),
+    z.number().int().positive().optional()
+  ),
   allowsEarlyWithdrawal: z.boolean().default(false),
-  earlyWithdrawalPenaltyRate: z.number().min(0).max(100).default(0), // Input as 0-100 percent
+  earlyWithdrawalPenaltyRate: z.preprocess(
+    (val) => (val === "" ? 0 : parseFloat(String(val))), // Default empty to 0 for penalty
+    z.number().min(0).max(100).default(0)
+  ),
 }).refine(data => {
   if (data.goalType === "targetDate") {
     return !!data.targetDate && isValid(parseISO(data.targetDate));
@@ -61,14 +70,14 @@ const SavingsGoalFormSchema = z.object({
   return true;
 }, {
   message: "A valid start date and positive duration in months are required if goal type is 'Duration'.",
-  path: ["durationMonths"], // Or startDate, or a general message
+  path: ["durationMonths"], 
 });
 
 type SavingsGoalFormData = z.infer<typeof SavingsGoalFormSchema>;
 
 interface SavingsGoalFormProps {
   onSaveGoal: (goalData: Omit<SavingsGoal, 'id' | 'userId' | 'currentAmount' | 'createdAt' | 'updatedAt' | 'status'>, id?: string) => void;
-  existingGoals: SavingsGoal[]; // To check for duplicate names
+  existingGoals: SavingsGoal[]; 
   initialData?: Partial<SavingsGoal>;
   onSubmissionDone?: () => void;
 }
@@ -87,21 +96,23 @@ export function SavingsGoalForm({ onSaveGoal, existingGoals, initialData, onSubm
     defaultValues: {
       id: undefined,
       name: "",
-      targetAmount: 0,
+      targetAmount: "" as unknown as number, // Init with empty string
       goalType: "targetDate",
       targetDate: undefined,
       startDate: format(new Date(), "yyyy-MM-dd"),
-      durationMonths: undefined,
+      durationMonths: "" as unknown as number, // Init with empty string
       allowsEarlyWithdrawal: false,
-      earlyWithdrawalPenaltyRate: 0,
+      earlyWithdrawalPenaltyRate: "" as unknown as number, // Init with empty string, Zod default to 0
     },
   });
 
   useEffect(() => {
-    let amountForForm = initialData?.targetAmount || 0;
+    let amountForFormDisplay = "";
     if (initialData?.targetAmount && settingsMounted && localCurrency !== DEFAULT_STORED_CURRENCY) {
       const rateFromBaseToLocal = 1 / (CONVERSION_RATES_TO_BASE_SAVINGS[localCurrency] || 1);
-      amountForForm = initialData.targetAmount * rateFromBaseToLocal;
+      amountForFormDisplay = (initialData.targetAmount * rateFromBaseToLocal).toFixed(2);
+    } else if (initialData?.targetAmount) {
+      amountForFormDisplay = initialData.targetAmount.toFixed(2);
     }
 
     const currentGoalType = initialData?.targetDate ? "targetDate" : (initialData?.durationMonths ? "duration" : "targetDate");
@@ -110,13 +121,13 @@ export function SavingsGoalForm({ onSaveGoal, existingGoals, initialData, onSubm
     form.reset({
       id: initialData?.id || undefined,
       name: initialData?.name || "",
-      targetAmount: parseFloat(amountForForm.toFixed(2)) || 0,
+      targetAmount: amountForFormDisplay as unknown as number,
       goalType: currentGoalType,
       targetDate: initialData?.targetDate ? format(parseISO(initialData.targetDate), "yyyy-MM-dd") : undefined,
       startDate: initialData?.startDate ? format(parseISO(initialData.startDate), "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
-      durationMonths: initialData?.durationMonths || undefined,
+      durationMonths: initialData?.durationMonths?.toString() || "" as unknown as number,
       allowsEarlyWithdrawal: initialData?.allowsEarlyWithdrawal || false,
-      earlyWithdrawalPenaltyRate: (initialData?.earlyWithdrawalPenaltyRate || 0) * 100, // Convert 0.05 to 5
+      earlyWithdrawalPenaltyRate: initialData?.earlyWithdrawalPenaltyRate ? (initialData.earlyWithdrawalPenaltyRate * 100).toString() : "" as unknown as number,
     });
   }, [initialData, form, settingsMounted, localCurrency]);
 
@@ -131,16 +142,16 @@ export function SavingsGoalForm({ onSaveGoal, existingGoals, initialData, onSubm
       form.setError("name", { type: "manual", message: "A savings goal with this name already exists." });
       return;
     }
-
+    
+    // Values from form are already numbers due to Zod schema with preprocess
     const targetAmountInBaseCurrency = convertToBaseCurrency(values.targetAmount, localCurrency);
-    const penaltyRateDecimal = values.earlyWithdrawalPenaltyRate / 100;
+    const penaltyRateDecimal = (values.earlyWithdrawalPenaltyRate || 0) / 100; // Default to 0 if undefined/NaN
 
     const goalDataForContext: Omit<SavingsGoal, 'id' | 'userId' | 'currentAmount' | 'createdAt' | 'updatedAt' | 'status'> = {
       name: values.name,
       targetAmount: targetAmountInBaseCurrency,
       allowsEarlyWithdrawal: values.allowsEarlyWithdrawal,
       earlyWithdrawalPenaltyRate: penaltyRateDecimal,
-      // Initialize optional fields to null to avoid 'undefined' in Firestore
       targetDate: null,
       startDate: null,
       durationMonths: null,
@@ -161,9 +172,9 @@ export function SavingsGoalForm({ onSaveGoal, existingGoals, initialData, onSubm
       description: `${values.name} - Target: ${formatCurrency(targetAmountInBaseCurrency, displayCurrency)}`,
     });
     form.reset({
-        id: undefined, name: "", targetAmount: 0, goalType: "targetDate",
-        targetDate: undefined, startDate: format(new Date(), "yyyy-MM-dd"), durationMonths: undefined,
-        allowsEarlyWithdrawal: false, earlyWithdrawalPenaltyRate: 0
+        id: undefined, name: "", targetAmount: "" as unknown as number, goalType: "targetDate",
+        targetDate: undefined, startDate: format(new Date(), "yyyy-MM-dd"), durationMonths: "" as unknown as number,
+        allowsEarlyWithdrawal: false, earlyWithdrawalPenaltyRate: "" as unknown as number
     });
     setSelectedGoalType("targetDate");
     if (onSubmissionDone) {
@@ -198,11 +209,8 @@ export function SavingsGoalForm({ onSaveGoal, existingGoals, initialData, onSubm
                     type="number"
                     placeholder="0.00"
                     {...field}
-                    onChange={e => {
-                      const val = e.target.value;
-                      // Allow empty string for clearing, otherwise parse to float
-                      field.onChange(val === "" ? "" : parseFloat(val)); 
-                    }}
+                    value={field.value === undefined || field.value === null || isNaN(field.value as number) ? "" : String(field.value)}
+                    onChange={e => field.onChange(e.target.value)} // Pass string directly
                 />
               </FormControl>
               <FormDescription>
@@ -224,11 +232,11 @@ export function SavingsGoalForm({ onSaveGoal, existingGoals, initialData, onSubm
                   field.onChange(value);
                   setSelectedGoalType(value);
                   if (value === "targetDate") {
-                    form.setValue("durationMonths", undefined);
-                    form.setValue("startDate", undefined); // Clear start date if switching to targetDate
-                  } else { // duration
-                    form.setValue("targetDate", undefined); // Clear target date
-                    if (!form.getValues("startDate")) { // Set default start date if not already set
+                    form.setValue("durationMonths", "" as unknown as number);
+                    form.setValue("startDate", undefined); 
+                  } else { 
+                    form.setValue("targetDate", undefined); 
+                    if (!form.getValues("startDate")) { 
                         form.setValue("startDate", format(new Date(), "yyyy-MM-dd"));
                     }
                   }
@@ -281,7 +289,7 @@ export function SavingsGoalForm({ onSaveGoal, existingGoals, initialData, onSubm
                       mode="single"
                       selected={field.value ? parseISO(field.value) : undefined}
                       onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : "")}
-                      disabled={(date) => date < new Date(new Date().setDate(new Date().getDate() -1)) } // Allow today
+                      disabled={(date) => date < new Date(new Date().setDate(new Date().getDate() -1)) } 
                       initialFocus
                     />
                   </PopoverContent>
@@ -344,10 +352,8 @@ export function SavingsGoalForm({ onSaveGoal, existingGoals, initialData, onSubm
                       type="number"
                       placeholder="e.g., 12 for one year"
                       {...field}
-                      onChange={e => {
-                        const val = e.target.value;
-                        field.onChange(val === "" ? undefined : parseInt(val, 10));
-                      }}
+                      value={field.value === undefined || field.value === null || isNaN(field.value as number) ? "" : String(field.value)}
+                      onChange={e => field.onChange(e.target.value)} // Pass string
                     />
                   </FormControl>
                   <FormMessage />
@@ -391,10 +397,8 @@ export function SavingsGoalForm({ onSaveGoal, existingGoals, initialData, onSubm
                   type="number"
                   placeholder="e.g., 5 for 5%"
                   {...field}
-                   onChange={e => {
-                      const val = e.target.value;
-                      field.onChange(val === "" ? 0 : parseFloat(val));
-                    }}
+                  value={field.value === undefined || field.value === null || isNaN(field.value as number) ? "" : String(field.value)}
+                  onChange={e => field.onChange(e.target.value)} // Pass string
                   disabled={!form.watch("allowsEarlyWithdrawal")}
                 />
               </FormControl>
@@ -416,16 +420,8 @@ export function SavingsGoalForm({ onSaveGoal, existingGoals, initialData, onSubm
   );
 }
 
-// Placeholder for conversion rates if not globally available or need specific context
-// Ideally, use the ones from lib/utils.ts if they are suitable
 const CONVERSION_RATES_TO_BASE_SAVINGS: Record<string, number> = {
   USD: 1,
-  EUR: 1 / 0.92, // Example: 1 EUR = 1/0.92 USD
-  KES: 1 / 130,  // Example: 1 KES = 1/130 USD
+  EUR: 1 / 0.92, 
+  KES: 1 / 130,  
 };
-
-    
-
-    
-
-    
