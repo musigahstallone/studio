@@ -44,24 +44,22 @@ const SavingsGoalFormSchema = z.object({
     z.number().positive({ message: "Target amount must be positive." })
   ),
   goalType: z.enum(["targetDate", "duration"]),
-  targetDate: z.string().optional(), // Refined further down
-  startDate: z.string().optional(), // Refined further down
+  targetDate: z.string().optional(),
+  startDate: z.string().optional(),
   durationMonths: z.preprocess(
     (val) => (String(val).trim() === "" ? undefined : parseInt(String(val), 10)),
     z.number().int().positive().optional()
   ),
   allowsEarlyWithdrawal: z.boolean().default(false),
   earlyWithdrawalPenaltyRate: z.preprocess(
-    // Allow empty string to be undefined, so superRefine can catch it if required
     (val) => (String(val).trim() === "" ? undefined : parseFloat(String(val))),
-    z.number().min(0).max(100).optional() // Min 0 here, superRefine enforces 10 if allowsEarlyWithdrawal
+    z.number().min(0).max(100).optional()
   ),
   withdrawalCondition: z.enum(["targetAmountReached", "maturityDateReached"]).default("maturityDateReached"),
 }).refine(data => {
   if (data.goalType === "targetDate") {
     if (!data.targetDate || !isValid(parseISO(data.targetDate))) return false;
-    // Target date must be in the future
-    return parseISO(data.targetDate) > addDays(new Date(), -1); // allow today
+    return parseISO(data.targetDate) > addDays(new Date(), -1);
   }
   return true;
 }, {
@@ -74,7 +72,7 @@ const SavingsGoalFormSchema = z.object({
   return true;
 }, {
   message: "A valid start date and positive duration (months) are required if timeline type is 'Duration'.",
-  path: ["durationMonths"], // Or ["startDate"] or make it a form-level error
+  path: ["durationMonths"],
 })
 .superRefine((data, ctx) => {
   if (data.allowsEarlyWithdrawal) {
@@ -86,7 +84,7 @@ const SavingsGoalFormSchema = z.object({
       });
     } else if (data.earlyWithdrawalPenaltyRate < 10) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom, // Using custom to provide a more specific message than ZodIssueCode.too_small
+        code: z.ZodIssueCode.custom,
         message: "Penalty rate must be at least 10% if early withdrawal is allowed.",
         path: ["earlyWithdrawalPenaltyRate"],
       });
@@ -130,7 +128,7 @@ export function SavingsGoalForm({ onSaveGoal, existingGoals, initialData, onSubm
       startDate: format(new Date(), "yyyy-MM-dd"),
       durationMonths: "" as unknown as number,
       allowsEarlyWithdrawal: false,
-      earlyWithdrawalPenaltyRate: "" as unknown as number, // Zod handles default(0) if not allowing early withdrawal
+      earlyWithdrawalPenaltyRate: "" as unknown as number,
       withdrawalCondition: initialData?.withdrawalCondition || "maturityDateReached",
     },
   });
@@ -179,14 +177,12 @@ export function SavingsGoalForm({ onSaveGoal, existingGoals, initialData, onSubm
     if (values.allowsEarlyWithdrawal && typeof values.earlyWithdrawalPenaltyRate === 'number') {
       penaltyRateDecimal = values.earlyWithdrawalPenaltyRate / 100;
     }
-    // If !values.allowsEarlyWithdrawal, earlyWithdrawalPenaltyRate is not relevant for submission,
-    // and the input field is disabled. The stored value will be 0.
 
     const goalDataForContext: Omit<SavingsGoal, 'id' | 'userId' | 'currentAmount' | 'createdAt' | 'updatedAt' | 'status'> = {
       name: values.name,
       targetAmount: targetAmountInBaseCurrency,
       allowsEarlyWithdrawal: values.allowsEarlyWithdrawal,
-      earlyWithdrawalPenaltyRate: penaltyRateDecimal, // This is correct
+      earlyWithdrawalPenaltyRate: penaltyRateDecimal,
       withdrawalCondition: values.withdrawalCondition,
       targetDate: null,
       startDate: null,
@@ -279,6 +275,7 @@ export function SavingsGoalForm({ onSaveGoal, existingGoals, initialData, onSubm
                   }
                 }}
                 value={field.value}
+                disabled={isEditing}
               >
                 <FormControl>
                   <SelectTrigger>
@@ -290,6 +287,11 @@ export function SavingsGoalForm({ onSaveGoal, existingGoals, initialData, onSubm
                   <SelectItem value="duration">Set a Duration</SelectItem>
                 </SelectContent>
               </Select>
+              {!isEditing && (
+                <FormDescription>
+                  The timeline type cannot be changed after the goal is created.
+                </FormDescription>
+              )}
               <FormMessage />
             </FormItem>
           )}
@@ -311,6 +313,7 @@ export function SavingsGoalForm({ onSaveGoal, existingGoals, initialData, onSubm
                           "w-full pl-3 text-left font-normal",
                           !field.value && "text-muted-foreground"
                         )}
+                        disabled={isEditing}
                       >
                         {field.value && isValid(parseISO(field.value)) ? (
                           format(parseISO(field.value), "PPP")
@@ -326,11 +329,16 @@ export function SavingsGoalForm({ onSaveGoal, existingGoals, initialData, onSubm
                       mode="single"
                       selected={field.value && isValid(parseISO(field.value)) ? parseISO(field.value) : undefined}
                       onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : "")}
-                      disabled={(date) => date < addDays(new Date(), -1) } // Allow today
+                      disabled={(date) => date < addDays(new Date(), -1) || isEditing}
                       initialFocus
                     />
                   </PopoverContent>
                 </Popover>
+                {!isEditing && (
+                  <FormDescription>
+                    The target date cannot be changed after the goal is created.
+                  </FormDescription>
+                )}
                 <FormMessage />
               </FormItem>
             )}
@@ -354,6 +362,7 @@ export function SavingsGoalForm({ onSaveGoal, existingGoals, initialData, onSubm
                             "w-full pl-3 text-left font-normal",
                             !field.value && "text-muted-foreground"
                             )}
+                            disabled={isEditing}
                         >
                             {field.value && isValid(parseISO(field.value)) ? (
                               format(parseISO(field.value), "PPP")
@@ -370,10 +379,13 @@ export function SavingsGoalForm({ onSaveGoal, existingGoals, initialData, onSubm
                         selected={field.value && isValid(parseISO(field.value)) ? parseISO(field.value) : undefined}
                         onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : "")}
                         initialFocus
+                        disabled={isEditing}
                         />
                     </PopoverContent>
                     </Popover>
-                  <FormDescription>Defaults to today if not set.</FormDescription>
+                  <FormDescription>
+                    Defaults to today if not set. {!isEditing && "Cannot be changed after creation."}
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -391,8 +403,14 @@ export function SavingsGoalForm({ onSaveGoal, existingGoals, initialData, onSubm
                       {...field}
                       value={field.value === undefined || field.value === null || isNaN(field.value as number) ? "" : String(field.value)}
                       onChange={e => field.onChange(e.target.value)}
+                      disabled={isEditing}
                     />
                   </FormControl>
+                  {!isEditing && (
+                    <FormDescription>
+                      The duration cannot be changed after the goal is created.
+                    </FormDescription>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
@@ -409,6 +427,7 @@ export function SavingsGoalForm({ onSaveGoal, existingGoals, initialData, onSubm
               <Select
                 onValueChange={field.onChange as (value: SavingsGoalWithdrawalCondition) => void}
                 value={field.value}
+                disabled={isEditing}
               >
                 <FormControl>
                   <SelectTrigger>
@@ -422,6 +441,7 @@ export function SavingsGoalForm({ onSaveGoal, existingGoals, initialData, onSubm
               </Select>
               <FormDescription>
                 Defines when the goal is considered mature for withdrawal without early penalties (if applicable).
+                {!isEditing && " This cannot be changed after creation."}
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -438,10 +458,11 @@ export function SavingsGoalForm({ onSaveGoal, existingGoals, initialData, onSubm
                   checked={field.value}
                   onCheckedChange={(checked) => {
                     field.onChange(checked);
-                    if (!checked) { // If unchecking, clear/reset penalty rate
+                    if (!checked) {
                         form.setValue("earlyWithdrawalPenaltyRate", "" as unknown as number, { shouldValidate: true });
                     }
                   }}
+                  disabled={isEditing}
                 />
               </FormControl>
               <div className="space-y-1 leading-none">
@@ -449,7 +470,8 @@ export function SavingsGoalForm({ onSaveGoal, existingGoals, initialData, onSubm
                   Allow Early Withdrawal
                 </FormLabel>
                 <FormDescription>
-                  Can funds be withdrawn before the goal matures or target is met? If unchecked, withdrawals are blocked.
+                  Can funds be withdrawn before the goal matures or target is met?
+                  {!isEditing && " If unchecked, withdrawals are blocked. This setting cannot be changed after creation."}
                 </FormDescription>
               </div>
             </FormItem>
@@ -469,12 +491,13 @@ export function SavingsGoalForm({ onSaveGoal, existingGoals, initialData, onSubm
                   {...field}
                   value={field.value === undefined || field.value === null || isNaN(field.value as number) ? "" : String(field.value)}
                   onChange={e => field.onChange(e.target.value)}
-                  disabled={!form.watch("allowsEarlyWithdrawal")}
+                  disabled={!form.watch("allowsEarlyWithdrawal") || isEditing}
                 />
               </FormControl>
               <FormDescription>
                 Min 10%, Max 100%. Percentage of withdrawn amount penalized if withdrawn early.
                 Only applicable if "Allow Early Withdrawal" is checked.
+                {!isEditing && " This rate cannot be changed after creation."}
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -495,4 +518,5 @@ const CONVERSION_RATES_TO_BASE_SAVINGS: Record<string, number> = {
   EUR: 1 / 0.92,
   KES: 1 / 130,
 };
-
+    
+    
