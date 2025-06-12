@@ -84,7 +84,16 @@ export function RecentTransactionsList({ count, expensesData }: RecentTransactio
   const sourceExpenses = expensesData || userExpenses;
 
   const recentExpenses = sourceExpenses
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .sort((a, b) => {
+      const dateComparison = new Date(b.date).getTime() - new Date(a.date).getTime();
+      if (dateComparison !== 0) {
+        return dateComparison;
+      }
+      // If dates are the same, sort by createdAt descending (newer first)
+      const createdAtA = a.createdAt && typeof a.createdAt === 'string' ? new Date(a.createdAt).getTime() : 0;
+      const createdAtB = b.createdAt && typeof b.createdAt === 'string' ? new Date(b.createdAt).getTime() : 0;
+      return createdAtB - createdAtA;
+    })
     .slice(0, count);
 
   if (!settingsMounted && !expensesData) {

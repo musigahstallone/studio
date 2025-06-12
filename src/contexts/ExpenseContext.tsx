@@ -72,7 +72,7 @@ export const ExpenseProvider = ({ children }: { children: ReactNode }) => {
     if (user?.uid) {
       setLoadingExpenses(true);
       const expensesCol = collection(db, 'users', user.uid, 'expenses');
-      const q = query(expensesCol, orderBy('date', 'desc'));
+      const q = query(expensesCol, orderBy('date', 'desc'), orderBy('createdAt', 'desc'));
       
       unsubscribeUserExpenses = onSnapshot(q, (querySnapshot) => {
         const userExpensesFromDb: Expense[] = [];
@@ -102,7 +102,7 @@ export const ExpenseProvider = ({ children }: { children: ReactNode }) => {
     // Mock "All Platform Expenses" - In a real app, this would be a secure admin query
     // For now, it just fetches ALL expenses collection. DANGEROUS without rules.
     setLoadingAllPlatformExpenses(true);
-    const allExpensesQuery = query(collection(db, 'expenses_all'), orderBy('date', 'desc')); // Using a conceptual 'expenses_all' collection
+    const allExpensesQuery = query(collection(db, 'expenses_all'), orderBy('date', 'desc'), orderBy('createdAt', 'desc')); // Using a conceptual 'expenses_all' collection
     const unsubscribeAllExpenses = onSnapshot(allExpensesQuery, (snapshot) => {
         const platformExpenses: Expense[] = [];
         snapshot.forEach(doc => {
@@ -147,7 +147,7 @@ export const ExpenseProvider = ({ children }: { children: ReactNode }) => {
       const userExpensesCol = collection(db, 'users', user.uid, 'expenses');
       const docRef = await addDoc(userExpensesCol, newExpensePayload);
       // Also add to a conceptual 'expenses_all' collection for platform view (DANGEROUS for prod without rules/functions)
-      await addDoc(collection(db, 'expenses_all'), { ...newExpensePayload, id: docRef.id });
+      await addDoc(collection(db, 'expenses_all'), { ...newExpensePayload, id: docRef.id, createdAt: serverTimestamp() }); // Ensure createdAt is also set here
 
       toast({ title: "Transaction Added", description: `${expenseData.description} - $${expenseData.amount.toFixed(2)}` });
     } catch (e) {
@@ -237,7 +237,7 @@ export const ExpenseProvider = ({ children }: { children: ReactNode }) => {
       const allExpenseDocRef = doc(db, 'expenses_all', id);
       // Use setDoc which will create if not exists, or overwrite if exists.
       // This is safer than updateDoc if the expenses_all document might be missing.
-      await setDoc(allExpenseDocRef, payloadForAllDoc); 
+      await setDoc(allExpenseDocRef, payloadForAllDoc, { merge: true }); 
       
       toast({ title: "Transaction Updated" });
     } catch (e) {
@@ -390,7 +390,7 @@ export const BudgetProviderActual = ({ children }: { children: ReactNode }) => {
       const userBudgetsCol = collection(db, 'users', user.uid, 'budgets');
       const docRef = await addDoc(userBudgetsCol, newBudgetPayload);
       // Also add to 'budgets_all'
-      await addDoc(collection(db, 'budgets_all'), { ...newBudgetPayload, id: docRef.id });
+      await addDoc(collection(db, 'budgets_all'), { ...newBudgetPayload, id: docRef.id, createdAt: serverTimestamp() });
       toast({ title: "Budget Set", description: `${budgetData.name} - $${budgetData.amount.toFixed(2)}` });
     } catch (e) {
       console.error("Error adding budget: ", e);
@@ -406,15 +406,15 @@ export const BudgetProviderActual = ({ children }: { children: ReactNode }) => {
     const { id, ...dataToUpdate } = updatedBudgetData;
     const budgetPayload = {
       ...dataToUpdate,
-      userId: user.uid,
+      userId: user.uid, // Ensure userId is part of the payload for budgets_all
       updatedAt: serverTimestamp(),
     };
     try {
       const budgetDocRef = doc(db, 'users', user.uid, 'budgets', id);
-      await updateDoc(budgetDocRef, budgetPayload);
+      await updateDoc(budgetDocRef, { ...dataToUpdate, updatedAt: serverTimestamp() }); // User's doc doesn't need userId explicitly
       // Also update in 'budgets_all'
       const allBudgetDocRef = doc(db, 'budgets_all', id);
-      await updateDoc(allBudgetDocRef, budgetPayload);
+      await updateDoc(allBudgetDocRef, budgetPayload, { merge: true }); // Use merge to avoid overwriting if fields differ
       toast({ title: "Budget Updated" });
     } catch (e) {
       console.error("Error updating budget: ", e);
@@ -462,4 +462,3 @@ export const useBudgets = (): BudgetContextActualType => {
   }
   return context;
 };
-
