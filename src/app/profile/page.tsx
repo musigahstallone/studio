@@ -19,6 +19,8 @@ import { updateProfile } from 'firebase/auth';
 import { doc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import Image from 'next/image';
+import Link from 'next/link';
+import { Form } from '@/components/ui/form'; // Added Form import
 
 const profileFormSchema = z.object({
   displayName: z.string().min(2, "Name must be at least 2 characters.").max(50, "Name cannot exceed 50 characters."),
@@ -60,7 +62,7 @@ export default function ProfilePage() {
       setInitialDisplayName(name);
       setInitialEmail(email);
       if (appUser?.photoURL || user?.photoURL) {
-        setPreviewImage(appUser.photoURL || user.photoURL);
+        setPreviewImage(appUser?.photoURL || user?.photoURL || null);
       }
     }
   }, [appUser, user, form]);
@@ -101,7 +103,7 @@ export default function ProfilePage() {
       }
 
       // Update Email (Firestore only)
-      if (data.email !== initialEmail) {
+      if (data.email !== initialEmail && isEditingEmail) { // Check if email editing was enabled
         const userDocRef = doc(db, 'users', user.uid);
         await updateDoc(userDocRef, { email: data.email });
         setInitialEmail(data.email); // Update initial state
@@ -157,7 +159,13 @@ export default function ProfilePage() {
   };
   
   const currentPhotoURL = previewImage || appUser?.photoURL || user?.photoURL;
-  const isDirty = form.formState.isDirty || selectedFile !== null;
+  const watchedDisplayName = form.watch('displayName');
+  const watchedEmail = form.watch('email');
+  
+  const isDirty = (watchedDisplayName !== initialDisplayName) || 
+                  (isEditingEmail && watchedEmail !== initialEmail) || 
+                  selectedFile !== null;
+
 
   if (authLoading) {
     return (
@@ -255,7 +263,7 @@ export default function ProfilePage() {
                   )}
                    {!isEditingEmail && (
                     <p className="text-xs text-muted-foreground mt-1">
-                      Contact support to change your login email. Firestore email can be updated here.
+                      Contact support to change your login email. Your display email can be updated here.
                     </p>
                    )}
                 </div>
@@ -278,3 +286,4 @@ export default function ProfilePage() {
     </AppShell>
   );
 }
+
