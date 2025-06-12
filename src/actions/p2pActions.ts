@@ -5,7 +5,7 @@ import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, doc, runTransaction, serverTimestamp, writeBatch } from 'firebase/firestore';
 import type { AppUser, Expense, CurrencyCode, PlatformRevenueEntry } from '@/lib/types';
 import { DEFAULT_STORED_CURRENCY } from '@/lib/types';
-import { convertToBaseCurrency, calculateTransactionCost } from '@/lib/utils'; // Assuming calculateTransactionCost is in utils
+import { convertToBaseCurrency, calculateTransactionCost, formatCurrency } from '@/lib/utils'; // Assuming calculateTransactionCost is in utils
 
 interface VerificationResult {
   recipientName?: string;
@@ -58,22 +58,22 @@ export async function sendMoneyP2P(
   if (amountInSenderLocalCurrency <= 0) return { error: "Amount must be positive." };
 
   const amountToSendBase = convertToBaseCurrency(amountInSenderLocalCurrency, senderLocalCurrency);
-  const transactionCostBase = calculateTransactionCost(amountToSendBase); // Use the utility function
+  const transactionCostBase = calculateTransactionCost(amountToSendBase); 
 
-  if (transactionCostBase < 0) { // Should not happen with current calculateTransactionCost
+  if (transactionCostBase < 0) { 
       return { error: "Invalid transaction cost calculated."};
   }
 
+  const totalDeductionFromSenderBase = amountToSendBase + transactionCostBase;
+
   try {
-    const batch = writeBatch(db);
     let finalMessage = "";
 
-    // Transaction for atomicity
     await runTransaction(db, async (transaction) => {
       // 1. Get Recipient
       const usersRef = collection(db, 'users');
       const recipientQuery = query(usersRef, where('transactionTag', '==', recipientTag.trim()));
-      const recipientSnapshot = await getDocs(recipientQuery); // Use getDocs inside transaction if possible or pass recipient Uid
+      const recipientSnapshot = await getDocs(recipientQuery); 
 
       if (recipientSnapshot.empty) {
         throw new Error("Recipient not found with the provided Transaction Tag.");
@@ -96,7 +96,7 @@ export async function sendMoneyP2P(
       
       // 3. Check Sender's Balance (Simplified - Sum of all income minus sum of all expenses)
       const expensesColRef = collection(db, 'users', senderUid, 'expenses');
-      const expensesSnapshot = await getDocs(query(expensesColRef)); // Query all expenses for balance calc
+      const expensesSnapshot = await getDocs(query(expensesColRef)); 
       
       let totalIncome = 0;
       let totalExpenses = 0;
@@ -107,19 +107,27 @@ export async function sendMoneyP2P(
       });
       const senderBalanceBase = totalIncome - totalExpenses;
 
-      if (senderBalanceBase < (amountToSendBase + transactionCostBase)) {
-        throw new Error(`Insufficient funds. You need at least ${((amountToSendBase + transactionCostBase) * (1/convertToBaseCurrency(1, senderLocalCurrency))).toFixed(2)} ${senderLocalCurrency} (includes fee).`);
+      if (senderBalanceBase < totalDeductionFromSenderBase) {
+         // Convert totalDeductionFromSenderBase back to sender's local currency for the error message
+        const rateFromBaseToLocal = 1 / (convertToBaseCurrency(1, senderLocalCurrency) || 1);
+        const neededInLocal = totalDeductionFromSenderBase * rateFromBaseToLocal;
+        throw new Error(`Insufficient funds. You need at least ${neededInLocal.toFixed(2)} ${senderLocalCurrency} (includes fee of ${(transactionCostBase * rateFromBaseToLocal).toFixed(2)} ${senderLocalCurrency}).`);
       }
 
       const transactionTimestamp = serverTimestamp();
       const transactionDate = new Date().toISOString().split('T')[0];
 
-      // 4. Create Expense for Sender
+      // 4. Create Expense for Sender (Amount is now totalDeductionFromSenderBase)
       const senderExpenseRef = doc(collection(db, 'users', senderUid, 'expenses'));
+      let senderDescription = description ? `Sent to ${recipient.name || recipientTag}: ${description}` : `Sent to ${recipient.name || recipientTag}`;
+      if (transactionCostBase > 0) {
+        senderDescription += ` (Fee: ${formatCurrency(transactionCostBase, DEFAULT_STORED_CURRENCY)})`;
+      }
+      
       const senderExpenseData: Omit<Expense, 'id'> = {
         userId: senderUid,
-        description: description ? `Sent to ${recipient.name || recipientTag}: ${description}` : `Sent to ${recipient.name || recipientTag}`,
-        amount: amountToSendBase, // Positive, type 'expense' handles deduction
+        description: senderDescription,
+        amount: totalDeductionFromSenderBase, // Sender's expense includes amount sent + fee
         date: transactionDate,
         category: 'P2P Transfer',
         type: 'expense',
@@ -128,25 +136,23 @@ export async function sendMoneyP2P(
         updatedAt: transactionTimestamp,
       };
       transaction.set(senderExpenseRef, senderExpenseData);
-      // Also add to expenses_all for sender
       transaction.set(doc(db, 'expenses_all', senderExpenseRef.id), { ...senderExpenseData, id: senderExpenseRef.id });
 
 
-      // 5. Create Income for Recipient
+      // 5. Create Income for Recipient (Recipient gets amountToSendBase)
       const recipientIncomeRef = doc(collection(db, 'users', recipientUid, 'expenses'));
       const recipientIncomeData: Omit<Expense, 'id'> = {
         userId: recipientUid,
         description: description ? `Received from ${sender.name || senderUid.substring(0,5)}: ${description}` : `Received from ${sender.name || senderUid.substring(0,5)}`,
-        amount: amountToSendBase, // Positive, type 'income' handles addition
+        amount: amountToSendBase, // Recipient gets the original amount, fee is separate
         date: transactionDate,
         category: 'P2P Transfer',
         type: 'income',
-        p2pSenderName: sender.name || senderUid.substring(0,5), // Store sender's name
+        p2pSenderName: sender.name || senderUid.substring(0,5), 
         createdAt: transactionTimestamp,
         updatedAt: transactionTimestamp,
       };
       transaction.set(recipientIncomeRef, recipientIncomeData);
-      // Also add to expenses_all for recipient
       transaction.set(doc(db, 'expenses_all', recipientIncomeRef.id), { ...recipientIncomeData, id: recipientIncomeRef.id });
 
 
@@ -154,8 +160,8 @@ export async function sendMoneyP2P(
       if (transactionCostBase > 0) {
         const revenueRef = doc(collection(db, 'platformRevenue'));
         const revenueData: Omit<PlatformRevenueEntry, 'id'> = {
-          userId: senderUid, // Fee paid by sender
-          relatedP2PTransactionId: senderExpenseRef.id, // Link to sender's transaction
+          userId: senderUid, 
+          relatedP2PTransactionId: senderExpenseRef.id, 
           type: 'transaction_fee',
           amount: transactionCostBase,
           description: `P2P transfer fee: ${sender.name || senderUid.substring(0,5)} to ${recipient.name || recipientTag}`,
@@ -164,7 +170,7 @@ export async function sendMoneyP2P(
         };
         transaction.set(revenueRef, revenueData);
       }
-      finalMessage = `Successfully sent ${amountToSendBase.toFixed(2)} ${DEFAULT_STORED_CURRENCY} to ${recipient.name || recipientTag}.`;
+      finalMessage = `Successfully sent ${formatCurrency(amountToSendBase, DEFAULT_STORED_CURRENCY)} to ${recipient.name || recipientTag}. Total debited: ${formatCurrency(totalDeductionFromSenderBase, DEFAULT_STORED_CURRENCY)}.`;
     });
 
     return { success: true, message: finalMessage };

@@ -76,7 +76,7 @@ export default function ProfilePage() {
         const recipientName = encodeURIComponent(appUser.name);
         setSendMoneyLink(`${appBaseUrl}/send-money?toTag=${tag}&recipientName=${recipientName}`);
       } else {
-        setSendMoneyLink(''); // Clear link if tag or name is missing
+        setSendMoneyLink(''); 
       }
     }
   }, [appUser, user, form]);
@@ -163,8 +163,6 @@ export default function ProfilePage() {
       }
       
       if (!isEditingEmail || (isEditingEmail && emailChangeRequestedSuccessfully)) {
-        // Reset email field to initialEmail if not editing or if edit request was successful
-        // to prevent showing the new (unverified) email as current.
         form.reset({ displayName: data.displayName, email: initialEmail }); 
       }
       setIsEditingEmail(false); 
@@ -182,7 +180,6 @@ export default function ProfilePage() {
     try {
       await deleteCurrentUserAccountAction();
       toast({ title: "Account Deletion Processed", description: "Your account is being deleted. You will be logged out shortly."});
-      // Logout is handled by deleteUser in action
     } catch (error: any) {
       toast({ variant: "destructive", title: "Deletion Failed", description: error.message });
       setIsDeletingAccount(false); 
@@ -209,7 +206,7 @@ export default function ProfilePage() {
                   (isEditingEmail && watchedEmail !== initialEmail) || 
                   selectedFile !== null;
 
-  if (authLoading) {
+  if (authLoading && !appUser) { // Show loader if auth is loading AND appUser isn't available yet
     return (
       <AppShell>
         <div className="flex items-center justify-center h-full py-10">
@@ -339,7 +336,11 @@ export default function ProfilePage() {
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-                {appUser?.transactionTag ? (
+                {authLoading && !appUser ? (
+                    <div className="flex items-center text-sm text-muted-foreground">
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading P2P details...
+                    </div>
+                ) : appUser?.transactionTag ? (
                     <>
                         <div>
                             <Label className="text-xs sm:text-sm font-medium">Your Transaction Tag</Label>
@@ -381,12 +382,13 @@ export default function ProfilePage() {
                                 </p>
                             </div>
                         ) : (
-                             <p className="text-sm text-muted-foreground">Shareable link will be available once your display name is set.</p>
+                             <p className="text-sm text-muted-foreground">Shareable link will be available once your display name is set and transaction tag is loaded.</p>
                         )}
                     </>
                 ) : (
                     <p className="text-sm text-muted-foreground">
-                        Transaction Tag not available. It should be assigned upon account creation. If missing, an admin can assign it via the Admin Panel.
+                        Transaction Tag not available for this account.
+                        It should be assigned upon account creation. If this user existed before tags were implemented, an admin can assign one via the Admin Panel &gt; User Management section.
                     </p>
                 )}
             </CardContent>
@@ -434,4 +436,3 @@ export default function ProfilePage() {
     </AppShell>
   );
 }
-
