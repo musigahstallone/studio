@@ -13,9 +13,9 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, UserCircle, Edit3, UploadCloud, Mail, User, AlertTriangle, Trash2 } from 'lucide-react';
+import { Loader2, Save, UserCircle, Edit3, UploadCloud, Mail, User, AlertTriangle, Trash2, Copy } from 'lucide-react';
 import { auth, db, storage } from '@/lib/firebase';
-import { updateProfile as updateFirebaseAuthProfile } from 'firebase/auth'; // Renamed to avoid conflict
+import { updateProfile as updateFirebaseAuthProfile } from 'firebase/auth'; 
 import { doc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import Image from 'next/image'; 
@@ -23,6 +23,7 @@ import Link from 'next/link';
 import { Form } from '@/components/ui/form';
 import { deleteCurrentUserAccount as deleteCurrentUserAccountAction, requestEmailUpdate as requestEmailUpdateAction } from '@/actions/userActions';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Badge } from '@/components/ui/badge'; // Added for transaction tag
 
 const profileFormSchema = z.object({
   displayName: z.string().min(2, "Name must be at least 2 characters.").max(50, "Name cannot exceed 50 characters."),
@@ -169,12 +170,25 @@ export default function ProfilePage() {
     try {
       await deleteCurrentUserAccountAction();
       toast({ title: "Account Deletion Processed", description: "Your account is being deleted. You will be logged out shortly."});
+      // AuthProvider handles logout and redirect
     } catch (error: any) {
       toast({ variant: "destructive", title: "Deletion Failed", description: error.message });
       setIsDeletingAccount(false); 
     }
   };
   
+  const copyTransactionTag = () => {
+    if (appUser?.transactionTag) {
+      navigator.clipboard.writeText(appUser.transactionTag)
+        .then(() => {
+          toast({ title: "Copied!", description: "Transaction Tag copied to clipboard." });
+        })
+        .catch(err => {
+          toast({ variant: "destructive", title: "Copy Failed", description: "Could not copy tag." });
+        });
+    }
+  };
+
   const currentPhotoURL = previewImage || appUser?.photoURL || user?.photoURL || undefined;
   const watchedDisplayName = form.watch('displayName');
   const watchedEmail = form.watch('email');
@@ -196,7 +210,7 @@ export default function ProfilePage() {
   return (
     <AppShell>
       <div className="space-y-8 max-w-2xl mx-auto">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
           <h1 className="font-headline text-2xl md:text-3xl font-semibold text-foreground">
             My Profile
           </h1>
@@ -235,6 +249,16 @@ export default function ProfilePage() {
             />
             <CardTitle className="text-xl sm:text-2xl mt-4">{form.watch('displayName') || 'Your Name'}</CardTitle>
             <CardDescription className="text-xs sm:text-sm">{form.watch('email') || 'your@email.com'}</CardDescription>
+            {appUser?.transactionTag && (
+              <div className="mt-2">
+                <Badge variant="secondary" className="text-xs sm:text-sm">
+                  Transaction Tag: <span className="font-mono ml-1.5 mr-1">{appUser.transactionTag}</span>
+                  <Button variant="ghost" size="icon" className="h-5 w-5 ml-1 p-0" onClick={copyTransactionTag} title="Copy Tag">
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </Badge>
+              </div>
+            )}
           </CardHeader>
           <CardContent className="space-y-6">
             <Form {...form}>

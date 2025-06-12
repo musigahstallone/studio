@@ -4,13 +4,16 @@
 import { AdminShell } from '@/components/admin/layout/AdminShell';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useExpenses } from '@/contexts/ExpenseContext';
+import { useSavingsGoals } from '@/contexts/SavingsGoalContext'; // Import useSavingsGoals
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Activity, TrendingDown, TrendingUp, Users as UsersIcon, ArrowRight, DollarSign, HandCoins } from 'lucide-react';
+import { Activity, TrendingDown, TrendingUp, Users as UsersIcon, ArrowRight, DollarSign, HandCoins, Target, PieChart, DownloadCloud } from 'lucide-react'; // Added Target, PieChart, DownloadCloud
 import { useSettings } from '@/contexts/SettingsContext';
 import { formatCurrency } from '@/lib/utils';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext'; 
+import { ResponsiveFormWrapper } from '@/components/shared/ResponsiveFormWrapper'; // For modal
+import { WithdrawRevenueForm } from '@/components/admin/WithdrawRevenueForm'; // New form
 
 export default function AdminDashboardPage() {
   const { 
@@ -19,10 +22,16 @@ export default function AdminDashboardPage() {
     platformRevenue,
     loadingPlatformRevenue 
   } = useExpenses();
+  const { 
+    allPlatformSavingsGoals, 
+    loadingAllPlatformSavingsGoals 
+  } = useSavingsGoals(); // Get savings goals data
   const { displayCurrency, isMounted: settingsMounted } = useSettings();
   const { user } = useAuth(); 
 
-  const pageSpecificLoading = loadingAllPlatformExpenses || loadingPlatformRevenue || !settingsMounted;
+  const [isWithdrawRevenueFormOpen, setIsWithdrawRevenueFormOpen] = useState(false);
+
+  const pageSpecificLoading = loadingAllPlatformExpenses || loadingPlatformRevenue || loadingAllPlatformSavingsGoals || !settingsMounted;
 
   const totalTransactions = allPlatformExpenses.length;
 
@@ -33,15 +42,24 @@ export default function AdminDashboardPage() {
   }, [allPlatformExpenses]);
 
   const totalIncomeValue = useMemo(() => {
-    // This is user-generated income, not platform profits
     return allPlatformExpenses
       .filter(e => e.type === 'income')
       .reduce((sum, e) => sum + e.amount, 0);
   }, [allPlatformExpenses]);
 
   const totalPlatformProfits = useMemo(() => {
-    return platformRevenue.reduce((sum, entry) => sum + entry.amount, 0);
+    return platformRevenue.reduce((sum, entry) => sum + entry.amount, 0); // Payouts are negative
   }, [platformRevenue]);
+
+  // Savings Goals Statistics
+  const activeSavingsGoals = useMemo(() => allPlatformSavingsGoals.filter(g => g.status === 'active'), [allPlatformSavingsGoals]);
+  const totalActiveGoalsCount = activeSavingsGoals.length;
+  const totalTargetAmountActiveGoals = useMemo(() => activeSavingsGoals.reduce((sum, g) => sum + g.targetAmount, 0), [activeSavingsGoals]);
+  const totalCurrentAmountActiveGoals = useMemo(() => activeSavingsGoals.reduce((sum, g) => sum + g.currentAmount, 0), [activeSavingsGoals]);
+  const uniqueUsersWithActiveGoals = useMemo(() => {
+    const userIds = new Set(activeSavingsGoals.map(g => g.userId));
+    return userIds.size;
+  }, [activeSavingsGoals]);
 
 
   const managementLinks = [
@@ -61,7 +79,7 @@ export default function AdminDashboardPage() {
           Global platform analytics (all amounts displayed in {pageSpecificLoading ? '...' : displayCurrency}).
         </p>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-xl">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Total Platform Transactions</CardTitle>
@@ -91,15 +109,47 @@ export default function AdminDashboardPage() {
           </Card>
           <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-xl bg-primary/5 dark:bg-primary/10 border-primary/30">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xs sm:text-sm font-medium text-primary">Total Platform Profits</CardTitle>
+              <CardTitle className="text-xs sm:text-sm font-medium text-primary">Net Platform Profits</CardTitle>
               <HandCoins className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
             </CardHeader>
             <CardContent>
               <div className="text-xl sm:text-2xl md:text-3xl font-bold text-primary">{pageSpecificLoading ? '...' : formatCurrency(totalPlatformProfits, displayCurrency)}</div>
-              <p className="text-xs text-muted-foreground mt-1">From penalties & transaction fees.</p>
+              <p className="text-xs text-muted-foreground mt-1">Penalties & fees, less payouts.</p>
+              <Button variant="outline" size="sm" className="mt-2 text-xs" onClick={() => setIsWithdrawRevenueFormOpen(true)} disabled={pageSpecificLoading || totalPlatformProfits <= 0}>
+                <DownloadCloud className="mr-1.5 h-3.5 w-3.5" /> Withdraw Revenue
+              </Button>
             </CardContent>
           </Card>
         </div>
+
+        {/* Savings Goals Statistics Card */}
+        <Card className="shadow-lg rounded-xl">
+            <CardHeader>
+                <CardTitle className="text-lg md:text-xl flex items-center">
+                    <Target className="mr-2 h-5 w-5 text-primary"/> Platform Savings Goals Overview
+                </CardTitle>
+                <CardDescription className="text-xs sm:text-sm">Statistics for all active savings goals on the platform.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                <div className="p-3 border rounded-lg bg-muted/30">
+                    <p className="text-muted-foreground text-xs">Active Goals</p>
+                    <p className="font-bold text-lg text-foreground">{pageSpecificLoading ? '...' : totalActiveGoalsCount}</p>
+                </div>
+                <div className="p-3 border rounded-lg bg-muted/30">
+                    <p className="text-muted-foreground text-xs">Total Target Amount (Active)</p>
+                    <p className="font-bold text-lg text-foreground">{pageSpecificLoading ? '...' : formatCurrency(totalTargetAmountActiveGoals, displayCurrency)}</p>
+                </div>
+                <div className="p-3 border rounded-lg bg-muted/30">
+                    <p className="text-muted-foreground text-xs">Total Current Saved (Active)</p>
+                    <p className="font-bold text-lg text-foreground">{pageSpecificLoading ? '...' : formatCurrency(totalCurrentAmountActiveGoals, displayCurrency)}</p>
+                </div>
+                <div className="p-3 border rounded-lg bg-muted/30">
+                    <p className="text-muted-foreground text-xs">Users with Active Goals</p>
+                    <p className="font-bold text-lg text-foreground">{pageSpecificLoading ? '...' : uniqueUsersWithActiveGoals}</p>
+                </div>
+            </CardContent>
+        </Card>
+
 
         {managementLinks.length > 0 && (
             <Card className="shadow-lg rounded-xl">
@@ -146,7 +196,7 @@ export default function AdminDashboardPage() {
                     <li>Collective client transaction statistics (e.g., platform-wide daily/weekly/monthly totals).</li>
                     <li>Average transactions per hour.</li>
                     <li>Real-time data streams for key metrics.</li>
-                    <li>Breakdown of most common and highest-spending categories (currently calculated client-side from all transactions, better done on backend).</li>
+                    <li>Breakdown of most common and highest-spending categories.</li>
                     <li>Detailed breakdown of platform profits (e.g., by type, by user).</li>
                 </ul>
                  <p className="mt-3 text-xs">
@@ -155,6 +205,15 @@ export default function AdminDashboardPage() {
             </CardContent>
           </Card>
       </div>
+      <ResponsiveFormWrapper
+        isOpen={isWithdrawRevenueFormOpen}
+        onOpenChange={setIsWithdrawRevenueFormOpen}
+        title="Withdraw Platform Revenue"
+        description="Transfer accumulated platform profits to an admin account."
+        side="right"
+      >
+        <WithdrawRevenueForm onSubmissionDone={() => setIsWithdrawRevenueFormOpen(false)} />
+      </ResponsiveFormWrapper>
     </AdminShell>
   );
 }

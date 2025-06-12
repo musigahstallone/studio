@@ -17,6 +17,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
 import { Loader2, LogIn, UserPlus, KeyRound, CheckCircle, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { generateTransactionTag } from '@/lib/types'; // Import the generator
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -91,6 +92,8 @@ export default function LoginPage() {
       const user = userCredential.user;
       if (user) {
         const userDocRef = doc(db, 'users', user.uid);
+        // TODO: In production, ensure transactionTag is truly unique by checking Firestore.
+        const transactionTag = generateTransactionTag(); 
         await setDoc(userDocRef, {
           uid: user.uid,
           email: user.email,
@@ -98,6 +101,9 @@ export default function LoginPage() {
           photoURL: user.photoURL,
           joinDate: Timestamp.fromDate(new Date()),
           isAdmin: false,
+          transactionTag: transactionTag, // Store the generated tag
+          isActive: true, // Default to active on signup
+          isDeletedAccount: false, // Default
         });
       }
       toast({

@@ -10,41 +10,27 @@ export function cn(...inputs: ClassValue[]) {
 
 const KES_LOCALE = 'sw-KE';
 const USD_LOCALE = 'en-US';
-const EUR_LOCALE = 'de-DE'; // German locale for EUR typically uses comma as decimal, dot as thousand.
-// For EUR, 'fr-FR' or 'es-ES' might be more common for dot as decimal, comma as thousand.
-// Let's stick with a common one or allow override. For now, de-DE is common for just symbol.
-// Using 'en-IE' for EUR to get € symbol with dot decimal separator.
 const EUR_LOCALE_EN = 'en-IE';
 
 
 const localeMap: Record<CurrencyCode, string> = {
   KES: KES_LOCALE,
   USD: USD_LOCALE,
-  EUR: EUR_LOCALE_EN, // Using English (Ireland) for EUR to get € symbol with standard dot decimal
+  EUR: EUR_LOCALE_EN, 
 };
 
-// Rates to convert *FROM* DEFAULT_STORED_CURRENCY *TO* other currencies (for display)
-// Example: If DEFAULT_STORED_CURRENCY is USD: 1 USD = X targetCurrency
 export const CONVERSION_RATES_FROM_BASE: Record<CurrencyCode, number> = {
-  USD: 1,    // 1 USD = 1 USD
-  EUR: 0.92, // 1 USD = 0.92 EUR
-  KES: 130,  // 1 USD = 130 KES
+  USD: 1,    
+  EUR: 0.92, 
+  KES: 130,  
 };
 
-// Rates to convert *FROM* a local currency *TO* DEFAULT_STORED_CURRENCY (for storage)
-// Example: If DEFAULT_STORED_CURRENCY is USD: 1 localCurrency = X USD
 const CONVERSION_RATES_TO_BASE: Record<CurrencyCode, number> = {
-  USD: 1,                       // 1 USD = 1 USD (DEFAULT_STORED_CURRENCY)
-  EUR: 1 / CONVERSION_RATES_FROM_BASE.EUR, // 1 EUR = 1/0.92 USD
-  KES: 1 / CONVERSION_RATES_FROM_BASE.KES, // 1 KES = 1/130 USD
+  USD: 1,                       
+  EUR: 1 / CONVERSION_RATES_FROM_BASE.EUR, 
+  KES: 1 / CONVERSION_RATES_FROM_BASE.KES, 
 };
 
-/**
- * Converts an amount from a given input currency to the DEFAULT_STORED_CURRENCY.
- * @param amount The amount in the inputCurrency.
- * @param inputCurrency The currency code of the input amount.
- * @returns The amount converted to DEFAULT_STORED_CURRENCY.
- */
 export function convertToBaseCurrency(
   amount: number,
   inputCurrency: CurrencyCode
@@ -57,17 +43,11 @@ export function convertToBaseCurrency(
     console.warn(
       `No conversion rate defined from ${inputCurrency} to ${DEFAULT_STORED_CURRENCY}. Returning original amount.`
     );
-    return amount; // Fallback: return original amount if no rate
+    return amount; 
   }
   return amount * rate;
 }
 
-/**
- * Formats an amount stored in DEFAULT_STORED_CURRENCY into the targetDisplayCurrency.
- * @param amountInBaseCurrency The amount in DEFAULT_STORED_CURRENCY.
- * @param targetDisplayCurrency The currency to display the amount in.
- * @returns A formatted currency string.
- */
 export function formatCurrency(
   amountInBaseCurrency: number,
   targetDisplayCurrency: CurrencyCode
@@ -82,9 +62,6 @@ export function formatCurrency(
       console.warn(
         `No conversion rate defined from ${DEFAULT_STORED_CURRENCY} to ${targetDisplayCurrency}. Displaying original amount in ${DEFAULT_STORED_CURRENCY}.`
       );
-      // Fallback: format the original amount but label it with the target currency
-      // This is potentially misleading if conversion fails.
-      // For now, we proceed to format 'displayAmount' which is still 'amountInBaseCurrency'.
     }
   }
 
@@ -102,3 +79,28 @@ export function formatCurrency(
     return `${targetDisplayCurrency} ${displayAmount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
   }
 }
+
+// Transaction cost calculation for P2P and other platform services
+// Assumes amount is already in DEFAULT_STORED_CURRENCY (USD)
+export const calculateTransactionCost = (amountInBaseCurrency: number): number => {
+  const minCost = 0.20; // Min cost in USD
+  const maxCost = 10.00; // Max cost in USD, reduced from 15 for P2P
+  let cost = 0;
+
+  if (amountInBaseCurrency <= 0) return 0;
+
+  // Tiered approach for P2P, different from savings withdrawal
+  if (amountInBaseCurrency <= 50) { // Tier 1: Up to $50
+    cost = amountInBaseCurrency * 0.015; // 1.5%
+  } else if (amountInBaseCurrency <= 500) { // Tier 2: $50.01 to $500
+    cost = (50 * 0.015) + ((amountInBaseCurrency - 50) * 0.01); // $0.75 + 1% of amount over $50
+  } else { // Tier 3: Over $500
+    cost = (50 * 0.015) + (450 * 0.01) + ((amountInBaseCurrency - 500) * 0.005); // $0.75 + $4.50 + 0.5% of amount over $500
+    // $0.75 (tier1) + $4.50 (tier2) = $5.25 base for this tier
+  }
+  
+  cost = Math.max(minCost, cost);
+  cost = Math.min(maxCost, cost);
+
+  return parseFloat(cost.toFixed(2));
+};

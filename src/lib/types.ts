@@ -20,7 +20,8 @@ export type Category =
   | 'Groceries'
   | 'Savings' // For contributions to savings goals
   | 'Savings Withdrawal' // For withdrawals from savings goals
-  | 'Penalty Revenue' // For penalties collected by the platform - DEPRECATED, use PlatformRevenueEntry
+  | 'P2P Transfer' // For peer-to-peer transfers
+  | 'Platform Payout' // For admin withdrawing platform revenue
   | 'Other';
 
 export const allCategories = [
@@ -41,7 +42,8 @@ export const allCategories = [
   'Groceries',
   'Savings',
   'Savings Withdrawal',
-  // 'Penalty Revenue', // Deprecated
+  'P2P Transfer',
+  'Platform Payout',
   'Other',
 ] as const;
 
@@ -62,7 +64,8 @@ export const expenseCategories: Category[] = [
   'Bills & Fees',
   'Personal Care',
   'Groceries',
-  'Savings', // Added for context
+  'Savings',
+  'P2P Transfer', // Added
   'Other',
 ];
 
@@ -70,7 +73,9 @@ export const incomeCategories: Category[] = [
   'Salary',
   'Investments',
   'Gifts & Donations',
-  'Savings Withdrawal', // Added for context
+  'Savings Withdrawal',
+  'P2P Transfer', // Added
+  'Platform Payout', // Added
   'Other',
 ];
 
@@ -85,6 +90,8 @@ export interface Expense {
   type: 'expense' | 'income';
   receiptUrl?: string | null; // Firebase Storage URL
   relatedSavingsGoalId?: string | null; // Link to savings goal if transaction is related
+  p2pRecipientTag?: string | null; // For P2P expense, recipient's tag
+  p2pSenderName?: string | null; // For P2P income, sender's name
   createdAt?: string | Timestamp; // ISO string or Firestore Timestamp
   updatedAt?: string | Timestamp; // ISO string or Firestore Timestamp
 }
@@ -108,6 +115,7 @@ export interface AppUser {
   photoURL?: string | null;
   joinDate?: string; // ISO string date
   isAdmin?: boolean;
+  transactionTag?: string; // Unique tag for P2P transactions
   transactionCount: number; // Now mandatory
   totalSpent: number; // Now mandatory, assumed to be in DEFAULT_STORED_CURRENCY
   isActive?: boolean;
@@ -178,11 +186,21 @@ export interface SavingsGoalWithdrawal {
 
 export interface PlatformRevenueEntry {
   id: string;
-  userId: string; // User who incurred the penalty/fee
-  relatedGoalId?: string; // If related to a specific savings goal
-  type: 'penalty' | 'transaction_fee';
-  amount: number; // In DEFAULT_STORED_CURRENCY
+  userId: string; // User who incurred the penalty/fee, or admin performing payout
+  relatedGoalId?: string | null; // If related to a specific savings goal
+  relatedP2PTransactionId?: string | null; // If related to a P2P transaction
+  type: 'penalty' | 'transaction_fee' | 'payout'; // Payout is negative
+  amount: number; // In DEFAULT_STORED_CURRENCY (positive for income, negative for payout)
   description: string;
   date: string; // YYYY-MM-DD
   createdAt?: string | Timestamp;
 }
+
+export const generateTransactionTag = (length: number = 8): string => {
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += characters.charAt(Math.floor(Math.random() * characters.length));
+  }
+  return result;
+};
