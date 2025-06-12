@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { Expense } from "@/lib/types";
@@ -6,7 +7,7 @@ import { Trash2, Edit3, ArrowDownCircle, ArrowUpCircle, Tag, CalendarDays, Build
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { useState, useEffect } from "react";
 import { format, parseISO } from 'date-fns';
-import { useSettings } from "@/contexts/SettingsContext"; // Use displayCurrency
+import { useSettings } from "@/contexts/SettingsContext"; 
 import { formatCurrency } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
@@ -16,10 +17,10 @@ const ITEMS_PER_PAGE = 10;
 interface ExpenseListItemProps {
   expense: Expense;
   onDeleteExpense: (id: string) => void;
-  onEditExpense: (expense: Expense) => void;
+  // onEditExpense: (expense: Expense) => void; // Editing is disabled
 }
 
-function ExpenseListItem({ expense, onDeleteExpense, onEditExpense }: ExpenseListItemProps) {
+function ExpenseListItem({ expense, onDeleteExpense /*, onEditExpense */ }: ExpenseListItemProps) {
   const { displayCurrency, isMounted: settingsMounted } = useSettings(); 
   const isIncome = expense.type === 'income';
   const TypeIcon = isIncome ? ArrowUpCircle : ArrowDownCircle;
@@ -52,26 +53,26 @@ function ExpenseListItem({ expense, onDeleteExpense, onEditExpense }: ExpenseLis
           <div className="h-4 w-1/2 bg-muted rounded"></div>
         </CardContent>
         <CardFooter className="p-4 flex justify-end gap-2">
-          <div className="h-8 w-16 bg-muted rounded-md"></div>
+          {/* <div className="h-8 w-16 bg-muted rounded-md"></div> */} {/* Edit button placeholder commented out */}
           <div className="h-8 w-16 bg-muted rounded-md"></div>
         </CardFooter>
       </Card>
     );
   }
 
-  const editButton = (
-    <Button
-      variant="outline"
-      size="sm"
-      onClick={() => !isSavingsRelatedTransaction && onEditExpense(expense)}
-      aria-label="Edit transaction"
-      disabled={isSavingsRelatedTransaction}
-      className="text-xs"
-    >
-      <Edit3 className="h-3.5 w-3.5 sm:mr-1.5" />
-      <span className="hidden sm:inline">Edit</span>
-    </Button>
-  );
+  // const editButton = (
+  //   <Button
+  //     variant="outline"
+  //     size="sm"
+  //     onClick={() => !isSavingsRelatedTransaction && onEditExpense(expense)}
+  //     aria-label="Edit transaction"
+  //     disabled={isSavingsRelatedTransaction}
+  //     className="text-xs"
+  //   >
+  //     <Edit3 className="h-3.5 w-3.5 sm:mr-1.5" />
+  //     <span className="hidden sm:inline">Edit</span>
+  //   </Button>
+  // );
 
   return (
     <Card className="mb-4 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300">
@@ -99,12 +100,12 @@ function ExpenseListItem({ expense, onDeleteExpense, onEditExpense }: ExpenseLis
         {isSavingsRelatedTransaction && (
           <div className="flex items-center text-xs text-primary mt-1">
             <Info className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />
-            <span>Linked to a savings goal.</span>
+            <span>Linked to a savings goal. Editing disabled for these transactions.</span>
           </div>
         )}
       </CardContent>
       <CardFooter className="p-4 pt-2 flex justify-end gap-2">
-        {isSavingsRelatedTransaction ? (
+        {/* {isSavingsRelatedTransaction ? (
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>{editButton}</TooltipTrigger>
@@ -115,7 +116,7 @@ function ExpenseListItem({ expense, onDeleteExpense, onEditExpense }: ExpenseLis
           </TooltipProvider>
         ) : (
           editButton
-        )}
+        )} */}
         <Button
           variant="outline"
           size="sm"
@@ -134,10 +135,10 @@ function ExpenseListItem({ expense, onDeleteExpense, onEditExpense }: ExpenseLis
 interface ExpenseListProps {
   expenses: Expense[];
   onDeleteExpense: (id: string) => void;
-  onEditExpense: (expense: Expense) => void;
+  // onEditExpense: (expense: Expense) => void; // Editing is disabled
 }
 
-export function ExpenseList({ expenses, onDeleteExpense, onEditExpense }: ExpenseListProps) {
+export function ExpenseList({ expenses, onDeleteExpense /*, onEditExpense */ }: ExpenseListProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const { isMounted: settingsMounted } = useSettings();
 
@@ -169,7 +170,7 @@ export function ExpenseList({ expenses, onDeleteExpense, onEditExpense }: Expens
               <div className="h-4 w-1/2 bg-muted rounded"></div>
             </CardContent>
             <CardFooter className="p-4 flex justify-end gap-2">
-              <div className="h-8 w-16 bg-muted rounded-md"></div>
+              {/* <div className="h-8 w-16 bg-muted rounded-md"></div> */} {/* Edit button placeholder commented out */}
               <div className="h-8 w-16 bg-muted rounded-md"></div>
             </CardFooter>
           </Card>
@@ -198,7 +199,7 @@ export function ExpenseList({ expenses, onDeleteExpense, onEditExpense }: Expens
             key={expense.id}
             expense={expense}
             onDeleteExpense={onDeleteExpense}
-            onEditExpense={onEditExpense}
+            // onEditExpense={onEditExpense} // Editing is disabled
           />
         ))}
       </div>
@@ -232,3 +233,4 @@ export function ExpenseList({ expenses, onDeleteExpense, onEditExpense }: Expens
     </div>
   );
 }
+

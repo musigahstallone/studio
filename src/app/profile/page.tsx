@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, UserCircle, Edit3, UploadCloud, Mail, User, AlertTriangle, Trash2, Copy } from 'lucide-react';
+import { Loader2, Save, UserCircle, Edit3, UploadCloud, Mail, User, AlertTriangle, Trash2, Copy, Link as LinkIcon, SendHorizontal } from 'lucide-react';
 import { auth, db, storage } from '@/lib/firebase';
 import { updateProfile as updateFirebaseAuthProfile } from 'firebase/auth'; 
 import { doc, updateDoc } from 'firebase/firestore';
@@ -23,7 +23,8 @@ import Link from 'next/link';
 import { Form } from '@/components/ui/form';
 import { deleteCurrentUserAccount as deleteCurrentUserAccountAction, requestEmailUpdate as requestEmailUpdateAction } from '@/actions/userActions';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Badge } from '@/components/ui/badge'; // Added for transaction tag
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 
 const profileFormSchema = z.object({
   displayName: z.string().min(2, "Name must be at least 2 characters.").max(50, "Name cannot exceed 50 characters."),
@@ -45,6 +46,7 @@ export default function ProfilePage() {
 
   const [initialDisplayName, setInitialDisplayName] = useState('');
   const [initialEmail, setInitialEmail] = useState('');
+  const [sendMoneyLink, setSendMoneyLink] = useState('');
 
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileFormSchema),
@@ -66,6 +68,13 @@ export default function ProfilePage() {
       setInitialEmail(emailValue);
       if (appUser?.photoURL || user?.photoURL) {
         setPreviewImage(appUser?.photoURL || user?.photoURL || null);
+      }
+
+      if (appUser?.transactionTag && appUser?.name) {
+        const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+        const tag = appUser.transactionTag;
+        const recipientName = encodeURIComponent(appUser.name);
+        setSendMoneyLink(`${appBaseUrl}/send-money?toTag=${tag}&recipientName=${recipientName}`);
       }
     }
   }, [appUser, user, form]);
@@ -111,7 +120,6 @@ export default function ProfilePage() {
           const result = await requestEmailUpdateAction(data.email);
           toast({ title: result.title, description: result.description });
           emailChangeRequestedSuccessfully = true;
-          // Firestore email will be updated by AuthProvider after Firebase Auth email is verified and changed
         } catch (error: any) {
           toast({ variant: "destructive", title: "Email Update Failed", description: error.message });
         } finally {
@@ -170,21 +178,20 @@ export default function ProfilePage() {
     try {
       await deleteCurrentUserAccountAction();
       toast({ title: "Account Deletion Processed", description: "Your account is being deleted. You will be logged out shortly."});
-      // AuthProvider handles logout and redirect
     } catch (error: any) {
       toast({ variant: "destructive", title: "Deletion Failed", description: error.message });
       setIsDeletingAccount(false); 
     }
   };
   
-  const copyTransactionTag = () => {
-    if (appUser?.transactionTag) {
-      navigator.clipboard.writeText(appUser.transactionTag)
+  const copyToClipboard = (text: string, successMessage: string) => {
+    if (text) {
+      navigator.clipboard.writeText(text)
         .then(() => {
-          toast({ title: "Copied!", description: "Transaction Tag copied to clipboard." });
+          toast({ title: "Copied!", description: successMessage });
         })
         .catch(err => {
-          toast({ variant: "destructive", title: "Copy Failed", description: "Could not copy tag." });
+          toast({ variant: "destructive", title: "Copy Failed", description: "Could not copy to clipboard." });
         });
     }
   };
@@ -225,7 +232,7 @@ export default function ProfilePage() {
           <CardHeader className="items-center">
             <div className="relative group w-28 h-28 sm:w-32 sm:h-32">
               <Avatar className="h-full w-full border-4 border-primary/20 text-4xl sm:text-5xl">
-                <AvatarImage src={currentPhotoURL} alt={appUser?.name || user?.displayName || 'User'} data-ai-hint="user avatar"/>
+                <AvatarImage src={currentPhotoURL} alt={appUser?.name || user?.displayName || 'User'} className="object-cover" data-ai-hint="user avatar"/>
                 <AvatarFallback>
                   {appUser?.name ? appUser.name.charAt(0).toUpperCase() : 
                    user?.displayName ? user.displayName.charAt(0).toUpperCase() : 
@@ -249,16 +256,6 @@ export default function ProfilePage() {
             />
             <CardTitle className="text-xl sm:text-2xl mt-4">{form.watch('displayName') || 'Your Name'}</CardTitle>
             <CardDescription className="text-xs sm:text-sm">{form.watch('email') || 'your@email.com'}</CardDescription>
-            {appUser?.transactionTag && (
-              <div className="mt-2">
-                <Badge variant="secondary" className="text-xs sm:text-sm">
-                  Transaction Tag: <span className="font-mono ml-1.5 mr-1">{appUser.transactionTag}</span>
-                  <Button variant="ghost" size="icon" className="h-5 w-5 ml-1 p-0" onClick={copyTransactionTag} title="Copy Tag">
-                    <Copy className="h-3 w-3" />
-                  </Button>
-                </Badge>
-              </div>
-            )}
           </CardHeader>
           <CardContent className="space-y-6">
             <Form {...form}>
@@ -316,7 +313,7 @@ export default function ProfilePage() {
                   <p className="text-xs text-primary text-center">New profile picture selected. Click &quot;Update Profile&quot; to save.</p>
                 )}
 
-                <CardFooter className="px-0 pt-6">
+                <CardFooter className="px-0 pt-6 pb-0">
                   <Button type="submit" disabled={isUpdatingProfile || isRequestingEmailUpdate || !isDirty || isDeletingAccount} className="w-full">
                     {(isUpdatingProfile || isRequestingEmailUpdate) ? <Loader2 className="animate-spin mr-2" /> : <Save className="mr-2 h-4 w-4" />}
                     Update Profile
@@ -326,6 +323,65 @@ export default function ProfilePage() {
             </Form>
           </CardContent>
         </Card>
+
+        <Card className="shadow-lg rounded-xl">
+            <CardHeader>
+                <CardTitle className="flex items-center text-lg md:text-xl">
+                    <SendHorizontal className="mr-2 h-5 w-5 text-primary"/> P2P Transactions
+                </CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
+                    Your unique tag for receiving money and a link to share.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                {appUser?.transactionTag && (
+                    <div>
+                        <Label className="text-xs sm:text-sm font-medium">Your Transaction Tag</Label>
+                        <div className="flex items-center gap-2 mt-1">
+                            <Badge variant="secondary" className="text-sm font-mono tracking-wider py-1 px-3">
+                                {appUser.transactionTag}
+                            </Badge>
+                            <Button 
+                                variant="outline" 
+                                size="icon" 
+                                className="h-8 w-8" 
+                                onClick={() => copyToClipboard(appUser.transactionTag || '', "Transaction Tag copied to clipboard.")}
+                                title="Copy Tag"
+                            >
+                                <Copy className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
+                )}
+                {sendMoneyLink && (
+                    <div>
+                        <Label className="text-xs sm:text-sm font-medium">Shareable &quot;Send Me Money&quot; Link</Label>
+                        <div className="flex items-center gap-2 mt-1">
+                            <Input type="text" value={sendMoneyLink} readOnly className="text-xs h-8"/>
+                            <Button 
+                                variant="outline" 
+                                size="icon" 
+                                className="h-8 w-8" 
+                                onClick={() => copyToClipboard(sendMoneyLink, "Link copied to clipboard.")}
+                                title="Copy Link"
+                            >
+                                <LinkIcon className="h-4 w-4" />
+                            </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                            Share this link to allow others to send money directly to you.
+                            {!(process.env.NEXT_PUBLIC_APP_URL) && 
+                                <span className="text-amber-600 dark:text-amber-400"> (Warning: NEXT_PUBLIC_APP_URL not set, link may not work in deployed environments.)</span>
+                            }
+                        </p>
+                    </div>
+                )}
+                {!appUser?.transactionTag && (
+                    <p className="text-sm text-muted-foreground">Transaction Tag not available. It should be assigned upon account creation.</p>
+                )}
+            </CardContent>
+        </Card>
+
 
         <Card className="shadow-lg border-destructive rounded-xl">
           <CardHeader>

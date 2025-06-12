@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { PiggyBank, Menu, UserCircle as UserIcon, LogIn, LogOut, UserCircle, Settings as CogIcon, LayoutDashboard, Sun, Moon, Laptop } from 'lucide-react'; // Added UserIcon
+import { PiggyBank, Menu, UserCircle as UserIcon, LogIn, LogOut, UserCircle, Settings as CogIcon, LayoutDashboard, Sun, Moon, Laptop, SendHorizontal } from 'lucide-react'; // Added SendHorizontal
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose, SheetTrigger } from '@/components/ui/sheet';
@@ -79,10 +79,11 @@ export function AppHeader() {
 
         {hasMounted && user && (
           <nav className="hidden md:flex items-center gap-1">
-            <ButtonLink href="/dashboard" currentPathname={pathname}>Dashboard</ButtonLink>
-            <ButtonLink href="/expenses" currentPathname={pathname}>Transactions</ButtonLink>
-            <ButtonLink href="/budgets" currentPathname={pathname}>Budgets</ButtonLink>
-            <ButtonLink href="/savings-goals" currentPathname={pathname}>Savings Goals</ButtonLink>
+            <ButtonLink href="/dashboard" currentPathname={pathname}><LayoutDashboard className="mr-1.5 h-4 w-4"/>Dashboard</ButtonLink>
+            <ButtonLink href="/expenses" currentPathname={pathname}><UserIcon className="mr-1.5 h-4 w-4"/>Transactions</ButtonLink>
+            <ButtonLink href="/budgets" currentPathname={pathname}><UserIcon className="mr-1.5 h-4 w-4"/>Budgets</ButtonLink>
+            <ButtonLink href="/savings-goals" currentPathname={pathname}><UserIcon className="mr-1.5 h-4 w-4"/>Savings Goals</ButtonLink>
+            <ButtonLink href="/send-money" currentPathname={pathname}><SendHorizontal className="mr-1.5 h-4 w-4"/>Send Money</ButtonLink>
           </nav>
         )}
 
@@ -100,7 +101,7 @@ export function AppHeader() {
               <DropdownMenuTriggerPrimitive asChild>
                 <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
                   <Avatar className="h-9 w-9 border">
-                    <AvatarImage src={appUser.photoURL || user.photoURL || undefined} alt={appUser.name || user.displayName || user.email || 'User'} data-ai-hint="user avatar" />
+                    <AvatarImage src={appUser.photoURL || user.photoURL || undefined} alt={appUser.name || user.displayName || user.email || 'User'} className="object-cover" data-ai-hint="user avatar" />
                     <AvatarFallback>
                       {appUser.email ? appUser.email.charAt(0).toUpperCase() : <UserCircle className="h-5 w-5" />}
                     </AvatarFallback>
@@ -180,7 +181,8 @@ interface ButtonLinkProps {
 }
 
 function ButtonLink({ href, currentPathname, children }: ButtonLinkProps) {
-  const isActive = currentPathname === href || (href.startsWith(currentPathname) && currentPathname !== '/');
+  const isActive = currentPathname === href || (href !== '/' && currentPathname.startsWith(href) && href.length > 1);
+
 
   return (
     <Link
@@ -196,4 +198,3 @@ function ButtonLink({ href, currentPathname, children }: ButtonLinkProps) {
     </Link>
   );
 }
-

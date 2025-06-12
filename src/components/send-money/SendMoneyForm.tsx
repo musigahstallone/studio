@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -18,8 +18,8 @@ import { Loader2, CheckCircle, AlertCircle, UserCheck, Send, ShieldQuestion, XCi
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { formatCurrency, calculateTransactionCost, convertToBaseCurrency } from '@/lib/utils';
-import { DEFAULT_STORED_CURRENCY }
-from '@/lib/types';
+import { DEFAULT_STORED_CURRENCY } from '@/lib/types';
+import { useSearchParams } from 'next/navigation'; // Added for URL params
 
 const sendMoneySchema = z.object({
   recipientTag: z.string().min(6, "Transaction Tag must be at least 6 characters.").max(12, "Tag too long."),
@@ -36,13 +36,15 @@ export function SendMoneyForm() {
   const { user } = useAuth();
   const { localCurrency, displayCurrency, isMounted: settingsMounted } = useSettings();
   const { toast } = useToast();
+  const searchParams = useSearchParams(); // Get search params
 
   const [isVerifying, setIsVerifying] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [recipientName, setRecipientName] = useState<string | null>(null);
-  const [recipientUid, setRecipientUid] = useState<string | null>(null); // Not strictly needed client-side but good for state
+  const [recipientUid, setRecipientUid] = useState<string | null>(null); 
   const [verificationError, setVerificationError] = useState<string | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [urlProvidedRecipientName, setUrlProvidedRecipientName] = useState<string | null>(null);
 
   const form = useForm<SendMoneyFormData>({
     resolver: zodResolver(sendMoneySchema),
@@ -58,16 +60,40 @@ export function SendMoneyForm() {
   const estimatedFeeBase = amountInBase > 0 ? calculateTransactionCost(amountInBase) : 0;
   const totalDeductionBase = amountInBase + estimatedFeeBase;
 
+  const resetRecipientState = useCallback(() => {
+    setRecipientName(null);
+    setRecipientUid(null);
+    setVerificationError(null);
+    setUrlProvidedRecipientName(null);
+    form.setValue('recipientTag', '');
+  }, [form]);
+  
+  useEffect(() => {
+    const tagFromUrl = searchParams.get('toTag');
+    const nameFromUrl = searchParams.get('recipientName');
 
-  const handleVerifyRecipient = async () => {
-    const tag = form.getValues('recipientTag');
+    if (tagFromUrl) {
+      form.setValue('recipientTag', tagFromUrl, { shouldValidate: true });
+      if (nameFromUrl) {
+        setUrlProvidedRecipientName(decodeURIComponent(nameFromUrl));
+      }
+      // Automatically trigger verification if tag is from URL
+      // Ensure this doesn't trigger on every render if params are stable
+      if(tagFromUrl !== form.getValues('recipientTag') || !recipientName) { // Check if we need to re-verify
+        handleVerifyRecipient(tagFromUrl);
+      }
+    }
+  }, [searchParams, form, recipientName]); // Removed handleVerifyRecipient from deps to avoid loop
+
+  const handleVerifyRecipient = async (tagToVerify?: string) => {
+    const tag = tagToVerify || form.getValues('recipientTag');
     if (!tag) {
       form.setError('recipientTag', { type: 'manual', message: 'Recipient Tag is required.' });
       return;
     }
     setIsVerifying(true);
     setVerificationError(null);
-    setRecipientName(null);
+    setRecipientName(null); // Reset on new verification attempt
     setRecipientUid(null);
     try {
       const result = await verifyRecipientByTransactionTag(tag);
@@ -79,7 +105,7 @@ export function SendMoneyForm() {
              setVerificationError("You cannot send money to yourself.");
              toast({ variant: 'destructive', title: 'Verification Failed', description: "You cannot send money to yourself."});
         } else {
-            setRecipientName(result.recipientName);
+            setRecipientName(result.recipientName); // Authoritative name from server
             setRecipientUid(result.recipientUid);
             toast({ title: 'Recipient Verified', description: `Found user: ${result.recipientName}` });
         }
@@ -101,7 +127,7 @@ export function SendMoneyForm() {
         toast({ variant: 'destructive', title: 'Cannot Send', description: 'You cannot send money to yourself.'});
         return;
     }
-    setShowConfirmation(true); // Trigger confirmation dialog
+    setShowConfirmation(true); 
   };
 
   const handleConfirmSend = async () => {
@@ -118,9 +144,8 @@ export function SendMoneyForm() {
       } else if (result.success && result.message) {
         toast({ title: 'Transfer Successful!', description: result.message, className: "bg-green-500/10 border-green-500 text-green-700 dark:text-green-400" });
         form.reset();
-        setRecipientName(null);
-        setRecipientUid(null);
-        setVerificationError(null);
+        resetRecipientState();
+        // If opened via URL, maybe clear URL params or redirect? For now, just resets form.
       }
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'Transfer Error', description: e.message || 'An unknown error occurred.' });
@@ -138,7 +163,6 @@ export function SendMoneyForm() {
     );
   }
 
-
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -150,17 +174,17 @@ export function SendMoneyForm() {
               <FormLabel className="text-sm">Recipient&apos;s Transaction Tag</FormLabel>
               <div className="flex gap-2">
                 <FormControl>
-                  <Input placeholder="e.g., A1b2C3d4" {...field} disabled={isVerifying || !!recipientName} />
+                  <Input placeholder="e.g., A1b2C3d4" {...field} disabled={isVerifying || (!!recipientName && !!searchParams.get('toTag'))} />
                 </FormControl>
                 {!recipientName && (
-                  <Button type="button" onClick={handleVerifyRecipient} disabled={isVerifying || !field.value}>
+                  <Button type="button" onClick={() => handleVerifyRecipient()} disabled={isVerifying || !field.value}>
                     {isVerifying ? <Loader2 className="animate-spin" /> : <UserCheck />}
                     Verify
                   </Button>
                 )}
                 {recipientName && (
-                   <Button type="button" variant="outline" onClick={() => { setRecipientName(null); setRecipientUid(null); setVerificationError(null); form.setValue('recipientTag', ''); }}>
-                    <XCircle className="mr-2"/> Change
+                   <Button type="button" variant="outline" onClick={resetRecipientState}>
+                    <XCircle className="mr-2"/> Clear
                   </Button>
                 )}
               </div>
@@ -170,12 +194,23 @@ export function SendMoneyForm() {
           )}
         />
 
+        {urlProvidedRecipientName && !recipientName && !isVerifying && !verificationError && (
+            <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-500/50 p-3 rounded-md">
+                <div className="flex items-center gap-2">
+                    <ShieldQuestion className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                    <p className="text-sm text-blue-700 dark:text-blue-300">
+                        Sending to <span className="font-semibold">{urlProvidedRecipientName}</span> (Tag: {form.getValues('recipientTag')}). Please verify.
+                    </p>
+                </div>
+            </Card>
+        )}
+
         {recipientName && (
           <Card className="bg-green-50 dark:bg-green-900/20 border-green-500/50 p-3 rounded-md">
             <div className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
               <p className="text-sm text-green-700 dark:text-green-300">
-                Recipient: <span className="font-semibold">{recipientName}</span>
+                Verified Recipient: <span className="font-semibold">{recipientName}</span>
               </p>
             </div>
           </Card>
@@ -251,3 +286,4 @@ export function SendMoneyForm() {
     </Form>
   );
 }
+

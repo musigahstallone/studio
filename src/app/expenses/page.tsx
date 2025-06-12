@@ -1,7 +1,8 @@
+
 "use client";
 
-import { useEffect } from 'react'; // For route protection
-import { useRouter } from 'next/navigation'; // For route protection
+import { useEffect } from 'react'; 
+import { useRouter } from 'next/navigation'; 
 
 import { AppShell } from '@/components/layout/AppShell';
 import { ExpenseForm } from '@/components/expenses/ExpenseForm';
@@ -24,7 +25,7 @@ export default function ExpensesPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const { expenses, addExpense, deleteExpense, updateExpense, loadingExpenses } = useExpenses();
-  const [editingExpense, setEditingExpense] = useState<Partial<Expense> | undefined>(undefined);
+  const [editingExpense, setEditingExpense] = useState<Partial<Expense> | undefined>(undefined); // Still used for pre-filling NEW expenses from AI
   const [activeView, setActiveView] = useState("list"); 
   const [isExpenseFormOpen, setIsExpenseFormOpen] = useState(false);
 
@@ -35,28 +36,34 @@ export default function ExpensesPage() {
   }, [user, authLoading, router]);
 
   const handleOpenFormForNew = () => {
-    setEditingExpense(undefined);
+    setEditingExpense(undefined); // Ensure it's for a new expense
     setIsExpenseFormOpen(true);
   };
 
   const handleAddOrUpdateExpense = (expenseData: Omit<Expense, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => {
+    // Since editing is disabled, this function will now primarily handle adding new expenses.
+    // The `updateExpense` path (if `editingExpense.id` was set) is effectively bypassed by not setting `editingExpense.id` for existing items.
     addExpense(expenseData, expenseData.receiptUrl); 
     setEditingExpense(undefined);
     setIsExpenseFormOpen(false);
   };
 
-  const handleUpdateExistingExpense = (expense: Expense) => {
-    updateExpense(expense); 
-    setEditingExpense(undefined);
-    setIsExpenseFormOpen(false);
-  };
+  // const handleUpdateExistingExpense = (expense: Expense) => {
+  //   // This function is effectively disabled as onEditExpense is not called from ExpenseList.
+  //   // And the ExpenseForm is not opened in edit mode for existing transactions.
+  //   updateExpense(expense); 
+  //   setEditingExpense(undefined);
+  //   setIsExpenseFormOpen(false);
+  // };
 
-  const handleEditExpense = (expenseToEdit: Expense) => {
-    setEditingExpense(expenseToEdit);
-    setIsExpenseFormOpen(true);
-  };
+  // const handleEditExpense = (expenseToEdit: Expense) => {
+  //   // Editing is disabled. This function will not be called.
+  //   // setEditingExpense(expenseToEdit);
+  //   // setIsExpenseFormOpen(true);
+  // };
 
   const handleDataExtracted = useCallback((data: ProcessedExpenseData) => { 
+    // Pre-fill the form for a NEW transaction based on AI data. Do not set an existing ID.
     setEditingExpense({ 
       description: data.description,
       amount: data.amount,
@@ -65,6 +72,7 @@ export default function ExpensesPage() {
       merchant: data.merchant,
       type: data.type,
       receiptUrl: data.receiptUrl 
+      // id: undefined, // Explicitly ensure no id is set to prevent update path
     });
     setIsExpenseFormOpen(true); 
   }, []);
@@ -74,8 +82,9 @@ export default function ExpensesPage() {
     setIsExpenseFormOpen(false);
   };
 
-  const formTitle = editingExpense?.id ? "Edit Transaction" : "Add New Transaction";
-  const formDescription = editingExpense?.id ? "Update the details of your transaction." : "Enter the details for a new transaction.";
+  // The form title will always be "Add New Transaction" as editing is disabled.
+  const formTitle = "Add New Transaction";
+  const formDescription = "Enter the details for a new transaction.";
 
 
   if (authLoading || (!user && !authLoading) || loadingExpenses) {
@@ -143,7 +152,7 @@ export default function ExpensesPage() {
             <ExpenseList 
               expenses={expenses} 
               onDeleteExpense={deleteExpense} 
-              onEditExpense={handleEditExpense} 
+              // onEditExpense={handleEditExpense} // Editing is disabled
             />
           )}
 
@@ -205,8 +214,9 @@ export default function ExpensesPage() {
         >
           <ExpenseForm 
             onAddExpense={handleAddOrUpdateExpense} 
-            onUpdateExpense={handleUpdateExistingExpense}
-            initialData={editingExpense} 
+            // onUpdateExpense={handleUpdateExistingExpense} // Editing is disabled
+            onUpdateExpense={() => {}} // Provide a dummy function or ensure ExpenseForm doesn't require it if initialData.id is never passed
+            initialData={editingExpense} // This will be for pre-filling a NEW expense from AI
             formId="responsive-expense-entry-form"
             onSubmissionDone={handleFormSubmissionDone}
           />
