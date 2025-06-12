@@ -2,7 +2,7 @@
 
 import type { Expense } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { Trash2, Edit3, ArrowDownCircle, ArrowUpCircle, Tag, CalendarDays, Building, ChevronLeft, ChevronRight, Info } from "lucide-react";
+import { Trash2, Edit3, ArrowDownCircle, ArrowUpCircle, Tag, CalendarDays, Building, ChevronLeft, ChevronRight, Info, LayoutList } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { useState, useEffect } from "react";
 import { format, parseISO } from 'date-fns';
@@ -232,7 +232,3 @@ export function ExpenseList({ expenses, onDeleteExpense, onEditExpense }: Expens
     </div>
   );
 }
-
-```globalImport
-import { LayoutList } from 'lucide-react';
-```
