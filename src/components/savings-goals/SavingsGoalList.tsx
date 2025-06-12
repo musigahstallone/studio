@@ -2,21 +2,21 @@
 "use client";
 
 import type { SavingsGoal } from "@/lib/types";
-import { Card, CardContent, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"; // Added CardHeader & CardTitle
 import { SavingsGoalItem } from "./SavingsGoalItem";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Landmark } from "lucide-react"; // Added Landmark icon
 import { useState } from "react";
 import { useSettings } from "@/contexts/SettingsContext";
 
-const ITEMS_PER_PAGE = 9; // Updated from 6 to 9
+const ITEMS_PER_PAGE = 9; 
 
 interface SavingsGoalListProps {
   savingsGoals: SavingsGoal[];
   onDeleteGoal: (id: string) => void;
   onEditGoal: (goal: SavingsGoal) => void;
   onContributeToGoal: (goal: SavingsGoal) => void;
-  onWithdrawFromGoal: (goal: SavingsGoal) => void; // New prop
+  onWithdrawFromGoal: (goal: SavingsGoal) => void; 
 }
 
 export function SavingsGoalList({
@@ -24,7 +24,7 @@ export function SavingsGoalList({
   onDeleteGoal,
   onEditGoal,
   onContributeToGoal,
-  onWithdrawFromGoal, // Destructure new prop
+  onWithdrawFromGoal, 
 }: SavingsGoalListProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const { isMounted: settingsMounted } = useSettings();
@@ -44,19 +44,25 @@ export function SavingsGoalList({
     return (
       <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {[...Array(Math.min(ITEMS_PER_PAGE, 3))].map((_, i) => (
-          <Card key={i} className="animate-pulse bg-muted/30 rounded-lg shadow-md">
-            <CardContent className="p-5 space-y-3">
-              <div className="h-6 w-3/4 bg-muted rounded"></div>
-              <div className="h-3 w-1/2 bg-muted rounded"></div>
-              <div className="h-4 w-full bg-muted rounded-full"></div>
+          <Card key={i} className="animate-pulse bg-muted/30 rounded-xl shadow-md flex flex-col">
+             <CardHeader className="p-4">
+                <div className="h-5 w-3/5 bg-muted rounded mb-1"></div>
+                <div className="h-4 w-1/4 bg-muted rounded"></div>
+            </CardHeader>
+            <CardContent className="p-4 pt-0 space-y-3 flex-grow">
+              <div className="h-3 w-full bg-muted rounded-full"></div>
               <div className="flex justify-between">
-                <div className="h-3 w-1/4 bg-muted rounded"></div>
+                <div className="h-3 w-2/5 bg-muted rounded"></div>
                 <div className="h-3 w-1/4 bg-muted rounded"></div>
               </div>
-              <div className="flex justify-end space-x-2 pt-2">
-                <div className="h-8 w-20 bg-muted rounded-md"></div>
-                <div className="h-8 w-20 bg-muted rounded-md"></div>
-              </div>
+              <div className="h-3 w-3/5 bg-muted rounded"></div>
+            </CardContent>
+            <CardContent className="p-4 border-t mt-auto">
+                <div className="flex justify-end gap-2 w-full">
+                     {[...Array(3)].map((_, i) => 
+                        <div key={i} className="h-8 w-8 bg-muted rounded-md"></div>
+                    )}
+                </div>
             </CardContent>
           </Card>
         ))}
@@ -66,10 +72,13 @@ export function SavingsGoalList({
 
   if (savingsGoals.length === 0) {
     return (
-      <Card className="mt-8">
-        <CardContent className="pt-6">
-          <p className="text-center text-muted-foreground">No savings goals set yet.</p>
-          <CardDescription className="text-center mt-2">Click "Create New Goal" to get started.</CardDescription>
+      <Card className="mt-8 rounded-xl shadow-lg">
+        <CardContent className="pt-10 pb-10 text-center">
+          <Landmark className="mx-auto h-16 w-16 text-muted-foreground mb-6" />
+          <CardTitle className="text-xl md:text-2xl font-semibold text-foreground mb-2">No Savings Goals Yet</CardTitle>
+          <CardDescription className="text-sm md:text-base text-muted-foreground max-w-xs mx-auto">
+            Start planning for your future! Click &quot;Create New Goal&quot; to set up your first savings target.
+          </CardDescription>
         </CardContent>
       </Card>
     );
@@ -85,7 +94,7 @@ export function SavingsGoalList({
             onDeleteGoal={onDeleteGoal}
             onEditGoal={onEditGoal}
             onContribute={onContributeToGoal}
-            onWithdraw={onWithdrawFromGoal} // Pass the handler here
+            onWithdraw={onWithdrawFromGoal} 
           />
         ))}
       </div>
@@ -96,11 +105,12 @@ export function SavingsGoalList({
             size="sm"
             onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
             disabled={currentPage === 1}
+            className="text-xs"
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="h-4 w-4 mr-1" />
             Previous
           </Button>
-          <span className="text-sm text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             Page {currentPage} of {totalPages}
           </span>
           <Button
@@ -108,9 +118,10 @@ export function SavingsGoalList({
             size="sm"
             onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
             disabled={currentPage === totalPages}
+            className="text-xs"
           >
             Next
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-4 w-4 ml-1" />
           </Button>
         </div>
       )}
@@ -118,3 +129,4 @@ export function SavingsGoalList({
   );
 }
 
+    

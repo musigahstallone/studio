@@ -111,7 +111,6 @@ export function SavingsGoalItem({ goal, onDeleteGoal, onEditGoal, onContribute, 
       default: return "active";
     }
   };
-      // default: return status.charAt(0).toUpperCase() + status.slice(1);
 
   if (!settingsMounted) {
     return (
@@ -346,3 +345,5 @@ export function SavingsGoalItem({ goal, onDeleteGoal, onEditGoal, onContribute, 
     </Card>
   );
 }
+
+    
