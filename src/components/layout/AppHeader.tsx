@@ -27,11 +27,8 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/comp
 
 // Define base navigation items, Dashboard and Budgets will be filtered out for desktop
 const baseNavItems = [
-  // { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard }, // Removed
-  { name: 'Transactions', href: '/expenses', icon: UserIcon }, // Kept UserIcon for generic representation
-  // { name: 'Budgets', href: '/budgets', icon: UserIcon }, // Removed
-  { name: 'Savings Goals', href: '/savings-goals', icon: UserIcon }, // Kept UserIcon
-  // Send Money will be handled separately as an icon button
+  { name: 'Transactions', href: '/expenses', icon: CreditCard }, 
+  { name: 'Savings Goals', href: '/savings-goals', icon: Landmark },
 ];
 
 
@@ -75,7 +72,6 @@ export function AppHeader() {
   };
   const ThemeIconForSettingsPage = theme === 'light' ? Moon : Sun;
 
-  // Filter out Dashboard and Budgets for desktop navigation
   const desktopNavItems = baseNavItems;
 
 
@@ -83,7 +79,6 @@ export function AppHeader() {
     <>
       <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b bg-background/95 px-4 backdrop-blur-sm sm:px-6 lg:px-8">
         <div className="flex items-center gap-2">
-          {/* Mobile Menu Trigger - moved to the left of the logo */}
           {hasMounted && user && (
             <div className="md:hidden">
               <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
@@ -129,7 +124,7 @@ export function AppHeader() {
           </nav>
         )}
 
-        <div className="flex items-center gap-1 sm:gap-2"> {/* Adjusted gap for sm screens */}
+        <div className="flex items-center gap-1 sm:gap-2">
           {hasMounted && !loading && !user && (
             <Button asChild variant="outline" size="sm">
               <Link href="/login">
@@ -142,11 +137,11 @@ export function AppHeader() {
              <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" asChild className="inline-flex"> {/* Always inline-flex */}
-                      <Link href="/send-money" aria-label="Send Money">
+                    <Link href="/send-money" passHref asChild>
+                      <Button variant="ghost" size="icon" aria-label="Send Money" className="inline-flex">
                         <SendHorizontal className="h-5 w-5" />
-                      </Link>
-                    </Button>
+                      </Button>
+                    </Link>
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>Send Money</p>
@@ -199,8 +194,6 @@ export function AppHeader() {
               </DropdownMenuContent>
             </DropdownMenu>
           )}
-
-          {/* Mobile menu trigger is now on the left, so no need for it here */}
         </div>
       </header>
     </>
@@ -214,7 +207,7 @@ interface ButtonLinkProps {
 }
 
 function ButtonLink({ href, currentPathname, children }: ButtonLinkProps) {
-  const isActive = currentPathname === href || (href !== '/' && currentPathname.startsWith(href) && href.length > 1);
+  const isActive = currentPathname === href || (href !== '/dashboard' && currentPathname.startsWith(href) && href.length > 1);
 
 
   return (
@@ -231,5 +224,3 @@ function ButtonLink({ href, currentPathname, children }: ButtonLinkProps) {
     </Link>
   );
 }
-
-    
