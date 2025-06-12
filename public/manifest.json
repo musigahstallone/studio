@@ -1,11 +1,7 @@
 {
   "name": "PennyPincher AI",
-  "short_name": "PennyPincher",
-  "description": "Effortlessly manage your expenses, budgets, and savings goals with PennyPincher AI. AI-powered expense tracking from text & receipts, multi-currency support, and intelligent financial insights.",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#E8EAF6",
-  "theme_color": "#3F51B5",
+  "short_name": "PennyPinch",
+  "description": "Effortlessly manage your expenses, budgets, and savings goals with PennyPincher AI.",
   "icons": [
     {
       "src": "/icons/icon-192x192.png",
@@ -19,5 +15,10 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#f59e0b",
+  "orientation": "portrait-primary"
 }

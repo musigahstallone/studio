@@ -8,19 +8,20 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
-import { LayoutDashboard, CreditCard, Target, Settings as CogIcon, ShieldCheck, Landmark } from 'lucide-react';
+import { LayoutDashboard, CreditCard, Target, Settings as CogIcon, UserCircle as UserIcon, Landmark, ShieldCheck } from 'lucide-react'; // Updated to UserCircle for admin
 import { cn } from '@/lib/utils';
 
 const baseNavItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard }, // Updated href
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/expenses', label: 'Transactions', icon: CreditCard },
   { href: '/budgets', label: 'Budgets', icon: Target },
   { href: '/savings-goals', label: 'Savings Goals', icon: Landmark },
 ];
 
-const adminNavItem = { href: '/admin', label: 'Admin Panel', icon: ShieldCheck };
+const adminNavItem = { href: '/admin', label: 'Admin Panel', icon: ShieldCheck }; // Changed icon to ShieldCheck
 
 const footerNavItems = [
+  { href: '/profile', label: 'My Profile', icon: UserIcon }, // Added Profile Link
   { href: '/settings', label: 'Settings', icon: CogIcon },
 ];
 
@@ -39,9 +40,12 @@ export function AppSidebarNav({ onLinkClick, isMobileLayout = false, isAdmin = f
     }
   };
 
-  const mainNavItems = isAdmin ? [...baseNavItems, adminNavItem] : baseNavItems;
+  let mainNavItems = [...baseNavItems];
+  if (isAdmin) {
+    mainNavItems.push(adminNavItem);
+  }
 
-  const renderNavItem = (item: typeof mainNavItems[0]) => (
+  const renderNavItem = (item: typeof mainNavItems[0] | typeof footerNavItems[0]) => ( // Union type for item
     <SidebarMenuItem key={item.href} className={isMobileLayout ? "px-2 py-1" : ""}>
       <SidebarMenuButton
         asChild
@@ -79,4 +83,3 @@ export function AppSidebarNav({ onLinkClick, isMobileLayout = false, isAdmin = f
   );
 }
 
-    

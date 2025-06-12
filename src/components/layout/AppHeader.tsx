@@ -2,13 +2,12 @@
 "use client";
 
 import Link from 'next/link';
-import { PiggyBank, Menu, X, ShieldCheck, LogIn, LogOut, UserCircle, Settings as CogIcon, LayoutDashboard, Sun, Moon, Laptop } from 'lucide-react'; // Added Laptop
+import { PiggyBank, Menu, UserCircle as UserIcon, LogIn, LogOut, UserCircle, Settings as CogIcon, LayoutDashboard, Sun, Moon, Laptop } from 'lucide-react'; // Added UserIcon
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose, SheetTrigger } from '@/components/ui/sheet'; // Ensured SheetTrigger is imported
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose, SheetTrigger } from '@/components/ui/sheet';
 import { AppSidebarNav } from './AppSidebarNav';
 import { cn } from '@/lib/utils';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
 import { auth } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
@@ -30,7 +29,6 @@ export function AppHeader() {
   const router = useRouter();
   const { toast } = useToast();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const isMobile = useIsMobile();
   const { user, appUser, isAdminUser, loading } = useAuth();
   const { theme, setTheme, isMounted: settingsAreMounted } = useSettings();
 
@@ -123,11 +121,14 @@ export function AppHeader() {
                   <Link href="/dashboard"><LayoutDashboard className="mr-2 h-4 w-4" /> Dashboard</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
+                  <Link href="/profile"><UserIcon className="mr-2 h-4 w-4" /> My Profile</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
                   <Link href="/settings"><CogIcon className="mr-2 h-4 w-4" /> Settings</Link>
                 </DropdownMenuItem>
                 {isAdminUser && (
                   <DropdownMenuItem asChild>
-                    <Link href="/admin"><ShieldCheck className="mr-2 h-4 w-4" /> Admin Panel</Link>
+                    <Link href="/admin"><UserCircle className="mr-2 h-4 w-4" /> Admin Panel</Link>
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />
@@ -195,3 +196,4 @@ function ButtonLink({ href, currentPathname, children }: ButtonLinkProps) {
     </Link>
   );
 }
+
