@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { PiggyBank, Menu, UserCircle as UserIcon, LogIn, LogOut, UserCircle, Settings as CogIcon, LayoutDashboard, Sun, Moon, Laptop, SendHorizontal } from 'lucide-react'; // Added SendHorizontal
+import { PiggyBank, Menu, UserCircle as UserIcon, LogIn, LogOut, UserCircle, Settings as CogIcon, LayoutDashboard, Sun, Moon, Laptop, SendHorizontal } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose, SheetTrigger } from '@/components/ui/sheet';
@@ -23,13 +23,13 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useSettings } from '@/contexts/SettingsContext';
 import type { Theme } from '@/lib/types';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'; // Added Tooltip
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 
 // Define base navigation items, Dashboard and Budgets will be filtered out for desktop
 const baseNavItems = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  // { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard }, // Removed
   { name: 'Transactions', href: '/expenses', icon: UserIcon }, // Kept UserIcon for generic representation
-  { name: 'Budgets', href: '/budgets', icon: UserIcon }, // Kept UserIcon
+  // { name: 'Budgets', href: '/budgets', icon: UserIcon }, // Removed
   { name: 'Savings Goals', href: '/savings-goals', icon: UserIcon }, // Kept UserIcon
   // Send Money will be handled separately as an icon button
 ];
@@ -76,13 +76,41 @@ export function AppHeader() {
   const ThemeIconForSettingsPage = theme === 'light' ? Moon : Sun;
 
   // Filter out Dashboard and Budgets for desktop navigation
-  const desktopNavItems = baseNavItems.filter(item => item.name !== 'Dashboard' && item.name !== 'Budgets');
+  const desktopNavItems = baseNavItems;
 
 
   return (
     <>
       <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b bg-background/95 px-4 backdrop-blur-sm sm:px-6 lg:px-8">
         <div className="flex items-center gap-2">
+          {/* Mobile Menu Trigger - moved to the left of the logo */}
+          {hasMounted && user && (
+            <div className="md:hidden">
+              <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+                <SheetTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="p-2 text-foreground hover:text-primary transition-colors"
+                    aria-label="Open menu"
+                  >
+                    <Menu className="h-6 w-6" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-72 p-0 flex flex-col bg-background">
+                  <SheetHeader className="p-4 border-b">
+                    <SheetTitle className="flex items-center gap-2">
+                      <PiggyBank className="h-7 w-7 text-primary" />
+                      <span className="font-headline text-xl font-semibold tracking-tight text-foreground">SM Cash</span>
+                    </SheetTitle>
+                  </SheetHeader>
+                  <div className="flex-grow overflow-y-auto">
+                    <AppSidebarNav onLinkClick={handleMobileLinkClick} isMobileLayout={true} isAdmin={isAdminUser} />
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
+          )}
           <Link href="/dashboard" className="flex items-center gap-2">
             <PiggyBank className="h-7 w-7 text-primary" />
             <h1 className="font-headline text-xl font-semibold tracking-tight text-foreground">
@@ -101,7 +129,7 @@ export function AppHeader() {
           </nav>
         )}
 
-        <div className="flex items-center gap-2 sm:gap-3"> {/* Adjusted gap for sm screens */}
+        <div className="flex items-center gap-1 sm:gap-2"> {/* Adjusted gap for sm screens */}
           {hasMounted && !loading && !user && (
             <Button asChild variant="outline" size="sm">
               <Link href="/login">
@@ -111,20 +139,22 @@ export function AppHeader() {
           )}
 
           {hasMounted && user && (
-             <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" asChild className="hidden md:inline-flex">
-                  <Link href="/send-money" aria-label="Send Money">
-                    <SendHorizontal className="h-5 w-5" />
-                  </Link>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Send Money</p>
-              </TooltipContent>
-            </Tooltip>
+             <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" asChild className="inline-flex"> {/* Always inline-flex */}
+                      <Link href="/send-money" aria-label="Send Money">
+                        <SendHorizontal className="h-5 w-5" />
+                      </Link>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Send Money</p>
+                  </TooltipContent>
+                </Tooltip>
+             </TooltipProvider>
           )}
-          
+
           {hasMounted && user && appUser && (
             <DropdownMenu>
               <DropdownMenuTriggerPrimitive asChild>
@@ -170,33 +200,7 @@ export function AppHeader() {
             </DropdownMenu>
           )}
 
-          {hasMounted && user && (
-            <div className="md:hidden">
-              <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-                <SheetTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="p-2 text-foreground hover:text-primary transition-colors"
-                    aria-label="Open menu"
-                  >
-                    <Menu className="h-6 w-6" />
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="left" className="w-72 p-0 flex flex-col bg-background">
-                  <SheetHeader className="p-4 border-b">
-                    <SheetTitle className="flex items-center gap-2">
-                      <PiggyBank className="h-7 w-7 text-primary" />
-                      <span className="font-headline text-xl font-semibold tracking-tight text-foreground">SM Cash</span>
-                    </SheetTitle>
-                  </SheetHeader>
-                  <div className="flex-grow overflow-y-auto">
-                    <AppSidebarNav onLinkClick={handleMobileLinkClick} isMobileLayout={true} isAdmin={isAdminUser} />
-                  </div>
-                </SheetContent>
-              </Sheet>
-            </div>
-          )}
+          {/* Mobile menu trigger is now on the left, so no need for it here */}
         </div>
       </header>
     </>
@@ -228,3 +232,4 @@ function ButtonLink({ href, currentPathname, children }: ButtonLinkProps) {
   );
 }
 
+    

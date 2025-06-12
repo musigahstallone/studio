@@ -24,7 +24,7 @@ export default function DashboardPage() {
   const { budgets, loadingBudgets: budLoading } = useBudgets();
   const { displayCurrency, isMounted: settingsMounted } = useSettings();
 
-  
+
   const totalIncome = useMemo(() => expenses.filter(e => e.type === 'income').reduce((s, e) => s + e.amount, 0), [expenses]);
   const totalExpense = useMemo(() => expenses.filter(e => e.type === 'expense').reduce((s, e) => s + e.amount, 0), [expenses]);
   const balance = totalIncome - totalExpense;
@@ -41,8 +41,11 @@ export default function DashboardPage() {
   return (
     <AppShell>
       <div className="container mx-auto py-8 px-4">
-        <h1 className="text-3xl font-bold mb-2">Welcome. <br/><span className="text-primary">{user?.displayName || 'User'}</span></h1>
-        <p className="text-muted-foreground mb-8">Here's an overview of your finances in <span className="font-medium">{displayCurrency}</span>.</p>
+        <div className="mb-8">
+          <h1 className="text-3xl md:text-4xl font-bold text-foreground leading-tight">Welcome.</h1>
+          <p className="text-2xl md:text-3xl text-primary font-semibold mt-0.5">{user?.displayName || 'User'}</p>
+          <p className="text-sm md:text-base text-muted-foreground mt-2">Here's an overview of your finances in <span className="font-medium">{displayCurrency}</span>.</p>
+        </div>
         <div className="grid gap-6 sm:grid-cols-3 mb-8">
           <Card className="p-6 hover:shadow-xl transition rounded-2xl bg-card">
             <TrendingUp className="h-6 w-6 text-primary mb-2" />
@@ -56,7 +59,7 @@ export default function DashboardPage() {
           </Card>
           <Card className="p-6 hover:shadow-xl transition rounded-2xl bg-card">
             <DollarSign className="h-6 w-6 text-accent mb-2" />
-            <h3 className="text-sm text-muted-.Foreground">Balance</h3>
+            <h3 className="text-sm text-muted-foreground">Balance</h3>
             <p className="text-2xl font-semibold text-foreground">{formatCurrency(balance, displayCurrency)}</p>
           </Card>
         </div>
@@ -92,3 +95,5 @@ export default function DashboardPage() {
     </AppShell>
   );
 }
+
+    

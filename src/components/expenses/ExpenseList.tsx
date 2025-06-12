@@ -7,12 +7,12 @@ import { Trash2, Edit3, ArrowDownCircle, ArrowUpCircle, Tag, CalendarDays, Build
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { useState, useEffect } from "react";
 import { format, parseISO } from 'date-fns';
-import { useSettings } from "@/contexts/SettingsContext"; 
+import { useSettings } from "@/contexts/SettingsContext";
 import { formatCurrency } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 
-const ITEMS_PER_PAGE = 10; 
+const ITEMS_PER_PAGE = 10;
 
 interface ExpenseListItemProps {
   expense: Expense;
@@ -21,7 +21,7 @@ interface ExpenseListItemProps {
 }
 
 function ExpenseListItem({ expense, onDeleteExpense /*, onEditExpense */ }: ExpenseListItemProps) {
-  const { displayCurrency, isMounted: settingsMounted } = useSettings(); 
+  const { displayCurrency, isMounted: settingsMounted } = useSettings();
   const isIncome = expense.type === 'income';
   const TypeIcon = isIncome ? ArrowUpCircle : ArrowDownCircle;
   const amountColor = isIncome ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
@@ -43,7 +43,7 @@ function ExpenseListItem({ expense, onDeleteExpense /*, onEditExpense */ }: Expe
 
   if (!settingsMounted) {
      return (
-      <Card className="mb-4 animate-pulse bg-muted/30 rounded-xl shadow-sm">
+      <Card className="mb-4 animate-pulse bg-muted/30 rounded-xl shadow-sm border-0"> {/* Added border-0 */}
         <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0 pb-2">
           <div className="h-6 w-3/5 bg-muted rounded"></div>
           <div className="h-6 w-1/5 bg-muted rounded"></div>
@@ -75,7 +75,7 @@ function ExpenseListItem({ expense, onDeleteExpense /*, onEditExpense */ }: Expe
   // );
 
   return (
-    <Card className="mb-4 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300">
+    <Card className="mb-4 rounded-xl shadow-lg hover:shadow-xl hover:bg-muted/50 transition-all duration-300 border-0"> {/* Added border-0 and hover:bg-muted/50 */}
       <CardHeader className="p-4 flex flex-row items-start sm:items-center justify-between space-y-0 pb-2">
         <div className="flex items-center gap-2 min-w-0">
           <TypeIcon className={`h-6 w-6 ${iconColor} flex-shrink-0`} />
@@ -160,7 +160,7 @@ export function ExpenseList({ expenses, onDeleteExpense /*, onEditExpense */ }: 
      return (
       <div className="mt-6 space-y-4">
         {[...Array(Math.min(ITEMS_PER_PAGE, 3))].map((_, i) => (
-         <Card key={i} className="animate-pulse bg-muted/30 rounded-xl shadow-sm">
+         <Card key={i} className="animate-pulse bg-muted/30 rounded-xl shadow-sm border-0"> {/* Added border-0 */}
             <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0 pb-2">
               <div className="h-6 w-3/5 bg-muted rounded"></div>
               <div className="h-6 w-1/5 bg-muted rounded"></div>
@@ -181,7 +181,7 @@ export function ExpenseList({ expenses, onDeleteExpense /*, onEditExpense */ }: 
 
   if (expenses.length === 0) {
     return (
-      <Card className="mt-8 rounded-xl shadow-lg">
+      <Card className="mt-8 rounded-xl shadow-lg border-0"> {/* Added border-0 */}
         <CardContent className="pt-6 text-center">
           <LayoutList className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
           <p className="text-lg font-semibold text-muted-foreground">No transactions recorded yet.</p>
@@ -234,3 +234,4 @@ export function ExpenseList({ expenses, onDeleteExpense /*, onEditExpense */ }: 
   );
 }
 
+    
