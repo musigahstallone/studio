@@ -14,8 +14,6 @@ import { Button } from '@/components/ui/button';
 import { PlusCircle, Loader2 } from 'lucide-react';
 import { useBudgets } from '@/contexts/ExpenseContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { CardTitle, CardDescription } from '@/components/ui/card';
-
 
 export default function BudgetsPage() {
   const { user, loading: authLoading } = useAuth();
@@ -42,10 +40,7 @@ export default function BudgetsPage() {
 
   const handleSaveBudget = async (budgetData: Omit<Budget, 'id' | 'userId' | 'spentAmount' | 'createdAt' | 'updatedAt'>, id?: string) => {
     if (id) {
-      const budgetToUpdateFromState = budgets.find(b => b.id === id);
-      if (budgetToUpdateFromState) {
-        await updateBudget({ id, ...budgetData });
-      }
+      await updateBudget({ id, ...budgetData });
     } else {
       await addBudget(budgetData);
     }
@@ -64,7 +59,7 @@ export default function BudgetsPage() {
     : "Define a name and spending limit for a category.";
 
 
-  if (authLoading || (!user && !authLoading) || loadingBudgets) {
+  if (authLoading || loadingBudgets || (!authLoading && !user) ) { // Simplified loading condition slightly
     return (
       <AppShell>
         <div className="flex items-center justify-center h-64">

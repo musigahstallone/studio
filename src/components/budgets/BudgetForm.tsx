@@ -22,13 +22,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox"; // Import Checkbox
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import type { Budget } from "@/lib/types";
 import { expenseCategories, DEFAULT_STORED_CURRENCY } from "@/lib/types";
 import { PlusCircle, Save, AlertOctagon } from "lucide-react";
 import { useSettings } from "@/contexts/SettingsContext"; 
-import { convertToBaseCurrency, formatCurrency } from "@/lib/utils"; 
+import { convertToBaseCurrency, formatCurrency, CONVERSION_RATES_FROM_BASE } from "@/lib/utils"; 
 import { useEffect } from "react";
 
 
@@ -37,7 +37,7 @@ const BudgetFormSchema = z.object({
   name: z.string().min(1, { message: "Budget name is required." }).max(50, { message: "Name must be 50 characters or less."}),
   category: z.string().min(1, { message: "Category is required." }),
   amount: z.number().positive({ message: "Budget amount must be positive." }),
-  warnOnExceed: z.boolean().optional(), // Added warnOnExceed
+  warnOnExceed: z.boolean().optional(),
 });
 
 type BudgetFormData = z.infer<typeof BudgetFormSchema>;
@@ -63,16 +63,22 @@ export function BudgetForm({ onSaveBudget, existingBudgets, initialData, onSubmi
       id: initialData?.id || undefined,
       name: initialData?.name || "",
       category: initialData?.category || "",
-      amount: initialData?.amount || 0,
-      warnOnExceed: initialData?.warnOnExceed || false, // Default to false
+      amount: initialData?.amount || 0, // This amount is in base currency if initialData exists
+      warnOnExceed: initialData?.warnOnExceed || false,
     },
   });
 
   useEffect(() => {
-    let amountForForm = initialData?.amount || 0;
+    let amountForForm = initialData?.amount || 0; // This amount is from Firestore (base currency)
     if (initialData?.amount && settingsMounted && localCurrency !== DEFAULT_STORED_CURRENCY) {
-      const rateFromBaseToLocal = 1 / (CONVERSION_RATES_TO_BASE_BUDGET[localCurrency] || 1);
-      amountForForm = initialData.amount * rateFromBaseToLocal;
+      // Convert from base currency (DEFAULT_STORED_CURRENCY) to localCurrency for display
+      const rateFromBaseToLocal = CONVERSION_RATES_FROM_BASE[localCurrency];
+       if (typeof rateFromBaseToLocal === 'number') {
+        amountForForm = initialData.amount * rateFromBaseToLocal;
+      } else {
+        console.warn(`Missing conversion rate from base to ${localCurrency} for budget form display. Using base amount.`);
+        amountForForm = initialData.amount; // Fallback if rate is somehow missing
+      }
     }
 
     form.reset({
@@ -100,13 +106,14 @@ export function BudgetForm({ onSaveBudget, existingBudgets, initialData, onSubmi
         return;
     }
 
+    // `values.amount` is from the form, so it's in `localCurrency`. Convert it to base for storage.
     const amountInBaseCurrency = convertToBaseCurrency(values.amount, localCurrency);
 
     const budgetDataForContext: Omit<Budget, 'id' | 'userId' | 'spentAmount' | 'createdAt' | 'updatedAt'> = {
       name: values.name,
       category: values.category as any,
       amount: amountInBaseCurrency, 
-      warnOnExceed: values.warnOnExceed || false, // Ensure it's always a boolean
+      warnOnExceed: values.warnOnExceed || false,
     };
 
     onSaveBudget(budgetDataForContext, values.id);
@@ -183,10 +190,10 @@ export function BudgetForm({ onSaveBudget, existingBudgets, initialData, onSubmi
                     onChange={e => {
                       const val = e.target.value;
                       if (val === "") {
-                        field.onChange(val);
+                        field.onChange(val); // Allow empty string for temporary state if user deletes input
                       } else {
                         const num = parseFloat(val);
-                        field.onChange(isNaN(num) ? val : num);
+                        field.onChange(isNaN(num) ? val : num); // Pass number or original string if unparsable
                       }
                     }}
                 />
@@ -229,9 +236,3 @@ export function BudgetForm({ onSaveBudget, existingBudgets, initialData, onSubmi
     </Form>
   );
 }
-
-const CONVERSION_RATES_TO_BASE_BUDGET: Record<string, number> = {
-  USD: 1,
-  EUR: 1 / 0.92,
-  KES: 1 / 130,
-};
