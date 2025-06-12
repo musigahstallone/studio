@@ -3,7 +3,7 @@
 
 import type { AppUser } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { Mail, CalendarDays, DollarSign, ShoppingBag, ChevronLeft, ChevronRight, ShieldCheck, ShieldAlert, UserCircle, CheckCircle, XCircle, Trash2 as DeletedIcon } from "lucide-react";
+import { Mail, CalendarDays, DollarSign, ShoppingBag, ChevronLeft, ChevronRight, ShieldCheck, ShieldAlert, UserCircle, CheckCircle, XCircle, Trash2 as DeletedIcon, Tags } from "lucide-react"; // Added Tags icon
 import { Card, CardDescription, CardContent } from "@/components/ui/card";
 import { useState, useEffect } from "react";
 import { format, parseISO, isValid } from 'date-fns';
@@ -45,11 +45,12 @@ function UserListItem({ user }: UserListItemProps) {
 
   if (!settingsMounted) {
      return (
-        <div className="p-4 border-b h-20 animate-pulse bg-muted/30 rounded-md my-1 grid grid-cols-1 md:grid-cols-[auto_1fr_auto] gap-4 items-center">
+        <div className="p-4 border-b h-24 animate-pulse bg-muted/30 rounded-md my-1 grid grid-cols-1 md:grid-cols-[auto_1fr_auto] gap-4 items-center">
             <div className="h-10 w-10 rounded-full bg-muted flex-shrink-0"></div>
             <div className="flex-1 min-w-0 space-y-1">
                 <div className="h-5 w-3/5 bg-muted rounded"></div>
                 <div className="h-3 w-4/5 bg-muted rounded"></div>
+                <div className="h-3 w-2/3 bg-muted rounded"></div> {/* For tag */}
             </div>
             <div className="flex flex-col items-start md:items-end gap-1">
                 <div className="h-3 w-24 bg-muted rounded"></div>
@@ -69,7 +70,7 @@ function UserListItem({ user }: UserListItemProps) {
       </Avatar>
 
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap mb-1">
           <p className="font-semibold text-sm sm:text-base md:text-lg text-foreground truncate">{user.name || 'Unnamed User'}</p>
           {user.isAdmin ? <Badge variant="secondary" className="text-xs"><ShieldCheck className="h-3 w-3 mr-1" />Admin</Badge> : <Badge variant="outline" className="text-xs"><ShieldAlert className="h-3 w-3 mr-1" />User</Badge>}
           {user.isDeletedAccount ? (
@@ -84,6 +85,14 @@ function UserListItem({ user }: UserListItemProps) {
           <span className="flex items-center"><Mail className="h-3 w-3 mr-1" />{user.email || 'no-email@example.com'}</span>
           <span className="flex items-center"><CalendarDays className="h-3 w-3 mr-1" />Joined: {formattedJoinDate}</span>
         </div>
+         {user.transactionTag && (
+            <div className="mt-1">
+                <Badge variant="outline" className="text-xs font-mono tracking-wider">
+                    <Tags className="h-3 w-3 mr-1.5" />
+                    {user.transactionTag}
+                </Badge>
+            </div>
+        )}
       </div>
 
       <div className="flex flex-col items-start md:items-end gap-1 text-xs text-muted-foreground">
@@ -113,11 +122,12 @@ export function UserList({ users }: UserListProps) {
     return (
         <div className="mt-2 space-y-1">
             {[...Array(Math.min(ITEMS_PER_PAGE, 3))].map((_,i) => (
-                <div key={i} className="p-4 border-b h-20 animate-pulse bg-muted/30 rounded-md grid grid-cols-1 md:grid-cols-[auto_1fr_auto] gap-4 items-center">
+                <div key={i} className="p-4 border-b h-24 animate-pulse bg-muted/30 rounded-md grid grid-cols-1 md:grid-cols-[auto_1fr_auto] gap-4 items-center">
                     <div className="h-10 w-10 rounded-full bg-muted flex-shrink-0"></div>
                     <div className="flex-1 min-w-0 space-y-1">
                         <div className="h-5 w-3/5 bg-muted rounded"></div>
                         <div className="h-3 w-4/5 bg-muted rounded"></div>
+                        <div className="h-3 w-2/3 bg-muted rounded"></div>
                     </div>
                     <div className="flex flex-col items-start md:items-end gap-1">
                         <div className="h-3 w-24 bg-muted rounded"></div>

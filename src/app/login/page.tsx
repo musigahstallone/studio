@@ -9,7 +9,7 @@ import {
   signInWithEmailAndPassword,
   sendPasswordResetEmail
 } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, Timestamp, collection, query, where, getDocs } from 'firebase/firestore'; // Added Firestore imports
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,7 +17,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
 import { Loader2, LogIn, UserPlus, KeyRound, CheckCircle, AlertCircle, Eye, EyeOff } from 'lucide-react';
-import { generateTransactionTag } from '@/lib/types'; // Import the generator
+import { generateTransactionTag } from '@/lib/types'; 
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -92,8 +92,19 @@ export default function LoginPage() {
       const user = userCredential.user;
       if (user) {
         const userDocRef = doc(db, 'users', user.uid);
-        // TODO: In production, ensure transactionTag is truly unique by checking Firestore.
-        const transactionTag = generateTransactionTag(); 
+        
+        // Generate unique transaction tag
+        let uniqueTransactionTag = '';
+        let tagExists = true;
+        const usersRef = collection(db, 'users');
+        
+        while (tagExists) {
+          uniqueTransactionTag = generateTransactionTag();
+          const q = query(usersRef, where('transactionTag', '==', uniqueTransactionTag));
+          const querySnapshot = await getDocs(q);
+          tagExists = !querySnapshot.empty;
+        }
+        
         await setDoc(userDocRef, {
           uid: user.uid,
           email: user.email,
@@ -101,9 +112,9 @@ export default function LoginPage() {
           photoURL: user.photoURL,
           joinDate: Timestamp.fromDate(new Date()),
           isAdmin: false,
-          transactionTag: transactionTag, // Store the generated tag
-          isActive: true, // Default to active on signup
-          isDeletedAccount: false, // Default
+          transactionTag: uniqueTransactionTag, 
+          isActive: true, 
+          isDeletedAccount: false, 
         });
       }
       toast({

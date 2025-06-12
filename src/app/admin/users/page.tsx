@@ -6,13 +6,13 @@ import { AdminShell } from '@/components/admin/layout/AdminShell';
 import { UserList } from '@/components/admin/UserList';
 import type { AppUser } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, RefreshCw, UserCheck } from 'lucide-react';
+import { Loader2, RefreshCw, UserCheck, Tags } from 'lucide-react'; // Added Tags icon
 import { Button } from '@/components/ui/button';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, query, orderBy, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { markAllUsersActive as markAllUsersActiveAction } from '@/actions/adminActions';
+import { markAllUsersActive as markAllUsersActiveAction, assignMissingTransactionTagsToUsers as assignMissingTagsAction } from '@/actions/adminActions'; // Added assignMissingTagsAction
 
 export default function AdminUsersPage() {
   const { isAdminUser } = useAuth();
@@ -21,6 +21,7 @@ export default function AdminUsersPage() {
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isUpdatingAllUsers, setIsUpdatingAllUsers] = useState(false);
+  const [isAssigningTags, setIsAssigningTags] = useState(false); // New state for assigning tags
 
   const fetchUsers = useCallback(async () => {
     if (!isAdminUser) {
@@ -46,7 +47,7 @@ export default function AdminUsersPage() {
           expensesSnapshot.forEach(expDoc => {
             const expData = expDoc.data();
             if (expData.type === 'expense' && typeof expData.amount === 'number') {
-              totalSpent += expData.amount; // amount is in base currency (USD)
+              totalSpent += expData.amount; 
             }
           });
         } catch (userExpenseError) {
@@ -77,6 +78,7 @@ export default function AdminUsersPage() {
           isActive: userData.isActive === undefined ? true : userData.isActive,
           isDeletedAccount: userData.isDeletedAccount || false,
           deletedAt: userData.deletedAt || undefined,
+          transactionTag: userData.transactionTag || undefined, // Include transactionTag
         } as AppUser;
       });
 
@@ -114,13 +116,27 @@ export default function AdminUsersPage() {
     try {
       const result = await markAllUsersActiveAction();
       toast({ title: result.title, description: result.description });
-      fetchUsers(); // Refresh user list
+      fetchUsers(); 
     } catch (error: any) {
       toast({ variant: "destructive", title: "Error", description: error.message || "Could not update users." });
     } finally {
       setIsUpdatingAllUsers(false);
     }
   };
+
+  const handleAssignMissingTags = async () => {
+    setIsAssigningTags(true);
+    try {
+      const result = await assignMissingTagsAction();
+      toast({ title: result.title, description: result.description });
+      fetchUsers(); // Refresh user list to show new tags
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Error Assigning Tags", description: error.message || "Could not assign tags." });
+    } finally {
+      setIsAssigningTags(false);
+    }
+  };
+
 
   return (
     <AdminShell>
@@ -129,12 +145,16 @@ export default function AdminUsersPage() {
           <h1 className="font-headline text-2xl md:text-3xl font-semibold text-foreground">
             User Management
           </h1>
-          <div className="flex gap-2">
-            <Button onClick={handleMarkAllActive} variant="outline" disabled={isLoadingUsers || isUpdatingAllUsers || isRefreshing}>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={handleAssignMissingTags} variant="outline" disabled={isLoadingUsers || isAssigningTags || isRefreshing || isUpdatingAllUsers}>
+              <Tags className={`mr-2 h-4 w-4 ${isAssigningTags ? "animate-pulse" : ""}`} />
+              {isAssigningTags ? "Assigning Tags..." : "Assign Missing Tags"}
+            </Button>
+            <Button onClick={handleMarkAllActive} variant="outline" disabled={isLoadingUsers || isUpdatingAllUsers || isRefreshing || isAssigningTags}>
               <UserCheck className={`mr-2 h-4 w-4 ${isUpdatingAllUsers ? "animate-spin" : ""}`} />
               {isUpdatingAllUsers ? "Updating..." : "Mark All Active"}
             </Button>
-            <Button onClick={handleRefreshUsers} variant="outline" disabled={isLoadingUsers || isRefreshing || isUpdatingAllUsers}>
+            <Button onClick={handleRefreshUsers} variant="outline" disabled={isLoadingUsers || isRefreshing || isUpdatingAllUsers || isAssigningTags}>
               <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
               {isRefreshing ? "Refreshing..." : "Refresh List"}
             </Button>
@@ -144,7 +164,7 @@ export default function AdminUsersPage() {
           <CardHeader>
             <CardTitle className="text-lg md:text-xl">All Platform Users</CardTitle>
             <CardDescription className="text-xs sm:text-sm">
-              Overview of registered users. Transaction and spending data is calculated on load.
+              Overview of registered users. Transaction and spending data is calculated on load. Transaction tags are unique identifiers for P2P transfers.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -171,6 +191,7 @@ export default function AdminUsersPage() {
                 </p>
                 <p className="text-xs sm:text-sm text-amber-600 dark:text-amber-300 mt-2">
                     For production applications, it is highly recommended to pre-calculate and store these aggregates (e.g., using Cloud Functions) on each user's document for better performance and scalability.
+                     The "Assign Missing Tags" action also iterates through users and performs checks, which can be slow for very large user bases.
                 </p>
             </CardContent>
           </Card>
