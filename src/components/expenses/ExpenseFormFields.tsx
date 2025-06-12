@@ -33,7 +33,7 @@ interface ExpenseFormFieldsProps {
   control: Control<z.infer<typeof ExpenseFormSchema>>;
   formType: "expense" | "income";
   onFormTypeChange: (type: "expense" | "income") => void;
-  localCurrencySymbol: string; // To display alongside amount input
+  localCurrencySymbol: string; 
 }
 
 export function ExpenseFormFields({ control, formType, onFormTypeChange, localCurrencySymbol }: ExpenseFormFieldsProps) {
@@ -94,14 +94,10 @@ export function ExpenseFormFields({ control, formType, onFormTypeChange, localCu
                 type="number" 
                 placeholder="0.00" 
                 {...field}
+                value={field.value === undefined || field.value === null || isNaN(field.value as number) ? "" : String(field.value)}
                 onChange={e => {
                   const val = e.target.value;
-                  if (val === "") {
-                    field.onChange(val);
-                  } else {
-                    const num = parseFloat(val);
-                    field.onChange(isNaN(num) ? val : num);
-                  }
+                  field.onChange(val === "" ? undefined : parseFloat(val));
                 }}
               />
             </FormControl>

@@ -122,24 +122,24 @@ export function SavingsGoalForm({ onSaveGoal, existingGoals, initialData, onSubm
     defaultValues: {
       id: undefined,
       name: "",
-      targetAmount: "" as unknown as number,
+      targetAmount: undefined,
       goalType: "targetDate",
       targetDate: undefined,
       startDate: format(new Date(), "yyyy-MM-dd"),
-      durationMonths: "" as unknown as number,
+      durationMonths: undefined,
       allowsEarlyWithdrawal: false,
-      earlyWithdrawalPenaltyRate: "" as unknown as number,
+      earlyWithdrawalPenaltyRate: undefined,
       withdrawalCondition: initialData?.withdrawalCondition || "maturityDateReached",
     },
   });
 
   useEffect(() => {
-    let amountForFormDisplay = "";
+    let amountForFormDisplay: number | undefined = undefined;
     if (initialData?.targetAmount && settingsMounted && localCurrency !== DEFAULT_STORED_CURRENCY) {
       const rateFromBaseToLocal = 1 / (CONVERSION_RATES_TO_BASE_SAVINGS[localCurrency] || 1);
-      amountForFormDisplay = (initialData.targetAmount * rateFromBaseToLocal).toFixed(2);
+      amountForFormDisplay = parseFloat((initialData.targetAmount * rateFromBaseToLocal).toFixed(2));
     } else if (initialData?.targetAmount) {
-      amountForFormDisplay = initialData.targetAmount.toFixed(2);
+      amountForFormDisplay = parseFloat(initialData.targetAmount.toFixed(2));
     }
 
     const currentGoalType = initialData?.targetDate ? "targetDate" : (initialData?.durationMonths ? "duration" : "targetDate");
@@ -148,13 +148,13 @@ export function SavingsGoalForm({ onSaveGoal, existingGoals, initialData, onSubm
     form.reset({
       id: initialData?.id || undefined,
       name: initialData?.name || "",
-      targetAmount: amountForFormDisplay as unknown as number,
+      targetAmount: amountForFormDisplay,
       goalType: currentGoalType,
       targetDate: initialData?.targetDate && isValid(parseISO(initialData.targetDate)) ? format(parseISO(initialData.targetDate), "yyyy-MM-dd") : undefined,
       startDate: initialData?.startDate && isValid(parseISO(initialData.startDate)) ? format(parseISO(initialData.startDate), "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
-      durationMonths: initialData?.durationMonths?.toString() as unknown as number || "" as unknown as number,
+      durationMonths: initialData?.durationMonths,
       allowsEarlyWithdrawal: initialData?.allowsEarlyWithdrawal || false,
-      earlyWithdrawalPenaltyRate: initialData?.earlyWithdrawalPenaltyRate ? (initialData.earlyWithdrawalPenaltyRate * 100).toString() as unknown as number : "" as unknown as number,
+      earlyWithdrawalPenaltyRate: initialData?.earlyWithdrawalPenaltyRate ? (initialData.earlyWithdrawalPenaltyRate * 100) : undefined,
       withdrawalCondition: initialData?.withdrawalCondition || "maturityDateReached",
     });
   }, [initialData, form, settingsMounted, localCurrency]);
@@ -171,7 +171,7 @@ export function SavingsGoalForm({ onSaveGoal, existingGoals, initialData, onSubm
       return;
     }
 
-    const targetAmountInBaseCurrency = convertToBaseCurrency(values.targetAmount, localCurrency);
+    const targetAmountInBaseCurrency = convertToBaseCurrency(values.targetAmount as number, localCurrency);
     
     let penaltyRateDecimal = 0;
     if (values.allowsEarlyWithdrawal && typeof values.earlyWithdrawalPenaltyRate === 'number') {
@@ -204,9 +204,9 @@ export function SavingsGoalForm({ onSaveGoal, existingGoals, initialData, onSubm
       description: `${values.name} - Target: ${formatCurrency(targetAmountInBaseCurrency, displayCurrency)}`,
     });
     form.reset({
-        id: undefined, name: "", targetAmount: "" as unknown as number, goalType: "targetDate",
-        targetDate: undefined, startDate: format(new Date(), "yyyy-MM-dd"), durationMonths: "" as unknown as number,
-        allowsEarlyWithdrawal: false, earlyWithdrawalPenaltyRate: "" as unknown as number,
+        id: undefined, name: "", targetAmount: undefined, goalType: "targetDate",
+        targetDate: undefined, startDate: format(new Date(), "yyyy-MM-dd"), durationMonths: undefined,
+        allowsEarlyWithdrawal: false, earlyWithdrawalPenaltyRate: undefined,
         withdrawalCondition: "maturityDateReached",
     });
     setSelectedGoalType("targetDate");
@@ -243,7 +243,10 @@ export function SavingsGoalForm({ onSaveGoal, existingGoals, initialData, onSubm
                     placeholder="0.00"
                     {...field}
                     value={field.value === undefined || field.value === null || isNaN(field.value as number) ? "" : String(field.value)}
-                    onChange={e => field.onChange(e.target.value)}
+                    onChange={e => {
+                        const val = e.target.value;
+                        field.onChange(val === "" ? undefined : parseFloat(val));
+                    }}
                 />
               </FormControl>
               <FormDescription>
@@ -265,7 +268,7 @@ export function SavingsGoalForm({ onSaveGoal, existingGoals, initialData, onSubm
                   field.onChange(value);
                   setSelectedGoalType(value);
                   if (value === "targetDate") {
-                    form.setValue("durationMonths", "" as unknown as number);
+                    form.setValue("durationMonths", undefined);
                     form.setValue("startDate", undefined);
                   } else {
                     form.setValue("targetDate", undefined);
@@ -402,7 +405,10 @@ export function SavingsGoalForm({ onSaveGoal, existingGoals, initialData, onSubm
                       placeholder="e.g., 12 for one year"
                       {...field}
                       value={field.value === undefined || field.value === null || isNaN(field.value as number) ? "" : String(field.value)}
-                      onChange={e => field.onChange(e.target.value)}
+                       onChange={e => {
+                        const val = e.target.value;
+                        field.onChange(val === "" ? undefined : parseInt(val, 10));
+                      }}
                       disabled={isEditing}
                     />
                   </FormControl>
@@ -456,17 +462,18 @@ export function SavingsGoalForm({ onSaveGoal, existingGoals, initialData, onSubm
               <FormControl>
                 <Checkbox
                   checked={field.value}
-                  onCheckedChange={(checked) => {
+                  onCheckedChange={(checkedBoolean) => {
+                    const checked = Boolean(checkedBoolean)
                     field.onChange(checked);
                     if (!checked) {
-                        form.setValue("earlyWithdrawalPenaltyRate", "" as unknown as number, { shouldValidate: true });
+                        form.setValue("earlyWithdrawalPenaltyRate", undefined, { shouldValidate: true });
                     }
                   }}
                   disabled={isEditing}
                 />
               </FormControl>
               <div className="space-y-1 leading-none">
-                <FormLabel>
+                <FormLabel className="cursor-pointer">
                   Allow Early Withdrawal
                 </FormLabel>
                 <FormDescription>
@@ -490,12 +497,15 @@ export function SavingsGoalForm({ onSaveGoal, existingGoals, initialData, onSubm
                   placeholder="e.g., 10 for 10%"
                   {...field}
                   value={field.value === undefined || field.value === null || isNaN(field.value as number) ? "" : String(field.value)}
-                  onChange={e => field.onChange(e.target.value)}
+                  onChange={e => {
+                    const val = e.target.value;
+                    field.onChange(val === "" ? undefined : parseFloat(val));
+                  }}
                   disabled={!form.watch("allowsEarlyWithdrawal") || isEditing}
                 />
               </FormControl>
               <FormDescription>
-                Min 10%, Max 100%. Percentage of withdrawn amount penalized if withdrawn early.
+                Min 10%, Max 100%. Percentage of target amount penalized if withdrawn early.
                 Only applicable if "Allow Early Withdrawal" is checked.
                 {!isEditing && " This rate cannot be changed after creation."}
               </FormDescription>

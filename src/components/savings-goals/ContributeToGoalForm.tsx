@@ -20,7 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { SavingsGoal } from "@/lib/types";
 import { useSettings } from "@/contexts/SettingsContext";
 import { convertToBaseCurrency, formatCurrency } from "@/lib/utils";
-import { DollarSign, AlertOctagon } from "lucide-react"; // Added AlertOctagon
+import { DollarSign, AlertOctagon } from "lucide-react"; 
 import { Textarea } from "@/components/ui/textarea";
 import { useExpenses, useBudgets } from "@/contexts/ExpenseContext"; 
 import { useEffect, useState, useMemo } from "react";
@@ -29,12 +29,16 @@ import { DEFAULT_STORED_CURRENCY } from "@/lib/types";
 
 const ContributeToGoalSchema = z.object({
   contributionAmount: z.preprocess(
-    (val) => (val === "" ? undefined : parseFloat(String(val))),
+    (val) => (String(val).trim() === "" ? undefined : parseFloat(String(val))),
     z.number().positive({ message: "Contribution amount must be positive." })
-  ),
+  ).optional(), // Make optional if fillRemaining can satisfy it
   contributionDescription: z.string().optional(),
   fillRemaining: z.boolean().default(false),
+}).refine(data => data.fillRemaining || (typeof data.contributionAmount === 'number' && data.contributionAmount > 0), {
+  message: "Contribution amount must be positive or 'Fill Remaining' must be checked.",
+  path: ["contributionAmount"],
 });
+
 
 type ContributeToGoalFormData = z.infer<typeof ContributeToGoalSchema>;
 
@@ -55,29 +59,33 @@ export function ContributeToGoalForm({ goal, onSaveContribution, onSubmissionDon
   const { toast } = useToast();
   const { localCurrency, displayCurrency, isMounted: settingsMounted } = useSettings();
   const { expenses: userExpenses } = useExpenses(); 
-  const { budgets } = useBudgets(); // Get budgets
+  const { budgets } = useBudgets(); 
   const [isSubmittingForm, setIsSubmittingForm] = useState(false);
 
   const form = useForm<ContributeToGoalFormData>({
     resolver: zodResolver(ContributeToGoalSchema),
     defaultValues: {
-      contributionAmount: "" as unknown as number,
+      contributionAmount: undefined,
       contributionDescription: `Contribution to ${goal.name}`,
       fillRemaining: false,
     },
   });
 
   const watchFillRemaining = form.watch("fillRemaining");
+  const watchContributionAmount = form.watch("contributionAmount");
+
 
   const { spendableIncomeForSavings, remainingToReachGoalBase } = useMemo(() => {
     const totalIncome = userExpenses
       .filter(e => e.type === 'income')
       .reduce((sum, e) => sum + e.amount, 0);
-    const totalCurrentSavingsContributions = userExpenses
-      .filter(e => e.category === 'Savings' && e.relatedSavingsGoalId !== goal.id) 
+    // This calculation needs to be careful: what if a contribution to *this* goal is already in userExpenses?
+    // For spendable income, we generally consider all expenses not part of THIS goal's contributions yet.
+    const totalCurrentExpensesExcludingThisGoal = userExpenses
+      .filter(e => e.type === 'expense' && e.relatedSavingsGoalId !== goal.id) // Exclude contributions to this goal
       .reduce((sum, e) => sum + e.amount, 0);
     
-    const spendable = Math.max(0, totalIncome - totalCurrentSavingsContributions);
+    const spendable = Math.max(0, totalIncome - totalCurrentExpensesExcludingThisGoal);
     const remainingBase = Math.max(0, goal.targetAmount - goal.currentAmount);
     return { spendableIncomeForSavings: spendable, remainingToReachGoalBase: remainingBase };
   }, [userExpenses, goal.targetAmount, goal.currentAmount, goal.id]);
@@ -90,8 +98,9 @@ export function ContributeToGoalForm({ goal, onSaveContribution, onSubmissionDon
       
       form.setValue("contributionAmount", remainingInLocalCurrency, { shouldValidate: true });
       form.clearErrors("contributionAmount"); 
-    } else if (!watchFillRemaining) {
-      // form.setValue("contributionAmount", "" as unknown as number); 
+    } else if (!watchFillRemaining && form.getValues("contributionAmount") === undefined) {
+       // If fillRemaining is unchecked and amount was auto-filled, clear it only if it's still the auto-filled value
+       // This allows user to manually type after unchecking
     }
   }, [watchFillRemaining, settingsMounted, localCurrency, goal.status, remainingToReachGoalBase, form]);
 
@@ -105,13 +114,22 @@ export function ContributeToGoalForm({ goal, onSaveContribution, onSubmissionDon
     setIsSubmittingForm(true);
 
     const amountInLocalCurrency = values.contributionAmount;
-    const amountInBaseCurrency = convertToBaseCurrency(amountInLocalCurrency, localCurrency);
-
-    if (amountInBaseCurrency <= 0) {
-      form.setError("contributionAmount", { type: "manual", message: "Contribution must be greater than zero." });
-      setIsSubmittingForm(false);
-      return;
+    if (typeof amountInLocalCurrency !== 'number' || amountInLocalCurrency <= 0) {
+      if (!values.fillRemaining) { // only error if not filling remaining
+        form.setError("contributionAmount", { type: "manual", message: "Contribution must be greater than zero." });
+        setIsSubmittingForm(false);
+        return;
+      }
     }
+    
+    const amountInBaseCurrency = convertToBaseCurrency(amountInLocalCurrency || 0, localCurrency); // Default to 0 if undefined
+
+    if (amountInBaseCurrency <= 0 && !values.fillRemaining) { // Double check after conversion for non-fillRemaining
+        form.setError("contributionAmount", { type: "manual", message: "Contribution must be greater than zero." });
+        setIsSubmittingForm(false);
+        return;
+    }
+
 
     if (amountInBaseCurrency > spendableIncomeForSavings) {
         form.setError("contributionAmount", {type: "manual", message: `Amount exceeds spendable income of ${formatCurrency(spendableIncomeForSavings, displayCurrency)}.`});
@@ -119,7 +137,8 @@ export function ContributeToGoalForm({ goal, onSaveContribution, onSubmissionDon
         return;
     }
     
-    if (!watchFillRemaining) { 
+    // If not filling remaining, check if contribution exceeds what's needed
+    if (!values.fillRemaining && amountInLocalCurrency) { 
         if ((goal.currentAmount + amountInBaseCurrency) > goal.targetAmount) {
             const maxAllowedContributionBase = goal.targetAmount - goal.currentAmount;
             const rateFromBaseToLocal = 1 / (CONVERSION_RATES_TO_BASE_FOR_DISPLAY[localCurrency] || 1);
@@ -127,25 +146,19 @@ export function ContributeToGoalForm({ goal, onSaveContribution, onSubmissionDon
 
             form.setError("contributionAmount", { 
                 type: "manual", 
-                message: `Amount exceeds target. Max allowed contribution is ${maxAllowedInLocal} ${localCurrency}.`
+                message: `Amount exceeds target. Max allowed: ${maxAllowedInLocal} ${localCurrency}. Or check 'Fill Remaining'.`
             });
             setIsSubmittingForm(false);
             return;
         }
     }
 
-    // Budget warning for 'Savings' category
+
     const savingsBudget = budgets.find(b => b.category === 'Savings' && b.warnOnExceed);
     if (savingsBudget) {
-        // Calculate current spent on 'Savings' category based on allUserExpenses from useExpenses()
-        // Note: This is a simplified calculation of current spent. The context's budget object has a `spentAmount`
-        // which is more robust. However, for an immediate warning before this specific transaction,
-        // this direct calculation might be slightly out of sync if many transactions happened just now
-        // without a re-render. For simplicity, we use a local calc here.
-        // A more robust way would be to get the savingsBudget.spentAmount and add to it.
         let currentSpentOnSavings = 0;
         userExpenses.filter(e => e.category === 'Savings' && e.type === 'expense')
-                    .forEach(e => currentSpentOnSavings += e.amount); // e.amount is already base currency
+                    .forEach(e => currentSpentOnSavings += e.amount); 
 
         const potentialNewSpentOnSavings = currentSpentOnSavings + amountInBaseCurrency;
 
@@ -162,9 +175,16 @@ export function ContributeToGoalForm({ goal, onSaveContribution, onSubmissionDon
     }
 
     try {
-      await onSaveContribution(goal.id, amountInBaseCurrency, values.contributionDescription);
+      // Use remainingToReachGoalBase if fillRemaining is checked, otherwise use converted amount
+      const finalAmountToBase = values.fillRemaining ? remainingToReachGoalBase : amountInBaseCurrency;
+      if (finalAmountToBase <= 0) {
+        toast({ variant: "destructive", title: "Contribution Error", description: "Final contribution amount is zero or less."});
+        setIsSubmittingForm(false);
+        return;
+      }
+      await onSaveContribution(goal.id, finalAmountToBase, values.contributionDescription);
       form.reset({
-        contributionAmount: "" as unknown as number,
+        contributionAmount: undefined,
         contributionDescription: `Contribution to ${goal.name}`,
         fillRemaining: false, 
       });
@@ -197,10 +217,11 @@ export function ContributeToGoalForm({ goal, onSaveContribution, onSubmissionDon
                     <FormControl>
                     <Checkbox
                         checked={field.value}
-                        onCheckedChange={(checked) => {
+                        onCheckedChange={(checkedBoolean) => {
+                            const checked = Boolean(checkedBoolean);
                             field.onChange(checked);
-                            if (!checked) { 
-                                form.setValue("contributionAmount", "" as unknown as number, { shouldValidate: true });
+                            if (!checked && watchContributionAmount === undefined) { 
+                                form.setValue("contributionAmount", undefined, { shouldValidate: true });
                             }
                         }}
                         disabled={isGoalMetOrInactive}
@@ -233,7 +254,7 @@ export function ContributeToGoalForm({ goal, onSaveContribution, onSubmissionDon
                   value={field.value === undefined || field.value === null || isNaN(field.value as number) ? "" : String(field.value)}
                   onChange={e => {
                     const val = e.target.value;
-                    field.onChange(val);
+                    field.onChange(val === "" ? undefined : parseFloat(val));
                   }}
                   disabled={watchFillRemaining || isGoalMetOrInactive || !settingsMounted}
                 />

@@ -19,7 +19,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { formatCurrency, calculateTransactionCost, convertToBaseCurrency } from '@/lib/utils';
 import { DEFAULT_STORED_CURRENCY } from '@/lib/types';
-import { useSearchParams } from 'next/navigation'; // Added for URL params
+import { useSearchParams } from 'next/navigation';
 
 const sendMoneySchema = z.object({
   recipientTag: z.string().min(6, "Transaction Tag must be at least 6 characters.").max(12, "Tag too long."),
@@ -36,7 +36,7 @@ export function SendMoneyForm() {
   const { user } = useAuth();
   const { localCurrency, displayCurrency, isMounted: settingsMounted } = useSettings();
   const { toast } = useToast();
-  const searchParams = useSearchParams(); // Get search params
+  const searchParams = useSearchParams();
 
   const [isVerifying, setIsVerifying] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -60,32 +60,7 @@ export function SendMoneyForm() {
   const estimatedFeeBase = amountInBase > 0 ? calculateTransactionCost(amountInBase) : 0;
   const totalDeductionBase = amountInBase + estimatedFeeBase;
 
-  const resetRecipientState = useCallback(() => {
-    setRecipientName(null);
-    setRecipientUid(null);
-    setVerificationError(null);
-    setUrlProvidedRecipientName(null);
-    form.setValue('recipientTag', '');
-  }, [form]);
-  
-  useEffect(() => {
-    const tagFromUrl = searchParams.get('toTag');
-    const nameFromUrl = searchParams.get('recipientName');
-
-    if (tagFromUrl) {
-      form.setValue('recipientTag', tagFromUrl, { shouldValidate: true });
-      if (nameFromUrl) {
-        setUrlProvidedRecipientName(decodeURIComponent(nameFromUrl));
-      }
-      // Automatically trigger verification if tag is from URL
-      // Ensure this doesn't trigger on every render if params are stable
-      if(tagFromUrl !== form.getValues('recipientTag') || !recipientName) { // Check if we need to re-verify
-        handleVerifyRecipient(tagFromUrl);
-      }
-    }
-  }, [searchParams, form, recipientName]); // Removed handleVerifyRecipient from deps to avoid loop
-
-  const handleVerifyRecipient = async (tagToVerify?: string) => {
+  const handleVerifyRecipient = useCallback(async (tagToVerify?: string) => {
     const tag = tagToVerify || form.getValues('recipientTag');
     if (!tag) {
       form.setError('recipientTag', { type: 'manual', message: 'Recipient Tag is required.' });
@@ -93,7 +68,7 @@ export function SendMoneyForm() {
     }
     setIsVerifying(true);
     setVerificationError(null);
-    setRecipientName(null); // Reset on new verification attempt
+    setRecipientName(null); 
     setRecipientUid(null);
     try {
       const result = await verifyRecipientByTransactionTag(tag);
@@ -105,7 +80,7 @@ export function SendMoneyForm() {
              setVerificationError("You cannot send money to yourself.");
              toast({ variant: 'destructive', title: 'Verification Failed', description: "You cannot send money to yourself."});
         } else {
-            setRecipientName(result.recipientName); // Authoritative name from server
+            setRecipientName(result.recipientName); 
             setRecipientUid(result.recipientUid);
             toast({ title: 'Recipient Verified', description: `Found user: ${result.recipientName}` });
         }
@@ -116,7 +91,34 @@ export function SendMoneyForm() {
     } finally {
       setIsVerifying(false);
     }
-  };
+  }, [form, toast, user?.uid]);
+
+  const resetRecipientState = useCallback(() => {
+    setRecipientName(null);
+    setRecipientUid(null);
+    setVerificationError(null);
+    setUrlProvidedRecipientName(null);
+    form.setValue('recipientTag', '');
+    // Potentially clear URL params if we want to avoid re-triggering useEffect
+    // For now, just clearing form state.
+  }, [form]);
+  
+  useEffect(() => {
+    const tagFromUrl = searchParams.get('toTag');
+    const nameFromUrl = searchParams.get('recipientName');
+
+    if (tagFromUrl) {
+      form.setValue('recipientTag', tagFromUrl, { shouldValidate: false }); // Set without immediate validation
+      if (nameFromUrl) {
+        setUrlProvidedRecipientName(decodeURIComponent(nameFromUrl));
+      }
+      // Automatically trigger verification only if the tag is new or no recipient is verified
+      if (tagFromUrl !== form.getValues('recipientTag') || !recipientName) { 
+        handleVerifyRecipient(tagFromUrl);
+      }
+    }
+  }, [searchParams, form, recipientName, handleVerifyRecipient]);
+
 
   const onSubmit = async (data: SendMoneyFormData) => {
     if (!recipientName || !recipientUid) {
@@ -145,7 +147,6 @@ export function SendMoneyForm() {
         toast({ title: 'Transfer Successful!', description: result.message, className: "bg-green-500/10 border-green-500 text-green-700 dark:text-green-400" });
         form.reset();
         resetRecipientState();
-        // If opened via URL, maybe clear URL params or redirect? For now, just resets form.
       }
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'Transfer Error', description: e.message || 'An unknown error occurred.' });
@@ -199,7 +200,7 @@ export function SendMoneyForm() {
                 <div className="flex items-center gap-2">
                     <ShieldQuestion className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                     <p className="text-sm text-blue-700 dark:text-blue-300">
-                        Sending to <span className="font-semibold">{urlProvidedRecipientName}</span> (Tag: {form.getValues('recipientTag')}). Please verify.
+                        Verifying recipient <span className="font-semibold">{urlProvidedRecipientName}</span> (Tag: {form.getValues('recipientTag')})...
                     </p>
                 </div>
             </Card>
@@ -223,7 +224,16 @@ export function SendMoneyForm() {
             <FormItem>
               <FormLabel className="text-sm">Amount (in {localCurrency})</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="0.00" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || "")} />
+                <Input 
+                  type="number" 
+                  placeholder="0.00" 
+                  {...field} 
+                  value={field.value === undefined || field.value === null || isNaN(field.value as number) ? "" : String(field.value)}
+                  onChange={e => {
+                    const val = e.target.value;
+                    field.onChange(val === "" ? undefined : parseFloat(val));
+                  }}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -286,4 +296,3 @@ export function SendMoneyForm() {
     </Form>
   );
 }
-

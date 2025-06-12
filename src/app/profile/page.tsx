@@ -75,6 +75,8 @@ export default function ProfilePage() {
         const tag = appUser.transactionTag;
         const recipientName = encodeURIComponent(appUser.name);
         setSendMoneyLink(`${appBaseUrl}/send-money?toTag=${tag}&recipientName=${recipientName}`);
+      } else {
+        setSendMoneyLink(''); // Clear link if tag or name is missing
       }
     }
   }, [appUser, user, form]);
@@ -161,6 +163,8 @@ export default function ProfilePage() {
       }
       
       if (!isEditingEmail || (isEditingEmail && emailChangeRequestedSuccessfully)) {
+        // Reset email field to initialEmail if not editing or if edit request was successful
+        // to prevent showing the new (unverified) email as current.
         form.reset({ displayName: data.displayName, email: initialEmail }); 
       }
       setIsEditingEmail(false); 
@@ -178,6 +182,7 @@ export default function ProfilePage() {
     try {
       await deleteCurrentUserAccountAction();
       toast({ title: "Account Deletion Processed", description: "Your account is being deleted. You will be logged out shortly."});
+      // Logout is handled by deleteUser in action
     } catch (error: any) {
       toast({ variant: "destructive", title: "Deletion Failed", description: error.message });
       setIsDeletingAccount(false); 
@@ -334,50 +339,55 @@ export default function ProfilePage() {
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-                {appUser?.transactionTag && (
-                    <div>
-                        <Label className="text-xs sm:text-sm font-medium">Your Transaction Tag</Label>
-                        <div className="flex items-center gap-2 mt-1">
-                            <Badge variant="secondary" className="text-sm font-mono tracking-wider py-1 px-3">
-                                {appUser.transactionTag}
-                            </Badge>
-                            <Button 
-                                variant="outline" 
-                                size="icon" 
-                                className="h-8 w-8" 
-                                onClick={() => copyToClipboard(appUser.transactionTag || '', "Transaction Tag copied to clipboard.")}
-                                title="Copy Tag"
-                            >
-                                <Copy className="h-4 w-4" />
-                            </Button>
+                {appUser?.transactionTag ? (
+                    <>
+                        <div>
+                            <Label className="text-xs sm:text-sm font-medium">Your Transaction Tag</Label>
+                            <div className="flex items-center gap-2 mt-1">
+                                <Badge variant="secondary" className="text-sm font-mono tracking-wider py-1 px-3">
+                                    {appUser.transactionTag}
+                                </Badge>
+                                <Button 
+                                    variant="outline" 
+                                    size="icon" 
+                                    className="h-8 w-8" 
+                                    onClick={() => copyToClipboard(appUser.transactionTag || '', "Transaction Tag copied to clipboard.")}
+                                    title="Copy Tag"
+                                >
+                                    <Copy className="h-4 w-4" />
+                                </Button>
+                            </div>
                         </div>
-                    </div>
-                )}
-                {sendMoneyLink && (
-                    <div>
-                        <Label className="text-xs sm:text-sm font-medium">Shareable &quot;Send Me Money&quot; Link</Label>
-                        <div className="flex items-center gap-2 mt-1">
-                            <Input type="text" value={sendMoneyLink} readOnly className="text-xs h-8"/>
-                            <Button 
-                                variant="outline" 
-                                size="icon" 
-                                className="h-8 w-8" 
-                                onClick={() => copyToClipboard(sendMoneyLink, "Link copied to clipboard.")}
-                                title="Copy Link"
-                            >
-                                <LinkIcon className="h-4 w-4" />
-                            </Button>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                            Share this link to allow others to send money directly to you.
-                            {!(process.env.NEXT_PUBLIC_APP_URL) && 
-                                <span className="text-amber-600 dark:text-amber-400"> (Warning: NEXT_PUBLIC_APP_URL not set, link may not work in deployed environments.)</span>
-                            }
-                        </p>
-                    </div>
-                )}
-                {!appUser?.transactionTag && (
-                    <p className="text-sm text-muted-foreground">Transaction Tag not available. It should be assigned upon account creation.</p>
+                         {sendMoneyLink ? (
+                            <div>
+                                <Label className="text-xs sm:text-sm font-medium">Shareable &quot;Send Me Money&quot; Link</Label>
+                                <div className="flex items-center gap-2 mt-1">
+                                    <Input type="text" value={sendMoneyLink} readOnly className="text-xs h-8"/>
+                                    <Button 
+                                        variant="outline" 
+                                        size="icon" 
+                                        className="h-8 w-8" 
+                                        onClick={() => copyToClipboard(sendMoneyLink, "Link copied to clipboard.")}
+                                        title="Copy Link"
+                                    >
+                                        <LinkIcon className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Share this link to allow others to send money directly to you.
+                                    {!(process.env.NEXT_PUBLIC_APP_URL) && 
+                                        <span className="text-amber-600 dark:text-amber-400"> (Warning: NEXT_PUBLIC_APP_URL not set, link may not work in deployed environments.)</span>
+                                    }
+                                </p>
+                            </div>
+                        ) : (
+                             <p className="text-sm text-muted-foreground">Shareable link will be available once your display name is set.</p>
+                        )}
+                    </>
+                ) : (
+                    <p className="text-sm text-muted-foreground">
+                        Transaction Tag not available. It should be assigned upon account creation. If missing, an admin can assign it via the Admin Panel.
+                    </p>
                 )}
             </CardContent>
         </Card>
@@ -424,3 +434,4 @@ export default function ProfilePage() {
     </AppShell>
   );
 }
+

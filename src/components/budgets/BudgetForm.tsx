@@ -36,7 +36,10 @@ const BudgetFormSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(1, { message: "Budget name is required." }).max(50, { message: "Name must be 50 characters or less." }),
   category: z.string().min(1, { message: "Category is required." }),
-  amount: z.number().positive({ message: "Budget amount must be positive." }),
+  amount: z.preprocess(
+    (val) => (String(val).trim() === "" ? undefined : parseFloat(String(val))),
+    z.number().positive({ message: "Budget amount must be positive." })
+  ),
   warnOnExceed: z.boolean().optional(),
 });
 
@@ -63,29 +66,29 @@ export function BudgetForm({ onSaveBudget, existingBudgets, initialData, onSubmi
       id: initialData?.id || undefined,
       name: initialData?.name || "",
       category: initialData?.category || "",
-      amount: initialData?.amount || 0, // This amount is in base currency if initialData exists
+      amount: undefined, 
       warnOnExceed: initialData?.warnOnExceed || false,
     },
   });
 
   useEffect(() => {
-    let amountForForm = initialData?.amount || 0; // This amount is from Firestore (base currency)
+    let amountForFormDisplay: number | undefined = undefined;
     if (initialData?.amount && settingsMounted && localCurrency !== DEFAULT_STORED_CURRENCY) {
-      // Convert from base currency (DEFAULT_STORED_CURRENCY) to localCurrency for display
       const rateFromBaseToLocal = CONVERSION_RATES_FROM_BASE[localCurrency];
       if (typeof rateFromBaseToLocal === 'number') {
-        amountForForm = initialData.amount * rateFromBaseToLocal;
+        amountForFormDisplay = parseFloat((initialData.amount * rateFromBaseToLocal).toFixed(2));
       } else {
-        console.warn(`Missing conversion rate from base to ${localCurrency} for budget form display. Using base amount.`);
-        amountForForm = initialData.amount; // Fallback if rate is somehow missing
+        amountForFormDisplay = parseFloat(initialData.amount.toFixed(2));
       }
+    } else if (initialData?.amount) {
+      amountForFormDisplay = parseFloat(initialData.amount.toFixed(2));
     }
 
     form.reset({
       id: initialData?.id || undefined,
       name: initialData?.name || "",
       category: initialData?.category || "",
-      amount: parseFloat(amountForForm.toFixed(2)) || 0,
+      amount: amountForFormDisplay,
       warnOnExceed: initialData?.warnOnExceed || false,
     });
   }, [initialData, form, settingsMounted, localCurrency]);
@@ -106,8 +109,7 @@ export function BudgetForm({ onSaveBudget, existingBudgets, initialData, onSubmi
       return;
     }
 
-    // `values.amount` is from the form, so it's in `localCurrency`. Convert it to base for storage.
-    const amountInBaseCurrency = convertToBaseCurrency(values.amount, localCurrency);
+    const amountInBaseCurrency = convertToBaseCurrency(values.amount as number, localCurrency);
 
     const budgetDataForContext: Omit<Budget, 'id' | 'userId' | 'spentAmount' | 'createdAt' | 'updatedAt'> = {
       name: values.name,
@@ -122,7 +124,7 @@ export function BudgetForm({ onSaveBudget, existingBudgets, initialData, onSubmi
       title: isEditing ? "Budget Updated" : "Budget Set",
       description: `${values.name} (${values.category}): ${formatCurrency(amountInBaseCurrency, displayCurrency)}`,
     });
-    form.reset({ name: "", category: "", amount: 0, id: undefined, warnOnExceed: false });
+    form.reset({ name: "", category: "", amount: undefined, id: undefined, warnOnExceed: false });
     if (onSubmissionDone) {
       onSubmissionDone();
     }
@@ -187,14 +189,10 @@ export function BudgetForm({ onSaveBudget, existingBudgets, initialData, onSubmi
                   type="number"
                   placeholder="0.00"
                   {...field}
+                  value={field.value === undefined || field.value === null || isNaN(field.value as number) ? "" : String(field.value)}
                   onChange={e => {
                     const val = e.target.value;
-                    if (val === "") {
-                      field.onChange(val); // Allow empty string for temporary state if user deletes input
-                    } else {
-                      const num = parseFloat(val);
-                      field.onChange(isNaN(num) ? val : num); // Pass number or original string if unparsable
-                    }
+                    field.onChange(val === "" ? undefined : parseFloat(val));
                   }}
                 />
               </FormControl>
