@@ -3,7 +3,7 @@
 
 import type { AppUser } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { Mail, CalendarDays, DollarSign, ShoppingBag, ChevronLeft, ChevronRight, ShieldCheck, ShieldAlert, UserCircle } from "lucide-react";
+import { Mail, CalendarDays, DollarSign, ShoppingBag, ChevronLeft, ChevronRight, ShieldCheck, ShieldAlert, UserCircle, CheckCircle, XCircle, Trash2 as DeletedIcon } from "lucide-react";
 import { Card, CardDescription, CardContent } from "@/components/ui/card";
 import { useState, useEffect } from "react";
 import { format, parseISO, isValid } from 'date-fns';
@@ -11,6 +11,7 @@ import Image from "next/image";
 import { useSettings } from "@/contexts/SettingsContext";
 import { formatCurrency } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 
 
 const ITEMS_PER_PAGE = 10;
@@ -68,9 +69,16 @@ function UserListItem({ user }: UserListItemProps) {
       </Avatar>
 
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <p className="font-semibold text-base sm:text-lg text-foreground truncate">{user.name || 'Unnamed User'}</p>
-          {user.isAdmin ? <ShieldCheck className="h-4 w-4 text-primary" title="Admin User" /> : <ShieldAlert className="h-4 w-4 text-muted-foreground/50" title="Regular User" />}
+          {user.isAdmin ? <Badge variant="secondary" className="text-xs"><ShieldCheck className="h-3 w-3 mr-1" />Admin</Badge> : <Badge variant="outline" className="text-xs"><ShieldAlert className="h-3 w-3 mr-1" />User</Badge>}
+          {user.isDeletedAccount ? (
+            <Badge variant="destructive" className="text-xs"><DeletedIcon className="h-3 w-3 mr-1" />Deleted</Badge>
+          ) : user.isActive ? (
+            <Badge variant="default" className="bg-green-500 hover:bg-green-600 text-xs"><CheckCircle className="h-3 w-3 mr-1" />Active</Badge>
+          ) : (
+            <Badge variant="outline" className="text-xs"><XCircle className="h-3 w-3 mr-1" />Inactive</Badge>
+          )}
         </div>
         <div className="flex flex-col sm:flex-row sm:flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground mt-1">
           <span className="flex items-center"><Mail className="h-3 w-3 mr-1" />{user.email || 'no-email@example.com'}</span>
@@ -79,8 +87,8 @@ function UserListItem({ user }: UserListItemProps) {
       </div>
 
       <div className="flex flex-col items-start md:items-end gap-1 text-xs text-muted-foreground">
-        <span className="flex items-center"><ShoppingBag className="h-3 w-3 mr-1 text-primary" />{user.transactionCount} Txns</span>
-        <span className="flex items-center"><DollarSign className="h-3 w-3 mr-1 text-green-500" />Spent: {formatCurrency(user.totalSpent, displayCurrency)}</span>
+        <span className="flex items-center"><ShoppingBag className="h-3 w-3 mr-1 text-primary" />{user.transactionCount || 0} Txns</span>
+        <span className="flex items-center"><DollarSign className="h-3 w-3 mr-1 text-green-500" />Spent: {formatCurrency(user.totalSpent || 0, displayCurrency)}</span>
       </div>
     </div>
   );
@@ -94,7 +102,7 @@ export function UserList({ users }: UserListProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const { isMounted: settingsMounted } = useSettings();
 
-  const sortedUsers = users; // Already sorted by joinDate in the page component
+  const sortedUsers = users; 
 
   const totalPages = Math.ceil(sortedUsers.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;

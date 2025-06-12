@@ -5,7 +5,7 @@ import React, { createContext, useContext, ReactNode, useState, useEffect } from
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth as firebaseAuthInstance, db } from '@/lib/firebase'; 
 import type { User as FirebaseUser } from 'firebase/auth';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, Timestamp } from 'firebase/firestore';
 import type { AppUser } from '@/lib/types';
 
 interface AuthContextType {
@@ -41,20 +41,59 @@ const AuthStateController: React.FC<{ children: (authCtxValue: AuthContextType) 
     const userDocRef = doc(db, 'users', firebaseUser.uid);
     const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
       if (docSnap.exists()) {
-        const userData = docSnap.data() as AppUser;
-        setAppUser({ ...userData, uid: firebaseUser.uid }); // Ensure UID is consistent
-        setIsAdminUser(userData.isAdmin === true);
+        const userData = docSnap.data() as Omit<AppUser, 'uid' | 'transactionCount' | 'totalSpent'>; // Firestore might not have all fields
+        
+        // Construct AppUser ensuring all fields are present
+        const completeAppUser: AppUser = {
+          uid: firebaseUser.uid,
+          name: firebaseUser.displayName || userData.name || firebaseUser.email?.split('@')[0] || 'User',
+          email: firebaseUser.email || userData.email, // Prioritize Firebase Auth email
+          photoURL: firebaseUser.photoURL || userData.photoURL, // Prioritize Firebase Auth photoURL
+          joinDate: userData.joinDate || (firebaseUser.metadata.creationTime ? new Date(firebaseUser.metadata.creationTime).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]),
+          isAdmin: userData.isAdmin || false,
+          // These might not be on Firestore doc initially for all users, so provide defaults
+          transactionCount: (userData as AppUser).transactionCount || 0,
+          totalSpent: (userData as AppUser).totalSpent || 0,
+          isActive: userData.isActive === undefined ? true : userData.isActive, // Default to true if undefined
+          isDeletedAccount: userData.isDeletedAccount || false, // Default to false
+          deletedAt: userData.deletedAt || undefined,
+        };
+        setAppUser(completeAppUser);
+        setIsAdminUser(completeAppUser.isAdmin === true);
+
       } else {
-        // This case might happen if the user doc wasn't created on signup, or deleted.
-        // For robustness, you could create it here, or treat as non-admin / incomplete profile.
-        console.warn(`User document not found for UID: ${firebaseUser.uid}. Treating as non-admin.`);
-        setAppUser(null); // Or a default AppUser structure with firebaseUser details
+        console.warn(`User document not found for UID: ${firebaseUser.uid}. Treating as non-admin and creating a default AppUser object.`);
+        // If Firestore doc doesn't exist, create a default AppUser from Firebase Auth info
+        setAppUser({
+          uid: firebaseUser.uid,
+          name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
+          email: firebaseUser.email,
+          photoURL: firebaseUser.photoURL,
+          joinDate: firebaseUser.metadata.creationTime ? new Date(firebaseUser.metadata.creationTime).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          isAdmin: false,
+          transactionCount: 0,
+          totalSpent: 0,
+          isActive: true,
+          isDeletedAccount: false,
+        });
         setIsAdminUser(false);
       }
       setAppUserLoading(false);
     }, (error) => {
       console.error("Error fetching user document:", error);
-      setAppUser(null);
+      // Create a default AppUser from Firebase Auth info on error too
+      setAppUser({
+          uid: firebaseUser.uid,
+          name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
+          email: firebaseUser.email,
+          photoURL: firebaseUser.photoURL,
+          joinDate: firebaseUser.metadata.creationTime ? new Date(firebaseUser.metadata.creationTime).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          isAdmin: false,
+          transactionCount: 0,
+          totalSpent: 0,
+          isActive: true,
+          isDeletedAccount: false,
+        });
       setIsAdminUser(false);
       setAppUserLoading(false);
     });

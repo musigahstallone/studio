@@ -110,6 +110,9 @@ export interface AppUser {
   isAdmin?: boolean;
   transactionCount: number; // Now mandatory
   totalSpent: number; // Now mandatory, assumed to be in DEFAULT_STORED_CURRENCY
+  isActive?: boolean;
+  isDeletedAccount?: boolean;
+  deletedAt?: string | Timestamp; // ISO string or Firestore Timestamp
 }
 
 export const supportedCurrencies = ['USD', 'EUR', 'KES'] as const;
@@ -121,8 +124,8 @@ export const DEFAULT_STORED_CURRENCY: CurrencyCode = 'USD';
 
 export const CurrencyCodeSchema = z.enum(supportedCurrencies);
 
-export type Theme = 'light' | 'dark'; // Removed 'system'
-export const DEFAULT_THEME: Theme = 'light'; // Default to light, context will adjust to system preference if no local storage
+export type Theme = 'light' | 'dark';
+export const DEFAULT_THEME: Theme = 'light';
 
 // --- Savings Goal Specific Types ---
 export type SavingsGoalStatus = 'active' | 'matured' | 'completed' | 'withdrawnEarly' | 'cancelled';

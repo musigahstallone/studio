@@ -13,14 +13,16 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, UserCircle, Edit3, UploadCloud, Mail, User } from 'lucide-react';
+import { Loader2, Save, UserCircle, Edit3, UploadCloud, Mail, User, AlertTriangle, Trash2 } from 'lucide-react';
 import { auth, db, storage } from '@/lib/firebase';
-import { updateProfile } from 'firebase/auth';
+import { updateProfile as updateFirebaseAuthProfile } from 'firebase/auth'; // Renamed to avoid conflict
 import { doc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import Image from 'next/image';
+import Image from 'next/image'; // Keep this if you're still using next/image for preview
 import Link from 'next/link';
-import { Form } from '@/components/ui/form'; // Added Form import
+import { Form } from '@/components/ui/form';
+import { deleteCurrentUserAccount as deleteCurrentUserAccountAction, requestEmailUpdate as requestEmailUpdateAction } from '@/actions/userActions';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 const profileFormSchema = z.object({
   displayName: z.string().min(2, "Name must be at least 2 characters.").max(50, "Name cannot exceed 50 characters."),
@@ -30,18 +32,18 @@ const profileFormSchema = z.object({
 type ProfileFormData = z.infer<typeof profileFormSchema>;
 
 export default function ProfilePage() {
-  const { user, appUser, loading: authLoading, isAdminUser } = useAuth(); // Added isAdminUser
+  const { user, appUser, loading: authLoading, isAdminUser } = useAuth();
   const { toast } = useToast();
   
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [isRequestingEmailUpdate, setIsRequestingEmailUpdate] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [isEditingEmail, setIsEditingEmail] = useState(false);
 
-  // Store initial values to compare for enabling update button
   const [initialDisplayName, setInitialDisplayName] = useState('');
   const [initialEmail, setInitialEmail] = useState('');
-  // We don't need initialPhotoURL state as selectedFile !== null handles this
 
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileFormSchema),
@@ -54,13 +56,13 @@ export default function ProfilePage() {
   useEffect(() => {
     if (appUser || user) {
       const name = appUser?.name || user?.displayName || '';
-      const email = appUser?.email || user?.email || '';
+      const emailValue = appUser?.email || user?.email || ''; // Use email from AppUser first as it's synced
       form.reset({
         displayName: name,
-        email: email,
+        email: emailValue,
       });
       setInitialDisplayName(name);
-      setInitialEmail(email);
+      setInitialEmail(emailValue);
       if (appUser?.photoURL || user?.photoURL) {
         setPreviewImage(appUser?.photoURL || user?.photoURL || null);
       }
@@ -77,7 +79,6 @@ export default function ProfilePage() {
       };
       reader.readAsDataURL(file);
     } else {
-      // If deselected, reset preview to current user photo or null
       setPreviewImage(appUser?.photoURL || user?.photoURL || null);
       setSelectedFile(null);
     }
@@ -86,33 +87,38 @@ export default function ProfilePage() {
   const handleProfileUpdate = async (data: ProfileFormData) => {
     if (!user) return;
     setIsUpdatingProfile(true);
+    setIsRequestingEmailUpdate(false); 
+
     let nameUpdated = false;
-    let emailUpdatedInFirestore = false;
+    let emailChangeRequestedSuccessfully = false;
     let photoUpdated = false;
 
     try {
-      // Update Display Name
       if (data.displayName !== initialDisplayName) {
         if (auth.currentUser) {
-          await updateProfile(auth.currentUser, { displayName: data.displayName });
+          await updateFirebaseAuthProfile(auth.currentUser, { displayName: data.displayName });
         }
         const userDocRef = doc(db, 'users', user.uid);
         await updateDoc(userDocRef, { name: data.displayName });
-        setInitialDisplayName(data.displayName); // Update initial state
+        setInitialDisplayName(data.displayName); 
         nameUpdated = true;
       }
 
-      // Update Email (Firestore only)
-      if (data.email !== initialEmail && isEditingEmail) { // Check if email editing was enabled
-        const userDocRef = doc(db, 'users', user.uid);
-        await updateDoc(userDocRef, { email: data.email });
-        setInitialEmail(data.email); // Update initial state
-        emailUpdatedInFirestore = true;
-        // Note: Firebase Auth email update is complex and skipped here.
-        // UI will reflect Firestore change.
+      if (isEditingEmail && data.email !== initialEmail) {
+        setIsRequestingEmailUpdate(true);
+        try {
+          const result = await requestEmailUpdateAction(data.email);
+          toast({ title: result.title, description: result.description });
+          emailChangeRequestedSuccessfully = true;
+          // Don't update initialEmail here yet, let AuthProvider handle it post-verification
+          // This keeps the "Update Profile" button enabled correctly if they try to submit again before verifying.
+        } catch (error: any) {
+          toast({ variant: "destructive", title: "Email Update Failed", description: error.message });
+        } finally {
+          setIsRequestingEmailUpdate(false);
+        }
       }
 
-      // Update Profile Photo
       if (selectedFile) {
         const fileExtension = selectedFile.name.split('.').pop();
         const storageRef = ref(storage, `profilePictures/${user.uid}/profileImage.${fileExtension}`);
@@ -120,36 +126,38 @@ export default function ProfilePage() {
         
         await new Promise<void>((resolve, reject) => {
           uploadTask.on(
-            'state_changed',
-            null, // snapshot
-            (error) => reject(error), // error
-            async () => { // complete
+            'state_changed', null, 
+            (error) => reject(error), 
+            async () => {
               try {
                 const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
                 if (auth.currentUser) {
-                  await updateProfile(auth.currentUser, { photoURL: downloadURL });
+                  await updateFirebaseAuthProfile(auth.currentUser, { photoURL: downloadURL });
                 }
                 const userDocRef = doc(db, 'users', user.uid);
                 await updateDoc(userDocRef, { photoURL: downloadURL });
-                setPreviewImage(downloadURL); // Update preview to new uploaded image
+                setPreviewImage(downloadURL); 
                 photoUpdated = true;
                 resolve();
-              } catch (innerError) {
-                reject(innerError);
-              }
+              } catch (innerError) { reject(innerError); }
             }
           );
         });
-        setSelectedFile(null); // Reset file selection
+        setSelectedFile(null); 
       }
 
-      if (nameUpdated || emailUpdatedInFirestore || photoUpdated) {
-        toast({ title: "Profile Updated", description: "Your profile details have been saved." });
-      } else {
-        toast({ title: "No Changes", description: "No changes were made to your profile." });
+      if (nameUpdated || photoUpdated) {
+        toast({ title: "Profile Updated", description: "Your display name and/or photo have been updated." });
+      } else if (!emailChangeRequestedSuccessfully && !nameUpdated && !photoUpdated) {
+        toast({ title: "No Changes", description: "No direct changes were made to your profile." });
       }
-      form.reset({ displayName: data.displayName, email: data.email }); // Reset form dirty state
-      setIsEditingEmail(false); // Disable email editing after update
+      
+      // Only reset form if no email change was requested or if it was successful
+      // If email change failed, keep the form as is for user to correct.
+      if (!isEditingEmail || (isEditingEmail && emailChangeRequestedSuccessfully)) {
+        form.reset({ displayName: data.displayName, email: initialEmail }); // Reset email to initial if no change requested or successful
+      }
+      setIsEditingEmail(false); 
     } catch (error) {
       console.error("Error updating profile:", error);
       toast({ variant: "destructive", title: "Update Failed", description: "Could not save your profile changes." });
@@ -157,15 +165,27 @@ export default function ProfilePage() {
       setIsUpdatingProfile(false);
     }
   };
+
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+    setIsDeletingAccount(true);
+    try {
+      await deleteCurrentUserAccountAction();
+      toast({ title: "Account Deletion Processed", description: "Your account is being deleted. You will be logged out shortly."});
+      // AuthProvider will handle logout due to auth state change.
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Deletion Failed", description: error.message });
+      setIsDeletingAccount(false); 
+    }
+  };
   
-  const currentPhotoURL = previewImage || appUser?.photoURL || user?.photoURL;
+  const currentPhotoURL = previewImage || appUser?.photoURL || user?.photoURL || undefined;
   const watchedDisplayName = form.watch('displayName');
   const watchedEmail = form.watch('email');
   
   const isDirty = (watchedDisplayName !== initialDisplayName) || 
                   (isEditingEmail && watchedEmail !== initialEmail) || 
                   selectedFile !== null;
-
 
   if (authLoading) {
     return (
@@ -191,12 +211,11 @@ export default function ProfilePage() {
           )}
         </div>
 
-
         <Card className="shadow-lg">
           <CardHeader className="items-center">
             <div className="relative group w-32 h-32">
               <Avatar className="h-full w-full border-4 border-primary/20 text-5xl">
-                <AvatarImage src={currentPhotoURL || undefined} alt={appUser?.name || user?.displayName || 'User'} data-ai-hint="user avatar"/>
+                <AvatarImage src={currentPhotoURL} alt={appUser?.name || user?.displayName || 'User'} data-ai-hint="user avatar"/>
                 <AvatarFallback>
                   {appUser?.name ? appUser.name.charAt(0).toUpperCase() : 
                    user?.displayName ? user.displayName.charAt(0).toUpperCase() : 
@@ -216,7 +235,7 @@ export default function ProfilePage() {
               type="file"
               accept="image/png, image/jpeg, image/gif"
               onChange={handleFileChange}
-              className="hidden" // Visually hide the input
+              className="hidden"
             />
             <CardTitle className="text-2xl mt-4">{form.watch('displayName') || 'Your Name'}</CardTitle>
             <CardDescription>{form.watch('email') || 'your@email.com'}</CardDescription>
@@ -245,7 +264,7 @@ export default function ProfilePage() {
                       <Mail className="mr-2 h-4 w-4 text-muted-foreground"/> Email Address
                     </Label>
                     {!isEditingEmail && (
-                      <Button variant="ghost" size="sm" onClick={() => setIsEditingEmail(true)} className="text-xs h-auto p-1">
+                      <Button type="button" variant="ghost" size="sm" onClick={() => setIsEditingEmail(true)} className="text-xs h-auto p-1">
                         <Edit3 className="mr-1 h-3 w-3"/> Edit
                       </Button>
                     )}
@@ -256,14 +275,19 @@ export default function ProfilePage() {
                     {...form.register('email')}
                     className="flex-grow"
                     placeholder="your@email.com"
-                    disabled={!isEditingEmail}
+                    disabled={!isEditingEmail || isUpdatingProfile || isRequestingEmailUpdate}
                   />
                   {form.formState.errors.email && (
                     <p className="text-sm text-destructive mt-1">{form.formState.errors.email.message}</p>
                   )}
                    {!isEditingEmail && (
                     <p className="text-xs text-muted-foreground mt-1">
-                      Contact support to change your login email. Your display email can be updated here.
+                      To change your login email, click "Edit". A verification email will be sent to the new address.
+                    </p>
+                   )}
+                   {isEditingEmail && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      A verification link will be sent to your new email address. Your login email will change after verification.
                     </p>
                    )}
                 </div>
@@ -273,8 +297,8 @@ export default function ProfilePage() {
                 )}
 
                 <CardFooter className="px-0 pt-6">
-                  <Button type="submit" disabled={isUpdatingProfile || !isDirty} className="w-full">
-                    {isUpdatingProfile ? <Loader2 className="animate-spin mr-2" /> : <Save className="mr-2 h-4 w-4" />}
+                  <Button type="submit" disabled={isUpdatingProfile || isRequestingEmailUpdate || !isDirty || isDeletingAccount} className="w-full">
+                    {(isUpdatingProfile || isRequestingEmailUpdate) ? <Loader2 className="animate-spin mr-2" /> : <Save className="mr-2 h-4 w-4" />}
                     Update Profile
                   </Button>
                 </CardFooter>
@@ -282,8 +306,46 @@ export default function ProfilePage() {
             </Form>
           </CardContent>
         </Card>
+
+        {/* Danger Zone */}
+        <Card className="shadow-lg border-destructive">
+          <CardHeader>
+            <CardTitle className="flex items-center text-destructive">
+              <AlertTriangle className="mr-2 h-5 w-5" /> Danger Zone
+            </CardTitle>
+            <CardDescription>
+              These actions are permanent and cannot be undone.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" className="w-full" disabled={isDeletingAccount || isUpdatingProfile}>
+                  {isDeletingAccount ? <Loader2 className="animate-spin mr-2" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                  Delete My Account
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete your account
+                    authentication record and mark your data for removal.
+                    Are you sure you want to proceed?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={isDeletingAccount}>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeleteAccount} disabled={isDeletingAccount} className="bg-destructive hover:bg-destructive/90">
+                    {isDeletingAccount ? <Loader2 className="animate-spin mr-2" /> : null}
+                    Yes, Delete My Account
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </CardContent>
+        </Card>
       </div>
     </AppShell>
   );
 }
-

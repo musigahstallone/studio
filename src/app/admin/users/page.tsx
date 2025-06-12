@@ -6,12 +6,13 @@ import { AdminShell } from '@/components/admin/layout/AdminShell';
 import { UserList } from '@/components/admin/UserList';
 import type { AppUser } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, RefreshCw } from 'lucide-react';
+import { Loader2, RefreshCw, UserCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, query, orderBy, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { markAllUsersActive as markAllUsersActiveAction } from '@/actions/adminActions';
 
 export default function AdminUsersPage() {
   const { isAdminUser } = useAuth();
@@ -19,6 +20,7 @@ export default function AdminUsersPage() {
   const [fetchedUsers, setFetchedUsers] = useState<AppUser[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isUpdatingAllUsers, setIsUpdatingAllUsers] = useState(false);
 
   const fetchUsers = useCallback(async () => {
     if (!isAdminUser) {
@@ -49,7 +51,6 @@ export default function AdminUsersPage() {
           });
         } catch (userExpenseError) {
           console.error(`Error fetching expenses for user ${userId}:`, userExpenseError);
-          // Keep transactionCount and totalSpent as 0 if fetching fails
         }
         
         let joinDateStr: string | undefined = undefined;
@@ -60,7 +61,7 @@ export default function AdminUsersPage() {
             if (!isNaN(parsedDate.getTime())) {
                 joinDateStr = parsedDate.toISOString().split('T')[0];
             } else {
-                joinDateStr = userData.joinDate; // Fallback to original string if unparsable
+                joinDateStr = userData.joinDate; 
             }
         }
 
@@ -73,6 +74,9 @@ export default function AdminUsersPage() {
           isAdmin: userData.isAdmin === true,
           transactionCount,
           totalSpent,
+          isActive: userData.isActive === undefined ? true : userData.isActive,
+          isDeletedAccount: userData.isDeletedAccount || false,
+          deletedAt: userData.deletedAt || undefined,
         } as AppUser;
       });
 
@@ -105,6 +109,19 @@ export default function AdminUsersPage() {
     fetchUsers();
   };
 
+  const handleMarkAllActive = async () => {
+    setIsUpdatingAllUsers(true);
+    try {
+      const result = await markAllUsersActiveAction();
+      toast({ title: result.title, description: result.description });
+      fetchUsers(); // Refresh user list
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Error", description: error.message || "Could not update users." });
+    } finally {
+      setIsUpdatingAllUsers(false);
+    }
+  };
+
   return (
     <AdminShell>
       <div className="space-y-8">
@@ -112,10 +129,16 @@ export default function AdminUsersPage() {
           <h1 className="font-headline text-3xl font-semibold text-foreground">
             User Management
           </h1>
-          <Button onClick={handleRefreshUsers} variant="outline" disabled={isLoadingUsers || isRefreshing}>
-            <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
-            {isRefreshing ? "Refreshing..." : "Refresh Users"}
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={handleMarkAllActive} variant="outline" disabled={isLoadingUsers || isUpdatingAllUsers || isRefreshing}>
+              <UserCheck className={`mr-2 h-4 w-4 ${isUpdatingAllUsers ? "animate-spin" : ""}`} />
+              {isUpdatingAllUsers ? "Updating..." : "Mark All Active"}
+            </Button>
+            <Button onClick={handleRefreshUsers} variant="outline" disabled={isLoadingUsers || isRefreshing || isUpdatingAllUsers}>
+              <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+              {isRefreshing ? "Refreshing..." : "Refresh List"}
+            </Button>
+          </div>
         </div>
         <Card className="shadow-lg">
           <CardHeader>
