@@ -44,7 +44,7 @@ export default function LoginPage() {
     }
   }, [toast]);
 
-  const handleAuthError = (err: any, action: 'Login' | 'Signup') => {
+  const handleAuthError = (err: any, action: 'Login' | 'Signup' | 'Password Reset') => {
     console.error(`${action} error:`, err);
     let friendlyMessage = "An unexpected error occurred. Please try again.";
     if (err.code) {
@@ -64,6 +64,9 @@ export default function LoginPage() {
         case 'auth/invalid-email':
           friendlyMessage = 'Please enter a valid email address.';
           break;
+        case 'auth/visibility-check-was-unavailable':
+          friendlyMessage = 'Login check failed. This can be due to network issues or browser extensions. Please try again. If it persists, check your internet connection or try disabling browser extensions.';
+          break;
         default:
           friendlyMessage = err.message || friendlyMessage;
       }
@@ -74,12 +77,8 @@ export default function LoginPage() {
 
   const redirectToIntendedPathOrDashboard = () => {
     const intendedPath = sessionStorage.getItem('intendedPath');
-    if (intendedPath) {
-      sessionStorage.removeItem('intendedPath');
-      router.push(intendedPath);
-    } else {
-      router.push('/'); // Or '/dashboard'
-    }
+    sessionStorage.removeItem('intendedPath'); // Clear it after use
+    router.push(intendedPath || '/'); // Or '/dashboard' if preferred
   };
 
   const handleLogin = async (e?: React.FormEvent) => {
@@ -170,14 +169,7 @@ export default function LoginPage() {
       await sendPasswordResetEmail(auth, email);
       toast({ title: 'Password Reset Email Sent', description: 'Check your inbox for instructions to reset your password.', action: <CheckCircle className="text-green-500" /> });
     } catch (err: any) {
-      let friendlyMessage = "Failed to send password reset email. Please try again.";
-      if (err.code === 'auth/user-not-found') {
-        friendlyMessage = "No user found with this email address.";
-      } else if (err.code === 'auth/invalid-email') {
-        friendlyMessage = "Please enter a valid email address.";
-      }
-      setError(friendlyMessage);
-      toast({ variant: 'destructive', title: 'Password Reset Failed', description: friendlyMessage, action: <AlertCircle className="text-red-500" /> });
+      handleAuthError(err, 'Password Reset');
     } finally {
       setIsLoading(false);
     }
