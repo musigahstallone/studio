@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { PiggyBank, Menu, X, ShieldCheck, LogIn, LogOut, UserCircle, Settings as CogIcon, LayoutDashboard, Sun, Moon, Laptop } from 'lucide-react'; // Added Laptop
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose, SheetTrigger } from '@/components/ui/sheet'; // Added SheetTrigger
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose, SheetTrigger } from '@/components/ui/sheet'; // Ensured SheetTrigger is imported
 import { AppSidebarNav } from './AppSidebarNav';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -19,7 +19,7 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger as DropdownMenuTriggerPrimitive, // Renamed to avoid conflict if needed, though shadcn usually handles it
+  DropdownMenuTrigger as DropdownMenuTriggerPrimitive,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from '@/hooks/use-toast';
 import { useSettings } from '@/contexts/SettingsContext';
@@ -32,7 +32,7 @@ export function AppHeader() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
   const { user, appUser, isAdminUser, loading } = useAuth();
-  const { theme, setTheme, isMounted: settingsAreMounted } = useSettings(); // For settings page theme switcher
+  const { theme, setTheme, isMounted: settingsAreMounted } = useSettings();
 
   const handleMobileLinkClick = () => {
     setIsMobileMenuOpen(false);
@@ -41,9 +41,8 @@ export function AppHeader() {
   const handleLogout = async () => {
     try {
       await auth.signOut();
-      // Set a flag to indicate logout, so homepage can show a toast
       sessionStorage.setItem('justLoggedOut', 'true');
-      router.push('/'); // Redirect to homepage
+      router.push('/');
       setIsMobileMenuOpen(false);
     } catch (error) {
       console.error("Logout error:", error);
@@ -57,11 +56,10 @@ export function AppHeader() {
   }, []);
 
 
-  if (pathname === '/login' || pathname === '/' || pathname === '/privacy' || pathname === '/terms' || pathname === '/contact' || pathname === '/features' || pathname === '/faq') { // Don't show app header on public pages
+  if (pathname === '/login' || pathname === '/' || pathname === '/privacy' || pathname === '/terms' || pathname === '/contact' || pathname === '/features' || pathname === '/faq') {
     return null;
   }
   
-  // Theme toggle logic specifically for the settings page, if a switcher is there
   const toggleThemeForSettingsPage = () => {
     if (!settingsAreMounted) return;
     setTheme(theme === 'light' ? 'dark' : 'light');
@@ -164,7 +162,6 @@ export function AppHeader() {
                   <div className="flex-grow overflow-y-auto">
                     <AppSidebarNav onLinkClick={handleMobileLinkClick} isMobileLayout={true} isAdmin={isAdminUser} />
                   </div>
-                  {/* SheetClose is implicit via Radix and the X button in SheetContent */}
                 </SheetContent>
               </Sheet>
             </div>
@@ -198,4 +195,3 @@ function ButtonLink({ href, currentPathname, children }: ButtonLinkProps) {
     </Link>
   );
 }
-
