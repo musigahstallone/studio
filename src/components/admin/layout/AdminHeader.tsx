@@ -51,7 +51,6 @@ export function AdminHeader() {
                   <ShieldAlert className="h-7 w-7 text-primary" />
                   <span className="font-headline text-xl font-semibold tracking-tight text-foreground">Admin Menu</span>
                 </SheetTitle>
-                 {/* The X close button from SheetContent itself will be used. Removed manual button. */}
               </SheetHeader>
               <AdminMobileNav onLinkClick={() => setIsMobileMenuOpen(false)} />
             </SheetContent>
@@ -88,6 +87,9 @@ export function AdminHeader() {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/profile"><UserCircle className="mr-2 h-4 w-4" /> My Profile</Link>
+              </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/settings"><Settings className="mr-2 h-4 w-4" /> App Settings</Link>
               </DropdownMenuItem>
