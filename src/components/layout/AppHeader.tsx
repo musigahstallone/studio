@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { PiggyBank, Menu, UserCircle as UserIcon, LogIn, LogOut, UserCircle, Settings as CogIcon, LayoutDashboard, Sun, Moon, Laptop, SendHorizontal, CreditCard, Landmark as LandmarkIcon } from 'lucide-react'; // Added CreditCard and LandmarkIcon
+import { PiggyBank, Menu, UserCircle as UserIcon, LogIn, LogOut, UserCircle, Settings as CogIcon, LayoutDashboard, Sun, Moon, Laptop, SendHorizontal, Landmark } from 'lucide-react'; // Removed CreditCard, using Landmark for Savings Goals
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose, SheetTrigger } from '@/components/ui/sheet';
@@ -27,8 +27,10 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/comp
 
 // Define base navigation items, Dashboard and Budgets will be filtered out for desktop
 const baseNavItems = [
-  { name: 'Transactions', href: '/expenses', icon: CreditCard }, 
-  { name: 'Savings Goals', href: '/savings-goals', icon: LandmarkIcon }, // Changed to LandmarkIcon to avoid conflict if Landmark is also used
+  // { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard }, // Removed
+  { name: 'Transactions', href: '/expenses', icon: UserIcon }, // Using UserIcon as placeholder, CreditCard was causing issues prior
+  // { name: 'Budgets', href: '/budgets', icon: Target }, // Removed
+  { name: 'Savings Goals', href: '/savings-goals', icon: Landmark },
 ];
 
 
@@ -137,11 +139,11 @@ export function AppHeader() {
              <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                     <Link href="/send-money" passHref asChild>
-                      <Button variant="ghost" size="icon" aria-label="Send Money" className="inline-flex">
+                    <Button asChild variant="ghost" size="icon" aria-label="Send Money" className="inline-flex">
+                      <Link href="/send-money" passHref>
                         <SendHorizontal className="h-5 w-5" />
-                      </Button>
-                    </Link>
+                      </Link>
+                    </Button>
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>Send Money</p>
@@ -224,3 +226,4 @@ function ButtonLink({ href, currentPathname, children }: ButtonLinkProps) {
     </Link>
   );
 }
+
