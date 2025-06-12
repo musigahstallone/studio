@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -14,7 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSettings } from "@/contexts/SettingsContext";
 import { formatCurrency, convertToBaseCurrency } from "@/lib/utils"; // Import convertToBaseCurrency
 import { DEFAULT_STORED_CURRENCY } from "@/lib/types";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 
 interface CameraReceiptScanProps {
@@ -242,13 +243,13 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
       {!user && <p className="text-xs text-destructive text-center">Please log in to use camera scanning.</p>}
 
       {extractedData && (
-        <Card className="mt-6 rounded-lg border-primary/30 bg-primary/5 dark:bg-primary/10">
+        <Card className="mt-6 rounded-xl shadow-lg border-primary/30 bg-primary/5 dark:bg-primary/10">
           <CardHeader className="pb-3 pt-4 px-4">
-            <CardTitle className="text-sm font-semibold text-primary flex items-center">
+            <CardTitle className="text-sm md:text-base font-semibold text-primary flex items-center">
               <Info className="mr-2 h-4 w-4" /> Previously Extracted Data
             </CardTitle>
           </CardHeader>
-          <CardContent className="px-4 pb-4 text-xs space-y-1 text-foreground/80">
+          <CardContent className="px-4 pb-4 text-xs sm:text-sm space-y-1 text-foreground/80">
             <p><span className="font-medium text-foreground">Desc:</span> {extractedData.description}</p>
             <p><span className="font-medium text-foreground">Merchant:</span> {extractedData.merchant || "N/A"}</p>
             <p><span className="font-medium text-foreground">Amount:</span> {settingsMounted ? formatCurrency(extractedData.amount, displayCurrency) : '$' + extractedData.amount.toFixed(2)} ({extractedData.type})</p>
@@ -258,15 +259,12 @@ export function CameraReceiptScan({ onDataExtracted }: CameraReceiptScanProps) {
             <Button onClick={handleUseExtractedData} variant="outline" size="sm" className="w-full mt-3 text-xs" disabled={!settingsMounted}>
               <CornerDownLeft className="mr-2 h-3.5 w-3.5" /> Use This Data Again
             </Button>
-            <p className="mt-2 text-muted-foreground text-center text-[11px] leading-tight">
+            <CardDescription className="mt-2 text-muted-foreground text-center text-[11px] leading-tight">
               AI assumes the receipt is in your local input currency ({settingsMounted ? localCurrency : "..."}). The displayed amount is in your display currency ({settingsMounted ? displayCurrency : "..."}).
-            </p>
+            </CardDescription>
           </CardContent>
         </Card>
       )}
     </div>
   );
 }
-
-    
-```
