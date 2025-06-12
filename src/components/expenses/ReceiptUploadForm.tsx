@@ -1,11 +1,10 @@
-
 "use client";
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { FileUpload } from "@/components/shared/FileUpload";
-import { ScanLine, CornerDownLeft } from "lucide-react";
+import { ScanLine, CornerDownLeft, Info } from "lucide-react";
 import { processReceiptExpense, type ProcessedExpenseData } from "@/actions/aiActions";
 import { storage } from "@/lib/firebase";
 import { ref, uploadString, getDownloadURL } from "firebase/storage";
@@ -13,6 +12,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSettings } from "@/contexts/SettingsContext";
 import { formatCurrency, convertToBaseCurrency } from "@/lib/utils"; // Import convertToBaseCurrency
 import { DEFAULT_STORED_CURRENCY } from "@/lib/types";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+
 
 interface ReceiptUploadFormProps {
   onDataExtracted: (data: ProcessedExpenseData & { receiptUrl?: string }) => void;
@@ -76,8 +77,8 @@ export function ReceiptUploadForm({ onDataExtracted }: ReceiptUploadFormProps) {
       onDataExtracted(finalDataForForm); 
 
       toast({
-        title: "Data Extracted",
-        description: `${resultFromAI.description} - Amount: ${formatCurrency(amountInBaseCurrency, displayCurrency)}`,
+        title: "Data Extracted & Ready for Form",
+        description: `Review pre-filled details: ${resultFromAI.merchant || resultFromAI.category} - ${formatCurrency(amountInBaseCurrency, displayCurrency)}`,
       });
 
     } catch (error: any) {
@@ -109,31 +110,38 @@ export function ReceiptUploadForm({ onDataExtracted }: ReceiptUploadFormProps) {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <FileUpload onFileChange={handleFileChange} />
       <Button onClick={handleSubmit} disabled={isLoading || !fileDataUri || !user || !settingsMounted} className="w-full">
-        <ScanLine className="mr-2 h-4 w-4" /> {isLoading ? "Processing..." : "Extract Data"}
+        <ScanLine className="mr-2 h-4 w-4" /> {isLoading ? "Processing..." : "Extract Data from Upload"}
       </Button>
       {!user && <p className="text-xs text-destructive text-center">Please log in to upload and process receipts.</p>}
       {extractedData && (
-         <div className="mt-6 rounded-md border bg-muted/50 p-4 text-sm space-y-2">
-          <h4 className="font-semibold mb-1 text-foreground">Previously Extracted:</h4>
-          <p><span className="font-medium text-muted-foreground">Desc:</span> {extractedData.description}</p>
-          <p><span className="font-medium text-muted-foreground">Merchant:</span> {extractedData.merchant || "N/A"}</p>
-          <p><span className="font-medium text-muted-foreground">Amount:</span> {formatCurrency(extractedData.amount, displayCurrency)} ({extractedData.type})</p>
-          <p><span className="font-medium text-muted-foreground">Date:</span> {extractedData.date}</p>
-          <p><span className="font-medium text-muted-foreground">Category:</span> {extractedData.category}</p>
-          {extractedData.receiptUrl && <p><span className="font-medium text-muted-foreground">Receipt URL:</span> <a href={extractedData.receiptUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline">View Image</a></p>}
-          <Button onClick={handleUseExtractedData} variant="outline" size="sm" className="w-full mt-2" disabled={!settingsMounted}>
-            <CornerDownLeft className="mr-2 h-4 w-4" /> Use This Data Again
-          </Button>
-          <p className="mt-1 text-xs text-muted-foreground/80 text-center pt-1">
-            AI assumes the receipt is in your local input currency ({localCurrency}). The displayed amount is in your display currency ({displayCurrency}).
-          </p>
-        </div>
+        <Card className="mt-6 rounded-lg border-primary/30 bg-primary/5 dark:bg-primary/10">
+          <CardHeader className="pb-3 pt-4 px-4">
+            <CardTitle className="text-sm font-semibold text-primary flex items-center">
+              <Info className="mr-2 h-4 w-4" /> Previously Extracted Data
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4 text-xs space-y-1 text-foreground/80">
+            <p><span className="font-medium text-foreground">Desc:</span> {extractedData.description}</p>
+            <p><span className="font-medium text-foreground">Merchant:</span> {extractedData.merchant || "N/A"}</p>
+            <p><span className="font-medium text-foreground">Amount:</span> {formatCurrency(extractedData.amount, displayCurrency)} ({extractedData.type})</p>
+            <p><span className="font-medium text-foreground">Date:</span> {extractedData.date}</p>
+            <p><span className="font-medium text-foreground">Category:</span> {extractedData.category}</p>
+            {extractedData.receiptUrl && <p><span className="font-medium text-foreground">Receipt URL:</span> <a href={extractedData.receiptUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline">View Image</a></p>}
+            <Button onClick={handleUseExtractedData} variant="outline" size="sm" className="w-full mt-3 text-xs" disabled={!settingsMounted}>
+              <CornerDownLeft className="mr-2 h-3.5 w-3.5" /> Use This Data Again
+            </Button>
+            <p className="mt-2 text-muted-foreground text-center text-[11px] leading-tight">
+              AI assumes the receipt is in your local input currency ({settingsMounted ? localCurrency : "..."}). The displayed amount is in your display currency ({settingsMounted ? displayCurrency : "..."}).
+            </p>
+          </CardContent>
+        </Card>
       )}
     </div>
   );
 }
 
     
+```

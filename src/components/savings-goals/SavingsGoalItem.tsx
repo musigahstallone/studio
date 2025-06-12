@@ -108,9 +108,10 @@ export function SavingsGoalItem({ goal, onDeleteGoal, onEditGoal, onContribute, 
       case 'completed': return 'Completed';
       case 'withdrawnEarly': return 'Withdrawn Early';
       case 'cancelled': return 'Cancelled';
-      default: return status.charAt(0).toUpperCase() + status.slice(1);
+      default: return "active";
     }
   };
+      // default: return status.charAt(0).toUpperCase() + status.slice(1);
 
   if (!settingsMounted) {
     return (
@@ -132,7 +133,7 @@ export function SavingsGoalItem({ goal, onDeleteGoal, onEditGoal, onContribute, 
           <div className="flex justify-end gap-2 w-full">
             {[...Array(3)].map((_, i) => 
               <div key={i} className="h-8 w-8 bg-muted rounded-md"></div>
-            ))}
+            )}
           </div>
         </CardFooter>
       </Card>

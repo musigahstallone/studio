@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -8,12 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Wand2, CornerDownLeft } from "lucide-react";
+import { Wand2, CornerDownLeft, Info } from "lucide-react";
 import { useState } from "react";
 import { processTextExpense, type ProcessedExpenseData } from "@/actions/aiActions";
 import { useSettings } from "@/contexts/SettingsContext";
 import { formatCurrency, convertToBaseCurrency } from "@/lib/utils"; // Import convertToBaseCurrency
 import { DEFAULT_STORED_CURRENCY } from "@/lib/types";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+
 
 const TextCategorizationSchema = z.object({
   description: z.string().min(5, { message: "Please enter a more detailed description." }).max(200, { message: "Description must be 200 characters or less."}),
@@ -60,9 +61,8 @@ export function TextCategorizationForm({ onDataExtracted }: TextCategorizationFo
       onDataExtracted(processedResultForForm); // Pass data with amount in base currency
 
       toast({
-        title: "Data Extracted",
-        // Format for display using displayCurrency
-        description: `${resultFromAI.description} - Amount: ${formatCurrency(amountInBaseCurrency, displayCurrency)}`,
+        title: "Data Extracted & Ready for Form",
+        description: `Review pre-filled details: ${resultFromAI.merchant || resultFromAI.category} - ${formatCurrency(amountInBaseCurrency, displayCurrency)}`,
       });
       form.reset();
     } catch (error) {
@@ -79,11 +79,12 @@ export function TextCategorizationForm({ onDataExtracted }: TextCategorizationFo
   const handleUseExtractedData = () => {
     if (extractedData) { // extractedData.amount is already in DEFAULT_STORED_CURRENCY
       onDataExtracted(extractedData);
+      toast({ title: "Using Previous Data", description: "Form pre-filled with previously extracted details."});
     }
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <FormField
@@ -91,44 +92,51 @@ export function TextCategorizationForm({ onDataExtracted }: TextCategorizationFo
             name="description"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Transaction Description</FormLabel>
+                <FormLabel className="text-sm">Transaction Description</FormLabel>
                 <FormControl>
                   <Textarea
                     placeholder={`e.g., Dinner with friends 55 ${localCurrency} on 2024-07-15, or Received payment 500 ${localCurrency}`}
-                    className="resize-none"
+                    className="resize-none text-sm"
                     rows={3}
                     {...field}
                   />
                 </FormControl>
-                <FormDescription>
-                  AI will attempt to parse amount, date, merchant, and category. Amounts are assumed to be in your local input currency ({localCurrency}).
+                <FormDescription className="text-xs">
+                  AI will attempt to parse amount, date, merchant, and category. Amounts are assumed to be in your local input currency ({settingsMounted ? localCurrency : "..."}).
                 </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
           />
           <Button type="submit" disabled={isLoading || !settingsMounted} className="w-full">
-            <Wand2 className="mr-2 h-4 w-4" /> {isLoading ? "Processing..." : "Extract Data"}
+            <Wand2 className="mr-2 h-4 w-4" /> {isLoading ? "Processing..." : "Extract Data with AI"}
           </Button>
         </form>
       </Form>
       {extractedData && (
-        <div className="mt-6 rounded-md border bg-muted/50 p-4 text-sm space-y-2">
-          <h4 className="font-semibold mb-1 text-foreground">Previously Extracted:</h4>
-          <p><span className="font-medium text-muted-foreground">Desc:</span> {extractedData.description}</p>
-          <p><span className="font-medium text-muted-foreground">Merchant:</span> {extractedData.merchant || "N/A"}</p>
-          {/* Display amount converted from base to display currency */}
-          <p><span className="font-medium text-muted-foreground">Amount:</span> {formatCurrency(extractedData.amount, displayCurrency)} ({extractedData.type})</p>
-          <p><span className="font-medium text-muted-foreground">Date:</span> {extractedData.date}</p>
-          <p><span className="font-medium text-muted-foreground">Category:</span> {extractedData.category}</p>
-          <Button onClick={handleUseExtractedData} variant="outline" size="sm" className="w-full mt-2" disabled={!settingsMounted}>
-            <CornerDownLeft className="mr-2 h-4 w-4" /> Use This Data Again
-          </Button>
-          <p className="mt-1 text-xs text-muted-foreground/80 text-center pt-1">
-            This data will pre-fill the main transaction form. The amount shown is in your display currency ({displayCurrency}).
-          </p>
-        </div>
+        <Card className="mt-6 rounded-lg border-primary/30 bg-primary/5 dark:bg-primary/10">
+          <CardHeader className="pb-3 pt-4 px-4">
+            <CardTitle className="text-sm font-semibold text-primary flex items-center">
+              <Info className="mr-2 h-4 w-4" /> Previously Extracted Data
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4 text-xs space-y-1 text-foreground/80">
+            <p><span className="font-medium text-foreground">Desc:</span> {extractedData.description}</p>
+            <p><span className="font-medium text-foreground">Merchant:</span> {extractedData.merchant || "N/A"}</p>
+            <p><span className="font-medium text-foreground">Amount:</span> {formatCurrency(extractedData.amount, displayCurrency)} ({extractedData.type})</p>
+            <p><span className="font-medium text-foreground">Date:</span> {extractedData.date}</p>
+            <p><span className="font-medium text-foreground">Category:</span> {extractedData.category}</p>
+            <Button onClick={handleUseExtractedData} variant="outline" size="sm" className="w-full mt-3 text-xs" disabled={!settingsMounted}>
+              <CornerDownLeft className="mr-2 h-3.5 w-3.5" /> Use This Data Again
+            </Button>
+            <p className="mt-2 text-muted-foreground text-center text-[11px] leading-tight">
+              This data will pre-fill the main transaction form. The amount shown is in your display currency ({displayCurrency}).
+            </p>
+          </CardContent>
+        </Card>
       )}
     </div>
   );
 }
+
+```

@@ -1,4 +1,5 @@
 
+// ========================================
 "use client";
 
 import { useEffect } from 'react';
@@ -17,174 +18,76 @@ import { Progress } from "@/components/ui/progress";
 import { useSettings } from '@/contexts/SettingsContext';
 import { formatCurrency } from '@/lib/utils';
 
-
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
-  const router = useRouter();
-  const { expenses, loadingExpenses } = useExpenses();
-  const { budgets, loadingBudgets } = useBudgets();
+  const { expenses, loadingExpenses: expLoading } = useExpenses();
+  const { budgets, loadingBudgets: budLoading } = useBudgets();
   const { displayCurrency, isMounted: settingsMounted } = useSettings();
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/login');
-    }
-  }, [user, authLoading, router]);
+  
+  const totalIncome = useMemo(() => expenses.filter(e => e.type === 'income').reduce((s, e) => s + e.amount, 0), [expenses]);
+  const totalExpense = useMemo(() => expenses.filter(e => e.type === 'expense').reduce((s, e) => s + e.amount, 0), [expenses]);
+  const balance = totalIncome - totalExpense;
+  const highlights = useMemo(() => budgets.map(b => ({ ...b, pct: b.amount ? Math.min((b.spentAmount / b.amount) * 100, 100) : 0 })).sort((a, b) => b.pct - a.pct).slice(0, 3), [budgets]);
 
-  const totalIncome = useMemo(() => {
-    return expenses
-      .filter(e => e.type === 'income')
-      .reduce((sum, e) => sum + e.amount, 0);
-  }, [expenses]);
-
-  const totalExpensesValue = useMemo(() => {
-    return expenses
-      .filter(e => e.type === 'expense')
-      .reduce((sum, e) => sum + e.amount, 0);
-  }, [expenses]);
-
-  const balance = totalIncome - totalExpensesValue;
-
-  const budgetHighlights = useMemo(() => {
-    return budgets
-      .map(budget => ({
-        ...budget,
-        progress: budget.amount > 0 ? Math.min((budget.spentAmount / budget.amount) * 100, 100) : 0,
-        isOverBudget: budget.spentAmount > budget.amount,
-        percentageSpent: budget.amount > 0 ? (budget.spentAmount / budget.amount) * 100 : 0,
-      }))
-      .sort((a, b) => b.percentageSpent - a.percentageSpent)
-      .slice(0, 3);
-  }, [budgets]);
-
-  if (authLoading || (!user && !authLoading) || loadingExpenses || loadingBudgets || !settingsMounted) {
+  if (authLoading || expLoading || budLoading || !settingsMounted) {
     return (
       <AppShell>
-        <div className="flex flex-col items-center justify-center h-full py-10">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
-          <p className="mt-4 text-muted-foreground text-sm md:text-base">Loading Dashboard...</p>
-        </div>
+        <div className="h-full flex justify-center items-center"><Loader2 className="animate-spin h-12 w-12 text-primary" /></div>
       </AppShell>
     );
   }
 
-
   return (
     <AppShell>
-      <div className="space-y-8">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <h1 className="font-headline text-2xl md:text-3xl font-semibold text-foreground">
-            Welcome Back, {user?.displayName || user?.email?.split('@')[0] || 'User'}!
-          </h1>
-        </div>
-
-        <p className="text-md md:text-lg text-muted-foreground">
-          Here&apos;s your financial overview. All amounts displayed in {displayCurrency}.
-        </p>
-
-        <div className="grid gap-6 md:grid-cols-3">
-          <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-xl">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Total Income</CardTitle>
-              <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">{formatCurrency(totalIncome, displayCurrency)}</div>
-            </CardContent>
+      <div className="container mx-auto py-8 px-4">
+        <h1 className="text-3xl font-bold mb-2">Welcome. <br/><span className="text-primary">{user?.displayName || 'User'}</span></h1>
+        <p className="text-muted-foreground mb-8">Here's an overview of your finances in <span className="font-medium">{displayCurrency}</span>.</p>
+        <div className="grid gap-6 sm:grid-cols-3 mb-8">
+          <Card className="p-6 hover:shadow-xl transition rounded-2xl bg-card">
+            <TrendingUp className="h-6 w-6 text-primary mb-2" />
+            <h3 className="text-sm text-muted-foreground">Total Income</h3>
+            <p className="text-2xl font-semibold text-foreground">{formatCurrency(totalIncome, displayCurrency)}</p>
           </Card>
-          <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-xl">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Total Expenses</CardTitle>
-              <TrendingDown className="h-4 w-4 sm:h-5 sm:w-5 text-red-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">{formatCurrency(totalExpensesValue, displayCurrency)}</div>
-            </CardContent>
+          <Card className="p-6 hover:shadow-xl transition rounded-2xl bg-card">
+            <TrendingDown className="h-6 w-6 text-destructive mb-2" />
+            <h3 className="text-sm text-muted-foreground">Total Expenses</h3>
+            <p className="text-2xl font-semibold text-foreground">{formatCurrency(totalExpense, displayCurrency)}</p>
           </Card>
-          <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-xl">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Current Balance</CardTitle>
-              <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">{formatCurrency(balance, displayCurrency)}</div>
-            </CardContent>
+          <Card className="p-6 hover:shadow-xl transition rounded-2xl bg-card">
+            <DollarSign className="h-6 w-6 text-accent mb-2" />
+            <h3 className="text-sm text-muted-.Foreground">Balance</h3>
+            <p className="text-2xl font-semibold text-foreground">{formatCurrency(balance, displayCurrency)}</p>
           </Card>
         </div>
 
-        {budgetHighlights.length > 0 && (
-          <Card className="shadow-lg rounded-xl">
-            <CardHeader>
-              <CardTitle className="flex items-center text-lg md:text-xl">
-                <Target className="h-5 w-5 md:h-6 md:w-6 mr-3 text-primary" />
-                Budget Highlights
-              </CardTitle>
-              <CardDescription className="text-xs sm:text-sm">Your top budgets by spending progress (displayed in {displayCurrency}).</CardDescription>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {budgetHighlights.map(budget => (
-                <Card key={budget.id} className="flex flex-col bg-card hover:shadow-md transition-shadow rounded-lg">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base md:text-lg">{budget.name}</CardTitle>
-                    <CardDescription className="text-xs sm:text-sm">{budget.category}</CardDescription>
-                  </CardHeader>
-                  <CardContent className="flex-grow space-y-2">
-                    <Progress value={budget.progress} className={`h-2.5 ${budget.isOverBudget ? "[&>div]:bg-destructive" : ""}`} />
-                    <div className="flex justify-between text-xs sm:text-sm">
-                      <span className={budget.isOverBudget ? "text-destructive font-medium" : "text-muted-foreground"}>
-                        Spent: {formatCurrency(budget.spentAmount, displayCurrency)}
-                      </span>
-                      <span className="text-muted-foreground">
-                        Budget: {formatCurrency(budget.amount, displayCurrency)}
-                      </span>
-                    </div>
-                    {budget.isOverBudget && (
-                         <p className="text-xs text-destructive text-center">
-                           Over budget by {formatCurrency(budget.spentAmount - budget.amount, displayCurrency)}!
-                         </p>
-                    )}
-                  </CardContent>
-                  <div className="p-4 pt-0 text-right">
-                     <Button variant="link" asChild size="sm" className="text-xs text-primary hover:text-primary/80">
-                        <Link href="/budgets">Manage Budgets</Link>
-                    </Button>
+        {highlights.length > 0 && (
+          <Card className="p-6 mb-8 rounded-2xl hover:shadow-lg transition bg-card">
+            <div className="flex items-center mb-4">
+              <Target className="h-5 w-5 text-primary mr-2" />
+              <h2 className="text-lg font-semibold text-foreground">Budget Highlights</h2>
+            </div>
+            <div className="space-y-4">
+              {highlights.map(b => (
+                <div key={b.id} className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-foreground">{b.name}</p>
+                    <p className="text-xs text-muted-foreground">{b.category}</p>
                   </div>
-                </Card>
+                  <div className="text-sm font-semibold text-foreground">{b.pct.toFixed(0)}%</div>
+                </div>
               ))}
-            </CardContent>
-             {budgets.length > 3 && (
-              <div className="p-4 pt-0 text-center">
-                 <Button variant="outline" asChild size="sm">
-                    <Link href="/budgets">View All Budgets</Link>
-                </Button>
-              </div>
-            )}
-             {budgets.length === 0 && (
-                <CardContent>
-                    <p className="text-muted-foreground text-center text-sm md:text-base">No budgets set yet.
-                        <Button variant="link" asChild className="p-1 h-auto text-sm md:text-base">
-                           <Link href="/budgets">Create one</Link>
-                        </Button>
-                         to see highlights here.
-                    </p>
-                </CardContent>
-            )}
+            </div>
           </Card>
         )}
 
-        <Card className="shadow-lg rounded-xl">
-          <CardHeader>
-            <CardTitle className="flex items-center text-lg md:text-xl">
-              <ListChecks className="h-5 w-5 md:h-6 md:w-6 mr-3 text-primary" />
-              Recent Transactions
-            </CardTitle>
-             <CardDescription className="text-xs sm:text-sm">Your latest financial movements (displayed in {displayCurrency}).</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <RecentTransactionsList count={5} />
-          </CardContent>
+        <Card className="p-3 sm:p-6 rounded-2xl hover:shadow-lg transition bg-card">
+          <div className="flex items-center mb-4">
+            <ListChecks className="h-5 w-5 text-primary mr-2" />
+            <h2 className="text-lg font-semibold text-foreground">Recent Transactions</h2>
+          </div>
+          <RecentTransactionsList count={5} />
         </Card>
-
       </div>
     </AppShell>
   );

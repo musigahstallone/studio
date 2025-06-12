@@ -134,7 +134,7 @@ export function RecentTransactionsList({ count, expensesData }: RecentTransactio
 
   return (
     <div className="flow-root">
-      <div className="-my-3 divide-y divide-border">
+      <div className="-my-3">
         {recentExpenses.map((expense) => (
           <RecentTransactionItem key={expense.id} expense={expense} />
         ))}

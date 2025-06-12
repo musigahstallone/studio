@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect } from 'react'; // For route protection
@@ -17,8 +16,8 @@ import type { ProcessedExpenseData } from '@/actions/aiActions';
 import { useExpenses } from '@/contexts/ExpenseContext';
 import { ResponsiveFormWrapper } from '@/components/shared/ResponsiveFormWrapper';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Loader2 } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { PlusCircle, Loader2, LayoutList, FileText, UploadCloud, Camera } from 'lucide-react';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext'; 
 
 export default function ExpensesPage() {
@@ -90,6 +89,15 @@ export default function ExpensesPage() {
     );
   }
 
+  const viewOptions = [
+    { value: "list", label: "All Transactions", icon: LayoutList, description: "View and manage all your recorded transactions." },
+    { value: "text-ai", label: "AI: Text Input", icon: FileText, description: "Type a description for AI to parse (e.g., \"Lunch $12.50\")." },
+    { value: "receipt-ai", label: "AI: Receipt Upload", icon: UploadCloud, description: "Upload a receipt image for AI data extraction." },
+    { value: "camera-ai", label: "AI: Scan with Camera", icon: Camera, description: "Use your camera to scan a receipt for AI processing." },
+  ];
+
+  const selectedViewOption = viewOptions.find(opt => opt.value === activeView);
+
   return (
     <AppShell>
       <div className="space-y-6">
@@ -100,19 +108,35 @@ export default function ExpensesPage() {
           </Button>
         </div>
 
-        <div className="w-full sm:max-w-xs">
-          <Select value={activeView} onValueChange={setActiveView} disabled={!user}>
-            <SelectTrigger className="w-full text-sm md:text-base">
-              <SelectValue placeholder="Select View" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="list" className="text-sm md:text-base">All Transactions</SelectItem>
-              <SelectItem value="text-ai" className="text-sm md:text-base">AI: Text Input</SelectItem>
-              <SelectItem value="receipt-ai" className="text-sm md:text-base">AI: Receipt Upload</SelectItem>
-              <SelectItem value="camera-ai" className="text-sm md:text-base">AI: Scan with Camera</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <Card className="rounded-xl shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-lg md:text-xl">Transaction Input Method</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">
+              {selectedViewOption?.description || "Select how you want to manage or add transactions."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Select value={activeView} onValueChange={setActiveView} disabled={!user}>
+              <SelectTrigger className="w-full md:max-w-sm text-sm md:text-base">
+                <SelectValue placeholder="Select View / Input Method" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>Views & AI Tools</SelectLabel>
+                  {viewOptions.map(option => (
+                    <SelectItem key={option.value} value={option.value} className="text-sm md:text-base py-2">
+                      <div className="flex items-center gap-2">
+                        <option.icon className="h-4 w-4 text-muted-foreground" />
+                        <span>{option.label}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
+
 
         <div className="mt-4 space-y-6">
           {activeView === "list" && (
@@ -124,9 +148,11 @@ export default function ExpensesPage() {
           )}
 
           {activeView === "text-ai" && (
-            <Card className="rounded-xl">
+            <Card className="rounded-xl shadow-lg">
               <CardHeader>
-                <CardTitle className="text-lg md:text-xl">Categorize by Text</CardTitle>
+                <CardTitle className="text-lg md:text-xl flex items-center">
+                  <FileText className="mr-2 h-5 w-5 text-primary"/> Categorize by Text
+                </CardTitle>
                 <CardDescription className="text-xs sm:text-sm">
                   Type a description (e.g., &quot;Lunch at Cafe Mocha $12.50&quot; or &quot;Received salary $2000&quot;), and AI will parse it.
                 </CardDescription>
@@ -138,9 +164,11 @@ export default function ExpensesPage() {
           )}
 
           {activeView === "receipt-ai" && (
-            <Card className="rounded-xl">
+            <Card className="rounded-xl shadow-lg">
               <CardHeader>
-                <CardTitle className="text-lg md:text-xl">Extract from Receipt/Document</CardTitle>
+                <CardTitle className="text-lg md:text-xl flex items-center">
+                  <UploadCloud className="mr-2 h-5 w-5 text-primary"/> Extract from Receipt/Document
+                </CardTitle>
                 <CardDescription className="text-xs sm:text-sm">
                   Upload an image of your receipt or financial document, and AI handles the rest.
                 </CardDescription>
@@ -152,9 +180,11 @@ export default function ExpensesPage() {
           )}
 
           {activeView === "camera-ai" && (
-            <Card className="rounded-xl">
+            <Card className="rounded-xl shadow-lg">
               <CardHeader>
-                <CardTitle className="text-lg md:text-xl">Scan with Camera</CardTitle>
+                <CardTitle className="text-lg md:text-xl flex items-center">
+                  <Camera className="mr-2 h-5 w-5 text-primary"/> Scan with Camera
+                </CardTitle>
                 <CardDescription className="text-xs sm:text-sm">
                   Use your camera to scan a receipt or document for AI-powered data extraction.
                 </CardDescription>

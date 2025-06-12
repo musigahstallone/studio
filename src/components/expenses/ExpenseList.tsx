@@ -1,15 +1,15 @@
-
 "use client";
 
 import type { Expense } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Trash2, Edit3, ArrowDownCircle, ArrowUpCircle, Tag, CalendarDays, Building, ChevronLeft, ChevronRight, Info } from "lucide-react";
-import { Card, CardContent, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { useState, useEffect } from "react";
 import { format, parseISO } from 'date-fns';
 import { useSettings } from "@/contexts/SettingsContext"; // Use displayCurrency
 import { formatCurrency } from "@/lib/utils";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
 
 const ITEMS_PER_PAGE = 10; 
 
@@ -42,23 +42,20 @@ function ExpenseListItem({ expense, onDeleteExpense, onEditExpense }: ExpenseLis
 
   if (!settingsMounted) {
      return (
-        <div className="p-4 border-b h-24 animate-pulse bg-muted/30 rounded-md my-1 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4 sm:gap-6 items-center">
-            <div className="flex items-start gap-3">
-                <div className="h-6 w-6 mt-1 rounded-full bg-muted"></div>
-                <div className="flex-1 min-w-0 space-y-1">
-                    <div className="h-5 w-3/4 bg-muted rounded"></div>
-                    <div className="h-3 w-1/2 bg-muted rounded"></div>
-                     <div className="h-3 w-1/3 bg-muted rounded"></div>
-                </div>
-            </div>
-            <div className="flex sm:flex-col items-end sm:items-end justify-between sm:justify-center gap-2 sm:gap-3">
-                <div className="h-6 w-20 bg-muted rounded"></div>
-                <div className="flex gap-2">
-                    <div className="h-8 w-16 bg-muted rounded-md"></div>
-                    <div className="h-8 w-16 bg-muted rounded-md"></div>
-                </div>
-            </div>
-        </div>
+      <Card className="mb-4 animate-pulse bg-muted/30 rounded-xl shadow-sm">
+        <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0 pb-2">
+          <div className="h-6 w-3/5 bg-muted rounded"></div>
+          <div className="h-6 w-1/5 bg-muted rounded"></div>
+        </CardHeader>
+        <CardContent className="p-4 pt-0 space-y-2">
+          <div className="h-4 w-4/5 bg-muted rounded"></div>
+          <div className="h-4 w-1/2 bg-muted rounded"></div>
+        </CardContent>
+        <CardFooter className="p-4 flex justify-end gap-2">
+          <div className="h-8 w-16 bg-muted rounded-md"></div>
+          <div className="h-8 w-16 bg-muted rounded-md"></div>
+        </CardFooter>
+      </Card>
     );
   }
 
@@ -67,72 +64,70 @@ function ExpenseListItem({ expense, onDeleteExpense, onEditExpense }: ExpenseLis
       variant="outline"
       size="sm"
       onClick={() => !isSavingsRelatedTransaction && onEditExpense(expense)}
-      aria-label="Edit"
+      aria-label="Edit transaction"
       disabled={isSavingsRelatedTransaction}
+      className="text-xs"
     >
-      <Edit3 className="h-4 w-4 sm:mr-1" />
+      <Edit3 className="h-3.5 w-3.5 sm:mr-1.5" />
       <span className="hidden sm:inline">Edit</span>
     </Button>
   );
 
   return (
-    <div className="p-4 border-b hover:bg-muted/50 transition-colors grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4 sm:gap-6 items-center">
-      <div className="flex items-start gap-3">
-        <TypeIcon className={`h-5 w-5 sm:h-6 sm:w-6 mt-1 ${iconColor} flex-shrink-0`} />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="font-semibold text-sm sm:text-base md:text-lg text-foreground truncate">{expense.description}</p>
-            {isSavingsRelatedTransaction && (
-                 <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Info className="h-4 w-4 text-primary cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>This transaction is linked to a savings goal.</p>
-                    </TooltipContent>
-                </Tooltip>
-            )}
-          </div>
-          <div className="flex flex-wrap gap-x-3 sm:gap-x-4 gap-y-1 text-xs text-muted-foreground mt-1">
-            <span className="flex items-center"><Tag className="h-3 w-3 mr-1" />{expense.category}</span>
-            <span className="flex items-center"><CalendarDays className="h-3 w-3 mr-1" />{formattedDate || 'Loading date...'}</span>
-            {expense.merchant && (
-              <span className="flex items-center"><Building className="h-3 w-3 mr-1" />{expense.merchant}</span>
-            )}
-          </div>
+    <Card className="mb-4 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300">
+      <CardHeader className="p-4 flex flex-row items-start sm:items-center justify-between space-y-0 pb-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <TypeIcon className={`h-6 w-6 ${iconColor} flex-shrink-0`} />
+          <CardTitle className="text-base md:text-lg font-semibold text-foreground truncate" title={expense.description}>
+            {expense.description}
+          </CardTitle>
         </div>
-      </div>
-
-      <div className="flex sm:flex-col items-end sm:items-end justify-between sm:justify-center gap-2 sm:gap-3">
-        <p className={`text-base sm:text-lg md:text-xl font-bold ${amountColor} text-right sm:text-left`}>
+        <p className={`text-base sm:text-lg md:text-xl font-bold ${amountColor} whitespace-nowrap`}>
           {isIncome ? '+' : '-'}{formatCurrency(expense.amount, displayCurrency)}
         </p>
-
-        <div className="flex gap-2">
-          {isSavingsRelatedTransaction ? (
+      </CardHeader>
+      <CardContent className="p-4 pt-0 space-y-1.5">
+        <div className="flex flex-wrap gap-x-3 sm:gap-x-4 gap-y-1 text-xs text-muted-foreground">
+          <Badge variant="outline" className="flex items-center text-xs">
+            <Tag className="h-3 w-3 mr-1" />{expense.category}
+          </Badge>
+          <span className="flex items-center"><CalendarDays className="h-3 w-3 mr-1" />{formattedDate || 'Loading date...'}</span>
+          {expense.merchant && (
+            <span className="flex items-center"><Building className="h-3 w-3 mr-1" />{expense.merchant}</span>
+          )}
+        </div>
+        {isSavingsRelatedTransaction && (
+          <div className="flex items-center text-xs text-primary mt-1">
+            <Info className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />
+            <span>Linked to a savings goal.</span>
+          </div>
+        )}
+      </CardContent>
+      <CardFooter className="p-4 pt-2 flex justify-end gap-2">
+        {isSavingsRelatedTransaction ? (
+          <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>{editButton}</TooltipTrigger>
               <TooltipContent>
                 <p>Cannot edit: Linked to a savings goal.</p>
               </TooltipContent>
             </Tooltip>
-          ) : (
-            editButton
-          )}
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onDeleteExpense(expense.id)}
-            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-            aria-label="Delete"
-          >
-            <Trash2 className="h-4 w-4 sm:mr-1" />
-            <span className="hidden sm:inline">Delete</span>
-          </Button>
-        </div>
-      </div>
-    </div>
+          </TooltipProvider>
+        ) : (
+          editButton
+        )}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onDeleteExpense(expense.id)}
+          className="text-destructive hover:text-destructive hover:bg-destructive/10 text-xs"
+          aria-label="Delete transaction"
+        >
+          <Trash2 className="h-3.5 w-3.5 sm:mr-1.5" />
+          <span className="hidden sm:inline">Delete</span>
+        </Button>
+      </CardFooter>
+    </Card>
   );
 }
 
@@ -150,7 +145,6 @@ export function ExpenseList({ expenses, onDeleteExpense, onEditExpense }: Expens
     const dateA = new Date(a.date).getTime();
     const dateB = new Date(b.date).getTime();
     if (dateB !== dateA) return dateB - dateA;
-    // If dates are the same, sort by creation time (newer first)
     const createdAtA = a.createdAt && typeof a.createdAt === 'string' ? new Date(a.createdAt).getTime() : (a.createdAt as any)?.seconds || 0;
     const createdAtB = b.createdAt && typeof b.createdAt === 'string' ? new Date(b.createdAt).getTime() : (b.createdAt as any)?.seconds || 0;
     return createdAtB - createdAtA;
@@ -163,25 +157,22 @@ export function ExpenseList({ expenses, onDeleteExpense, onEditExpense }: Expens
 
   if (!settingsMounted && expenses.length > 0) {
      return (
-      <div className="mt-6 space-y-2">
+      <div className="mt-6 space-y-4">
         {[...Array(Math.min(ITEMS_PER_PAGE, 3))].map((_, i) => (
-         <div key={i} className="p-4 border-b h-24 animate-pulse bg-muted/30 rounded-md grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4 sm:gap-6 items-center">
-            <div className="flex items-start gap-3">
-                <div className="h-6 w-6 mt-1 rounded-full bg-muted"></div>
-                <div className="flex-1 min-w-0 space-y-1">
-                    <div className="h-5 w-3/4 bg-muted rounded"></div>
-                    <div className="h-3 w-1/2 bg-muted rounded"></div>
-                     <div className="h-3 w-1/3 bg-muted rounded"></div>
-                </div>
-            </div>
-            <div className="flex sm:flex-col items-end sm:items-end justify-between sm:justify-center gap-2 sm:gap-3">
-                <div className="h-6 w-20 bg-muted rounded"></div>
-                <div className="flex gap-2">
-                    <div className="h-8 w-16 bg-muted rounded-md"></div>
-                    <div className="h-8 w-16 bg-muted rounded-md"></div>
-                </div>
-            </div>
-        </div>
+         <Card key={i} className="animate-pulse bg-muted/30 rounded-xl shadow-sm">
+            <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0 pb-2">
+              <div className="h-6 w-3/5 bg-muted rounded"></div>
+              <div className="h-6 w-1/5 bg-muted rounded"></div>
+            </CardHeader>
+            <CardContent className="p-4 pt-0 space-y-2">
+              <div className="h-4 w-4/5 bg-muted rounded"></div>
+              <div className="h-4 w-1/2 bg-muted rounded"></div>
+            </CardContent>
+            <CardFooter className="p-4 flex justify-end gap-2">
+              <div className="h-8 w-16 bg-muted rounded-md"></div>
+              <div className="h-8 w-16 bg-muted rounded-md"></div>
+            </CardFooter>
+          </Card>
         ))}
       </div>
     );
@@ -189,41 +180,41 @@ export function ExpenseList({ expenses, onDeleteExpense, onEditExpense }: Expens
 
   if (expenses.length === 0) {
     return (
-      <Card className="mt-8 rounded-xl">
-        <CardContent className="pt-6">
-          <p className="text-center text-muted-foreground text-sm md:text-base">No transactions recorded yet.</p>
-          <CardDescription className="text-center mt-2 text-xs sm:text-sm">Click &quot;Add Transaction&quot; to get started.</CardDescription>
+      <Card className="mt-8 rounded-xl shadow-lg">
+        <CardContent className="pt-6 text-center">
+          <LayoutList className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+          <p className="text-lg font-semibold text-muted-foreground">No transactions recorded yet.</p>
+          <CardDescription className="mt-2 text-sm md:text-base">Click &quot;Add Transaction&quot; to get started or try an AI tool.</CardDescription>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <div className="mt-6">
-      <div className="border rounded-lg overflow-hidden">
-        <div className="divide-y">
-          {paginatedExpenses.map((expense) => (
-            <ExpenseListItem
-              key={expense.id}
-              expense={expense}
-              onDeleteExpense={onDeleteExpense}
-              onEditExpense={onEditExpense}
-            />
-          ))}
-        </div>
+    <div className="mt-2">
+      <div className="space-y-4">
+        {paginatedExpenses.map((expense) => (
+          <ExpenseListItem
+            key={expense.id}
+            expense={expense}
+            onDeleteExpense={onDeleteExpense}
+            onEditExpense={onEditExpense}
+          />
+        ))}
       </div>
       {totalPages > 1 && (
-        <div className="flex justify-center items-center space-x-2 mt-4">
+        <div className="flex justify-center items-center space-x-2 mt-6">
           <Button
             variant="outline"
             size="sm"
             onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
             disabled={currentPage === 1}
+            className="text-xs"
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="h-4 w-4 mr-1" />
             Previous
           </Button>
-          <span className="text-sm text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             Page {currentPage} of {totalPages}
           </span>
           <Button
@@ -231,12 +222,17 @@ export function ExpenseList({ expenses, onDeleteExpense, onEditExpense }: Expens
             size="sm"
             onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
             disabled={currentPage === totalPages}
+            className="text-xs"
           >
             Next
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-4 w-4 ml-1" />
           </Button>
         </div>
       )}
     </div>
   );
 }
+
+```globalImport
+import { LayoutList } from 'lucide-react';
+```
