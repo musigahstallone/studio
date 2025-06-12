@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { PiggyBank, Menu, UserCircle as UserIcon, LogIn, LogOut, UserCircle, Settings as CogIcon, LayoutDashboard, Sun, Moon, Laptop, SendHorizontal } from 'lucide-react';
+import { PiggyBank, Menu, UserCircle as UserIcon, LogIn, LogOut, UserCircle, Settings as CogIcon, LayoutDashboard, Sun, Moon, Laptop, SendHorizontal, CreditCard, Landmark as LandmarkIcon } from 'lucide-react'; // Added CreditCard and LandmarkIcon
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose, SheetTrigger } from '@/components/ui/sheet';
@@ -28,7 +28,7 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/comp
 // Define base navigation items, Dashboard and Budgets will be filtered out for desktop
 const baseNavItems = [
   { name: 'Transactions', href: '/expenses', icon: CreditCard }, 
-  { name: 'Savings Goals', href: '/savings-goals', icon: Landmark },
+  { name: 'Savings Goals', href: '/savings-goals', icon: LandmarkIcon }, // Changed to LandmarkIcon to avoid conflict if Landmark is also used
 ];
 
 
@@ -137,7 +137,7 @@ export function AppHeader() {
              <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Link href="/send-money" passHref asChild>
+                     <Link href="/send-money" passHref asChild>
                       <Button variant="ghost" size="icon" aria-label="Send Money" className="inline-flex">
                         <SendHorizontal className="h-5 w-5" />
                       </Button>
