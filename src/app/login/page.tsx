@@ -102,7 +102,7 @@ export default function LoginPage() {
       }
       toast({
         title: 'Signup Successful!',
-        description: 'Your account has been created. Welcome to PennyPincher AI!',
+        description: 'Your account has been created. Welcome to SM Cash!',
         action: <CheckCircle className="text-green-500" />,
       });
       router.push('/');
@@ -183,7 +183,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-headline">PennyPincher AI</CardTitle>
+          <CardTitle className="text-3xl font-headline">SM Cash</CardTitle>
           <CardDescription>
             {authMode === 'login' ? 'Sign in to your account.' : 'Create an account to manage your finances.'}
           </CardDescription>
@@ -220,7 +220,7 @@ export default function LoginPage() {
                   onClick={() => {
                     setAuthMode('signup');
                     setError(null);
-                    setPassword(''); 
+                    setPassword('');
                     setConfirmPassword('');
                   }}
                   type="button"
@@ -272,10 +272,10 @@ export default function LoginPage() {
                   variant="link"
                   className="p-0 h-auto text-primary"
                   onClick={() => {
-                     setAuthMode('login');
-                     setError(null);
-                     setPassword('');
-                     setConfirmPassword('');
+                    setAuthMode('login');
+                    setError(null);
+                    setPassword('');
+                    setConfirmPassword('');
                   }}
                   type="button"
                 >
@@ -287,7 +287,7 @@ export default function LoginPage() {
         </CardContent>
         <CardFooter className="flex-col items-center justify-center text-xs text-muted-foreground pt-6">
           <Separator className="mb-4" />
-          <p>&copy; {new Date().getFullYear()} PennyPincher AI. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} SM Cash. All rights reserved.</p>
         </CardFooter>
       </Card>
     </div>

@@ -57,7 +57,7 @@ export function AppHeader() {
   if (pathname === '/login' || pathname === '/' || pathname === '/privacy' || pathname === '/terms' || pathname === '/contact' || pathname === '/features' || pathname === '/faq') {
     return null;
   }
-  
+
   const toggleThemeForSettingsPage = () => {
     if (!settingsAreMounted) return;
     setTheme(theme === 'light' ? 'dark' : 'light');
@@ -72,7 +72,7 @@ export function AppHeader() {
           <Link href="/dashboard" className="flex items-center gap-2">
             <PiggyBank className="h-7 w-7 text-primary" />
             <h1 className="font-headline text-xl font-semibold tracking-tight text-foreground">
-              PennyPincher AI
+              SM Cash
             </h1>
           </Link>
         </div>
@@ -96,11 +96,11 @@ export function AppHeader() {
           )}
 
           {hasMounted && user && appUser && (
-             <DropdownMenu>
+            <DropdownMenu>
               <DropdownMenuTriggerPrimitive asChild>
                 <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
                   <Avatar className="h-9 w-9 border">
-                    <AvatarImage src={appUser.photoURL || user.photoURL || undefined} alt={appUser.name || user.displayName || user.email || 'User'} data-ai-hint="user avatar"/>
+                    <AvatarImage src={appUser.photoURL || user.photoURL || undefined} alt={appUser.name || user.displayName || user.email || 'User'} data-ai-hint="user avatar" />
                     <AvatarFallback>
                       {appUser.email ? appUser.email.charAt(0).toUpperCase() : <UserCircle className="h-5 w-5" />}
                     </AvatarFallback>
@@ -117,7 +117,7 @@ export function AppHeader() {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                 <DropdownMenuItem asChild>
+                <DropdownMenuItem asChild>
                   <Link href="/dashboard"><LayoutDashboard className="mr-2 h-4 w-4" /> Dashboard</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
@@ -153,11 +153,11 @@ export function AppHeader() {
                     <Menu className="h-6 w-6" />
                   </Button>
                 </SheetTrigger>
-                 <SheetContent side="left" className="w-72 p-0 flex flex-col bg-background">
+                <SheetContent side="left" className="w-72 p-0 flex flex-col bg-background">
                   <SheetHeader className="p-4 border-b">
                     <SheetTitle className="flex items-center gap-2">
                       <PiggyBank className="h-7 w-7 text-primary" />
-                      <span className="font-headline text-xl font-semibold tracking-tight text-foreground">PennyPincher AI</span>
+                      <span className="font-headline text-xl font-semibold tracking-tight text-foreground">SM Cash</span>
                     </SheetTitle>
                   </SheetHeader>
                   <div className="flex-grow overflow-y-auto">

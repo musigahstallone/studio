@@ -9,7 +9,7 @@ const privacySections = [
     number: "1.",
     title: "Introduction",
     content: [
-      <p key="1p1">Welcome to PennyPincher AI ("we," "our," or "us"). We are committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our application.</p>
+      <p key="1p1">Welcome to SM Cash ("we," "our," or "us"). We are committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our application.</p>
     ]
   },
   {
@@ -24,8 +24,8 @@ const privacySections = [
       </ul>,
       <p key="2p2" className="mt-2">We also collect some information automatically:</p>,
       <ul key="2ul2" className="list-disc space-y-1 pl-5 my-2">
-          <li>Usage Data: Information about how you interact with our app.</li>
-          <li>Device Information: IP address, browser type, operating system. (Standard server logs)</li>
+        <li>Usage Data: Information about how you interact with our app.</li>
+        <li>Device Information: IP address, browser type, operating system. (Standard server logs)</li>
       </ul>
     ]
   },
@@ -103,7 +103,7 @@ export default function PrivacyPolicyPage() {
           </CardHeader>
           <CardContent className="px-6 py-4 md:px-8 md:py-6">
             <p className="text-muted-foreground text-center mb-8">Last updated: {new Date().toLocaleDateString()}</p>
-            
+
             <div className="space-y-8">
               {privacySections.map((section) => (
                 <div key={section.number} className="space-y-0">

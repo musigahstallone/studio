@@ -25,7 +25,7 @@ const localeMap: Record<CurrencyCode, string> = {
 
 // Rates to convert *FROM* DEFAULT_STORED_CURRENCY *TO* other currencies (for display)
 // Example: If DEFAULT_STORED_CURRENCY is USD: 1 USD = X targetCurrency
-const CONVERSION_RATES_FROM_BASE: Record<CurrencyCode, number> = {
+export const CONVERSION_RATES_FROM_BASE: Record<CurrencyCode, number> = {
   USD: 1,    // 1 USD = 1 USD
   EUR: 0.92, // 1 USD = 0.92 EUR
   KES: 130,  // 1 USD = 130 KES

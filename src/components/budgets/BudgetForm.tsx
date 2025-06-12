@@ -27,14 +27,14 @@ import { useToast } from "@/hooks/use-toast";
 import type { Budget } from "@/lib/types";
 import { expenseCategories, DEFAULT_STORED_CURRENCY } from "@/lib/types";
 import { PlusCircle, Save, AlertOctagon } from "lucide-react";
-import { useSettings } from "@/contexts/SettingsContext"; 
-import { convertToBaseCurrency, formatCurrency, CONVERSION_RATES_FROM_BASE } from "@/lib/utils"; 
+import { useSettings } from "@/contexts/SettingsContext";
+import { convertToBaseCurrency, formatCurrency, CONVERSION_RATES_FROM_BASE } from "@/lib/utils";
 import { useEffect } from "react";
 
 
 const BudgetFormSchema = z.object({
   id: z.string().optional(),
-  name: z.string().min(1, { message: "Budget name is required." }).max(50, { message: "Name must be 50 characters or less."}),
+  name: z.string().min(1, { message: "Budget name is required." }).max(50, { message: "Name must be 50 characters or less." }),
   category: z.string().min(1, { message: "Category is required." }),
   amount: z.number().positive({ message: "Budget amount must be positive." }),
   warnOnExceed: z.boolean().optional(),
@@ -51,13 +51,13 @@ interface BudgetFormProps {
 
 export function BudgetForm({ onSaveBudget, existingBudgets, initialData, onSubmissionDone }: BudgetFormProps) {
   const { toast } = useToast();
-  const { localCurrency, displayCurrency, isMounted: settingsMounted } = useSettings(); 
+  const { localCurrency, displayCurrency, isMounted: settingsMounted } = useSettings();
   const isEditing = !!initialData?.id;
 
   const form = useForm<BudgetFormData>({
     resolver: zodResolver(BudgetFormSchema.refine(data => expenseCategories.includes(data.category as any), {
-        message: "Category must be one of the predefined expense categories.",
-        path: ["category"],
+      message: "Category must be one of the predefined expense categories.",
+      path: ["category"],
     })),
     defaultValues: {
       id: initialData?.id || undefined,
@@ -73,7 +73,7 @@ export function BudgetForm({ onSaveBudget, existingBudgets, initialData, onSubmi
     if (initialData?.amount && settingsMounted && localCurrency !== DEFAULT_STORED_CURRENCY) {
       // Convert from base currency (DEFAULT_STORED_CURRENCY) to localCurrency for display
       const rateFromBaseToLocal = CONVERSION_RATES_FROM_BASE[localCurrency];
-       if (typeof rateFromBaseToLocal === 'number') {
+      if (typeof rateFromBaseToLocal === 'number') {
         amountForForm = initialData.amount * rateFromBaseToLocal;
       } else {
         console.warn(`Missing conversion rate from base to ${localCurrency} for budget form display. Using base amount.`);
@@ -102,8 +102,8 @@ export function BudgetForm({ onSaveBudget, existingBudgets, initialData, onSubmi
       return;
     }
     if (existingBudgets.some(b => b.category === values.category && b.id !== values.id)) {
-         form.setError("category", { type: "manual", message: "A budget for this category already exists. Edit the existing one or choose a different category." });
-        return;
+      form.setError("category", { type: "manual", message: "A budget for this category already exists. Edit the existing one or choose a different category." });
+      return;
     }
 
     // `values.amount` is from the form, so it's in `localCurrency`. Convert it to base for storage.
@@ -112,7 +112,7 @@ export function BudgetForm({ onSaveBudget, existingBudgets, initialData, onSubmi
     const budgetDataForContext: Omit<Budget, 'id' | 'userId' | 'spentAmount' | 'createdAt' | 'updatedAt'> = {
       name: values.name,
       category: values.category as any,
-      amount: amountInBaseCurrency, 
+      amount: amountInBaseCurrency,
       warnOnExceed: values.warnOnExceed || false,
     };
 
@@ -184,18 +184,18 @@ export function BudgetForm({ onSaveBudget, existingBudgets, initialData, onSubmi
               <FormLabel>Budget Amount (in {settingsMounted ? localCurrency : "local currency"})</FormLabel>
               <FormControl>
                 <Input
-                    type="number"
-                    placeholder="0.00"
-                    {...field}
-                    onChange={e => {
-                      const val = e.target.value;
-                      if (val === "") {
-                        field.onChange(val); // Allow empty string for temporary state if user deletes input
-                      } else {
-                        const num = parseFloat(val);
-                        field.onChange(isNaN(num) ? val : num); // Pass number or original string if unparsable
-                      }
-                    }}
+                  type="number"
+                  placeholder="0.00"
+                  {...field}
+                  onChange={e => {
+                    const val = e.target.value;
+                    if (val === "") {
+                      field.onChange(val); // Allow empty string for temporary state if user deletes input
+                    } else {
+                      const num = parseFloat(val);
+                      field.onChange(isNaN(num) ? val : num); // Pass number or original string if unparsable
+                    }
+                  }}
                 />
               </FormControl>
               <FormDescription>

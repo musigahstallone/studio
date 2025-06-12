@@ -59,7 +59,7 @@ export function AdminHeader() {
         <Link href="/admin" className="flex items-center gap-2">
           <ShieldAlert className="h-7 w-7 text-primary" />
           <h1 className="font-headline text-xl font-semibold tracking-tight text-foreground">
-            PennyPincher Admin
+            SM Admin
           </h1>
         </Link>
       </div>

@@ -1,4 +1,4 @@
-# **App Name**: PennyPincher AI
+# **App Name**: SM Cash
 
 ## Core Features:
 

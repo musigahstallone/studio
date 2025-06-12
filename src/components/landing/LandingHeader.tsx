@@ -29,7 +29,7 @@ export function LandingHeader() {
         <Link href="/" className="flex items-center gap-2">
           <PiggyBank className="h-7 w-7 text-primary" />
           <h1 className="font-headline text-xl font-semibold tracking-tight text-foreground">
-            PennyPincher AI
+            SM Cash
           </h1>
         </Link>
 

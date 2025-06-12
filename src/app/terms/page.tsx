@@ -9,14 +9,14 @@ export default function TermsOfServicePage() {
       number: "1.",
       title: "Acceptance of Terms",
       content: [
-        <p key="1p1">By accessing and using PennyPincher AI (the "Service"), you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to abide by these terms, please do not use this Service.</p>
+        <p key="1p1">By accessing and using SM Cash (the "Service"), you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to abide by these terms, please do not use this Service.</p>
       ]
     },
     {
       number: "2.",
       title: "Description of Service",
       content: [
-        <p key="2p1">PennyPincher AI provides users with tools for personal expense tracking, budget management, savings goal management, and AI-powered financial data processing. The Service is provided "as-is" and we assume no responsibility for the timeliness, deletion, mis-delivery, or failure to store any user communications or personalization settings.</p>
+        <p key="2p1">SM Cash provides users with tools for personal expense tracking, budget management, savings goal management, and AI-powered financial data processing. The Service is provided "as-is" and we assume no responsibility for the timeliness, deletion, mis-delivery, or failure to store any user communications or personalization settings.</p>
       ]
     },
     {
@@ -46,14 +46,14 @@ export default function TermsOfServicePage() {
       number: "5.",
       title: "Financial Disclaimer",
       content: [
-        <p key="5p1">PennyPincher AI is a tool for personal financial management and tracking. It is not intended to provide financial, investment, legal, or tax advice. You should consult with a qualified professional for such advice. We are not responsible for any financial decisions or actions taken based on the information provided by the Service.</p>
+        <p key="5p1">SM Cash is a tool for personal financial management and tracking. It is not intended to provide financial, investment, legal, or tax advice. You should consult with a qualified professional for such advice. We are not responsible for any financial decisions or actions taken based on the information provided by the Service.</p>
       ]
     },
     {
       number: "6.",
       title: "Intellectual Property",
       content: [
-        <p key="6p1">The Service and its original content, features, and functionality are owned by PennyPincher AI and are protected by international copyright, trademark, patent, trade secret, and other intellectual property or proprietary rights laws.</p>
+        <p key="6p1">The Service and its original content, features, and functionality are owned by SM Cash and are protected by international copyright, trademark, patent, trade secret, and other intellectual property or proprietary rights laws.</p>
       ]
     },
     {
@@ -67,7 +67,7 @@ export default function TermsOfServicePage() {
       number: "8.",
       title: "Limitation of Liability",
       content: [
-        <p key="8p1">In no event shall PennyPincher AI, nor its directors, employees, partners, agents, suppliers, or affiliates, be liable for any indirect, incidental, special, consequential or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses, resulting from your access to or use of or inability to access or use the Service.</p>
+        <p key="8p1">In no event shall SM Cash, nor its directors, employees, partners, agents, suppliers, or affiliates, be liable for any indirect, incidental, special, consequential or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses, resulting from your access to or use of or inability to access or use the Service.</p>
       ]
     },
     {
@@ -93,9 +93,9 @@ export default function TermsOfServicePage() {
           <CardHeader>
             <CardTitle className="text-3xl font-headline text-center">Terms of Service</CardTitle>
           </CardHeader>
-          <CardContent className="px-6 py-4 md:px-8 md:py-6"> 
+          <CardContent className="px-6 py-4 md:px-8 md:py-6">
             <p className="text-muted-foreground text-center mb-6">Last updated: {new Date().toLocaleDateString()}</p>
-            
+
             <div className="space-y-6"> {/* Manages spacing between sections */}
               {sections.map((section) => (
                 <div key={section.number}> {/* Outer wrapper for each section */}
@@ -136,7 +136,7 @@ export default function TermsOfServicePage() {
                 </div>
               ))}
             </div>
-            
+
           </CardContent>
         </Card>
       </div>

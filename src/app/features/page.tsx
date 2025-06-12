@@ -102,7 +102,7 @@ const detailedFeatures = [
     summary: 'Manage your finances globally with ease.',
     points: [
       {
-        icon: Landmark, 
+        icon: Landmark,
         title: 'Local Input & Display',
         description: 'Set your preferred currency (KES, USD, EUR) for entering transaction amounts and choose the currency for displaying all monetary values throughout the app.',
       },
@@ -152,7 +152,7 @@ export default function FeaturesPage() {
             Powerful Features, Effortless Control
           </h1>
           <p className="mt-4 text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto">
-            Discover how PennyPincher AI empowers you to manage your finances intelligently and achieve your goals with ease.
+            Discover how SM Cash empowers you to manage your finances intelligently and achieve your goals with ease.
           </p>
         </header>
 
@@ -168,7 +168,7 @@ export default function FeaturesPage() {
                     className={cn(
                       "relative h-64 md:h-full min-h-[300px]",
                       index % 2 === 1 ? "md:order-2" : "md:order-1" // Image on right for odd index (Text Left, Image Right)
-                                                                    // Image on left for even index (Image Left, Text Right)
+                      // Image on left for even index (Image Left, Text Right)
                     )}
                   >
                     <Image
@@ -196,7 +196,7 @@ export default function FeaturesPage() {
                     className={cn(
                       "p-6 md:p-10",
                       index % 2 === 1 ? "md:order-1" : "md:order-2" // Text on left for odd index
-                                                                    // Text on right for even index
+                      // Text on right for even index
                     )}
                   >
                     <div className="inline-flex items-center justify-center p-3 bg-primary/10 text-primary rounded-lg mb-4">
@@ -229,7 +229,7 @@ export default function FeaturesPage() {
             Ready to Simplify Your Finances?
           </h2>
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10">
-            Take the first step towards financial clarity and control with PennyPincher AI.
+            Take the first step towards financial clarity and control with SM Cash.
           </p>
           <Button asChild size="lg" className="shadow-lg hover:shadow-xl transition-shadow text-lg px-8 py-6">
             <Link href="/login">
@@ -242,4 +242,3 @@ export default function FeaturesPage() {
   );
 }
 
-    

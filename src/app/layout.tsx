@@ -5,8 +5,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { AppProviders } from '@/components/layout/AppProviders';
 import { DEFAULT_THEME, DEFAULT_DISPLAY_CURRENCY, DEFAULT_LOCAL_CURRENCY } from '@/lib/types';
 
-const APP_NAME = 'PennyPincher AI';
-const APP_DESCRIPTION = 'Effortlessly manage your expenses, budgets, and savings goals with PennyPincher AI. AI-powered expense tracking from text & receipts, multi-currency support, and intelligent financial insights.';
+const APP_NAME = 'SM Cash';
+const APP_DESCRIPTION = 'Effortlessly manage your expenses, budgets, and savings goals with SM Cash. AI-powered expense tracking from text & receipts, multi-currency support, and intelligent financial insights.';
 
 export const metadata: Metadata = {
   applicationName: APP_NAME,
@@ -27,14 +27,14 @@ export const metadata: Metadata = {
   keywords: ['expense tracker', 'budgeting app', 'personal finance', 'ai finance', 'savings goals', 'multi-currency', 'financial management'],
   authors: [{ name: 'Stallone Musigah', url: 'https://musigahstallone.tech' }],
   creator: 'Stallone Musigah',
-  publisher: 'PennyPincher AI',
+  publisher: 'SM Cash',
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002'),
   openGraph: {
     type: 'website',
     siteName: APP_NAME,
     title: {
-        default: APP_NAME,
-        template: `%s | ${APP_NAME}`,
+      default: APP_NAME,
+      template: `%s | ${APP_NAME}`,
     },
     description: APP_DESCRIPTION,
     url: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002'),
@@ -52,8 +52,8 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: {
-        default: APP_NAME,
-        template: `%s | ${APP_NAME}`,
+      default: APP_NAME,
+      template: `%s | ${APP_NAME}`,
     },
     description: APP_DESCRIPTION,
     images: ['https://placehold.co/1200x630.png'],

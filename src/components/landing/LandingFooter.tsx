@@ -13,7 +13,7 @@ export function LandingFooter() {
             <Link href="/" className="flex items-center gap-2 mb-4">
               <PiggyBank className="h-7 w-7 text-primary" />
               <h1 className="font-headline text-xl font-semibold tracking-tight text-foreground">
-                PennyPincher AI
+                SM Cash
               </h1>
             </Link>
             <p className="text-sm text-muted-foreground">
@@ -33,7 +33,7 @@ export function LandingFooter() {
                   How It Works
                 </Link>
               </li>
-               <li>
+              <li>
                 <Link href="/faq" className="text-sm text-muted-foreground hover:text-primary">
                   FAQ
                 </Link>
@@ -63,7 +63,7 @@ export function LandingFooter() {
         </div>
         <div className="mt-12 border-t pt-8 text-center">
           <p className="text-xs text-muted-foreground">
-            &copy; {new Date().getFullYear()} PennyPincher AI. All rights reserved.
+            &copy; {new Date().getFullYear()} SM Cash. All rights reserved.
           </p>
           <p className="text-xs text-muted-foreground mt-1">
             Made with ❤️ by <a href="https://musigahstallone.tech" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">Stallone Musigah</a>.
