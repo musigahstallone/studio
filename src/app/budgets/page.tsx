@@ -69,7 +69,7 @@ export default function BudgetsPage() {
       <AppShell>
         <div className="flex items-center justify-center h-64">
           <Loader2 className="h-12 w-12 animate-spin text-primary" />
-          <p className="ml-4 text-muted-foreground">Loading budgets...</p>
+          <p className="ml-4 text-muted-foreground text-sm md:text-base">Loading budgets...</p>
         </div>
       </AppShell>
     );
@@ -79,7 +79,7 @@ export default function BudgetsPage() {
     <AppShell>
       <div className="space-y-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <h1 className="font-headline text-3xl font-semibold text-foreground">Manage Budgets</h1>
+            <h1 className="font-headline text-2xl md:text-3xl font-semibold text-foreground">Manage Budgets</h1>
             <Button onClick={handleOpenFormForNew} className="w-full sm:w-auto" disabled={!user}>
                 <PlusCircle className="mr-2 h-4 w-4" /> Set New Budget
             </Button>

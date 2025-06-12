@@ -28,7 +28,7 @@ import { cn } from "@/lib/utils";
 interface SavingsGoalItemProps {
   goal: SavingsGoal;
   onDeleteGoal: (id: string) => void;
-  onEditGoal: (goal: SavingsGoal) => void; // Kept for potential future use, though UI is removed
+  onEditGoal: (goal: SavingsGoal) => void; 
   onContribute: (goal: SavingsGoal) => void;
   onWithdraw: (goal: SavingsGoal) => void;
 }
@@ -88,14 +88,13 @@ export function SavingsGoalItem({ goal, onDeleteGoal, onEditGoal, onContribute, 
 
   const canContribute = goal.status === 'active' && !isGoalFunded && !terminalStatus;
   const canWithdraw = (goal.status === 'active' || goal.status === 'matured') && goal.currentAmount > 0 && (isReadyForWithdrawal || goal.allowsEarlyWithdrawal) && !terminalStatus;
-  // const canEdit = goal.status === 'active' && !terminalStatus; // Edit UI is removed
-  const canDelete = true; // Deletion is always allowed for now
+  const canDelete = true; 
 
   const getStatusBadgeVariant = (status: SavingsGoalStatus): "default" | "secondary" | "destructive" | "outline" => {
     switch (status) {
       case 'active': return 'default';
       case 'matured': return 'secondary';
-      case 'completed': return 'default'; // Should look like a success
+      case 'completed': return 'default'; 
       case 'withdrawnEarly': return 'outline';
       case 'cancelled': return 'destructive';
       default: return 'outline';
@@ -115,7 +114,7 @@ export function SavingsGoalItem({ goal, onDeleteGoal, onEditGoal, onContribute, 
 
   if (!settingsMounted) {
     return (
-      <Card className="animate-pulse bg-muted/30 rounded-lg shadow-sm flex flex-col">
+      <Card className="animate-pulse bg-muted/30 rounded-xl shadow-sm flex flex-col">
         <CardHeader className="p-4">
           <div className="h-5 w-3/5 bg-muted rounded mb-1"></div>
           <div className="h-4 w-1/4 bg-muted rounded"></div>
@@ -131,7 +130,7 @@ export function SavingsGoalItem({ goal, onDeleteGoal, onEditGoal, onContribute, 
         </CardContent>
         <CardFooter className="p-4 pt-0 mt-auto border-t">
           <div className="flex justify-end gap-2 w-full">
-            {[...Array(3)].map((_, i) => ( // Reduced to 3 skeleton buttons since Edit is removed
+            {[...Array(3)].map((_, i) => 
               <div key={i} className="h-8 w-8 bg-muted rounded-md"></div>
             ))}
           </div>
@@ -149,7 +148,7 @@ export function SavingsGoalItem({ goal, onDeleteGoal, onEditGoal, onContribute, 
 
     footerContent = (
       <div className="flex justify-between items-center w-full">
-        <span className="text-sm text-muted-foreground px-1">{message}</span>
+        <span className="text-xs sm:text-sm text-muted-foreground px-1">{message}</span>
         <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -223,8 +222,6 @@ export function SavingsGoalItem({ goal, onDeleteGoal, onEditGoal, onContribute, 
           <TooltipContent>{!canWithdraw ? "Withdrawal conditions not met or no funds" : "Withdraw"}</TooltipContent>
         </Tooltip>
         
-        {/* Edit button UI is removed as per request */}
-
         <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -270,7 +267,7 @@ export function SavingsGoalItem({ goal, onDeleteGoal, onEditGoal, onContribute, 
 
   return (
     <Card className={cn(
-        "flex flex-col rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300 border",
+        "flex flex-col rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 border",
         goal.status === 'completed' ? 'border-green-500 bg-green-500/5 dark:bg-green-500/10' : 
         isGoalFunded && goal.status !== 'withdrawnEarly' && goal.status !== 'cancelled' ? 'border-primary/50' : 
         'border-border'
@@ -279,7 +276,7 @@ export function SavingsGoalItem({ goal, onDeleteGoal, onEditGoal, onContribute, 
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <Target className="h-5 w-5 text-primary flex-shrink-0" />
-            <CardTitle className="text-lg font-semibold text-foreground truncate" title={goal.name}>
+            <CardTitle className="text-base md:text-lg font-semibold text-foreground truncate" title={goal.name}>
               {goal.name}
             </CardTitle>
           </div>
@@ -291,7 +288,7 @@ export function SavingsGoalItem({ goal, onDeleteGoal, onEditGoal, onContribute, 
 
       <CardContent className="p-4 pt-0 space-y-2 flex-grow">
         <div className="mb-3">
-          <div className="flex justify-between text-sm mb-1">
+          <div className="flex justify-between text-xs sm:text-sm mb-1">
             <span className={cn(
               "font-medium",
               isGoalFunded && goal.status !== 'withdrawnEarly' && goal.status !== 'cancelled' ? "text-green-600 dark:text-green-400" : "text-foreground"
@@ -348,4 +345,3 @@ export function SavingsGoalItem({ goal, onDeleteGoal, onEditGoal, onContribute, 
     </Card>
   );
 }
-

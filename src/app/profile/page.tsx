@@ -18,7 +18,7 @@ import { auth, db, storage } from '@/lib/firebase';
 import { updateProfile as updateFirebaseAuthProfile } from 'firebase/auth'; // Renamed to avoid conflict
 import { doc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import Image from 'next/image'; // Keep this if you're still using next/image for preview
+import Image from 'next/image'; 
 import Link from 'next/link';
 import { Form } from '@/components/ui/form';
 import { deleteCurrentUserAccount as deleteCurrentUserAccountAction, requestEmailUpdate as requestEmailUpdateAction } from '@/actions/userActions';
@@ -56,7 +56,7 @@ export default function ProfilePage() {
   useEffect(() => {
     if (appUser || user) {
       const name = appUser?.name || user?.displayName || '';
-      const emailValue = appUser?.email || user?.email || ''; // Use email from AppUser first as it's synced
+      const emailValue = appUser?.email || user?.email || '';
       form.reset({
         displayName: name,
         email: emailValue,
@@ -110,8 +110,7 @@ export default function ProfilePage() {
           const result = await requestEmailUpdateAction(data.email);
           toast({ title: result.title, description: result.description });
           emailChangeRequestedSuccessfully = true;
-          // Don't update initialEmail here yet, let AuthProvider handle it post-verification
-          // This keeps the "Update Profile" button enabled correctly if they try to submit again before verifying.
+          // Firestore email will be updated by AuthProvider after Firebase Auth email is verified and changed
         } catch (error: any) {
           toast({ variant: "destructive", title: "Email Update Failed", description: error.message });
         } finally {
@@ -148,14 +147,12 @@ export default function ProfilePage() {
 
       if (nameUpdated || photoUpdated) {
         toast({ title: "Profile Updated", description: "Your display name and/or photo have been updated." });
-      } else if (!emailChangeRequestedSuccessfully && !nameUpdated && !photoUpdated) {
+      } else if (!emailChangeRequestedSuccessfully && !nameUpdated && !photoUpdated && !(isEditingEmail && data.email !== initialEmail)) {
         toast({ title: "No Changes", description: "No direct changes were made to your profile." });
       }
       
-      // Only reset form if no email change was requested or if it was successful
-      // If email change failed, keep the form as is for user to correct.
       if (!isEditingEmail || (isEditingEmail && emailChangeRequestedSuccessfully)) {
-        form.reset({ displayName: data.displayName, email: initialEmail }); // Reset email to initial if no change requested or successful
+        form.reset({ displayName: data.displayName, email: initialEmail }); 
       }
       setIsEditingEmail(false); 
     } catch (error) {
@@ -172,7 +169,6 @@ export default function ProfilePage() {
     try {
       await deleteCurrentUserAccountAction();
       toast({ title: "Account Deletion Processed", description: "Your account is being deleted. You will be logged out shortly."});
-      // AuthProvider will handle logout due to auth state change.
     } catch (error: any) {
       toast({ variant: "destructive", title: "Deletion Failed", description: error.message });
       setIsDeletingAccount(false); 
@@ -201,7 +197,7 @@ export default function ProfilePage() {
     <AppShell>
       <div className="space-y-8 max-w-2xl mx-auto">
         <div className="flex justify-between items-center">
-          <h1 className="font-headline text-3xl font-semibold text-foreground">
+          <h1 className="font-headline text-2xl md:text-3xl font-semibold text-foreground">
             My Profile
           </h1>
           {isAdminUser && (
@@ -211,10 +207,10 @@ export default function ProfilePage() {
           )}
         </div>
 
-        <Card className="shadow-lg">
+        <Card className="shadow-lg rounded-xl">
           <CardHeader className="items-center">
-            <div className="relative group w-32 h-32">
-              <Avatar className="h-full w-full border-4 border-primary/20 text-5xl">
+            <div className="relative group w-28 h-28 sm:w-32 sm:h-32">
+              <Avatar className="h-full w-full border-4 border-primary/20 text-4xl sm:text-5xl">
                 <AvatarImage src={currentPhotoURL} alt={appUser?.name || user?.displayName || 'User'} data-ai-hint="user avatar"/>
                 <AvatarFallback>
                   {appUser?.name ? appUser.name.charAt(0).toUpperCase() : 
@@ -227,7 +223,7 @@ export default function ProfilePage() {
                 className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-full"
                 title="Change profile picture"
               >
-                <Edit3 className="h-8 w-8 text-white" />
+                <Edit3 className="h-7 w-7 sm:h-8 sm:w-8 text-white" />
               </Label>
             </div>
             <Input
@@ -237,14 +233,14 @@ export default function ProfilePage() {
               onChange={handleFileChange}
               className="hidden"
             />
-            <CardTitle className="text-2xl mt-4">{form.watch('displayName') || 'Your Name'}</CardTitle>
-            <CardDescription>{form.watch('email') || 'your@email.com'}</CardDescription>
+            <CardTitle className="text-xl sm:text-2xl mt-4">{form.watch('displayName') || 'Your Name'}</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">{form.watch('email') || 'your@email.com'}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(handleProfileUpdate)} className="space-y-4">
                 <div>
-                  <Label htmlFor="displayName" className="flex items-center mb-1">
+                  <Label htmlFor="displayName" className="flex items-center mb-1 text-xs sm:text-sm">
                     <User className="mr-2 h-4 w-4 text-muted-foreground"/> Display Name
                   </Label>
                   <Input
@@ -254,13 +250,13 @@ export default function ProfilePage() {
                     placeholder="Enter your display name"
                   />
                   {form.formState.errors.displayName && (
-                    <p className="text-sm text-destructive mt-1">{form.formState.errors.displayName.message}</p>
+                    <p className="text-xs text-destructive mt-1">{form.formState.errors.displayName.message}</p>
                   )}
                 </div>
 
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <Label htmlFor="email" className="flex items-center">
+                    <Label htmlFor="email" className="flex items-center text-xs sm:text-sm">
                       <Mail className="mr-2 h-4 w-4 text-muted-foreground"/> Email Address
                     </Label>
                     {!isEditingEmail && (
@@ -278,11 +274,11 @@ export default function ProfilePage() {
                     disabled={!isEditingEmail || isUpdatingProfile || isRequestingEmailUpdate}
                   />
                   {form.formState.errors.email && (
-                    <p className="text-sm text-destructive mt-1">{form.formState.errors.email.message}</p>
+                    <p className="text-xs text-destructive mt-1">{form.formState.errors.email.message}</p>
                   )}
                    {!isEditingEmail && (
                     <p className="text-xs text-muted-foreground mt-1">
-                      To change your login email, click "Edit". A verification email will be sent to the new address.
+                      To change your login email, click &quot;Edit&quot;. A verification email will be sent to the new address.
                     </p>
                    )}
                    {isEditingEmail && (
@@ -293,7 +289,7 @@ export default function ProfilePage() {
                 </div>
                 
                 {selectedFile && (
-                  <p className="text-xs text-primary text-center">New profile picture selected. Click "Update Profile" to save.</p>
+                  <p className="text-xs text-primary text-center">New profile picture selected. Click &quot;Update Profile&quot; to save.</p>
                 )}
 
                 <CardFooter className="px-0 pt-6">
@@ -307,13 +303,12 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
-        {/* Danger Zone */}
-        <Card className="shadow-lg border-destructive">
+        <Card className="shadow-lg border-destructive rounded-xl">
           <CardHeader>
-            <CardTitle className="flex items-center text-destructive">
+            <CardTitle className="flex items-center text-destructive text-lg md:text-xl">
               <AlertTriangle className="mr-2 h-5 w-5" /> Danger Zone
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-xs sm:text-sm">
               These actions are permanent and cannot be undone.
             </CardDescription>
           </CardHeader>

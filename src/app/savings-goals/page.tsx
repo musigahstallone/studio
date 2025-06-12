@@ -126,7 +126,7 @@ export default function SavingsGoalsPage() {
       <AppShell>
         <div className="flex items-center justify-center h-64">
           <Loader2 className="h-12 w-12 animate-spin text-primary" />
-          <p className="ml-4 text-muted-foreground">Loading savings goals...</p>
+          <p className="ml-4 text-muted-foreground text-sm md:text-base">Loading savings goals...</p>
         </div>
       </AppShell>
     );
@@ -136,7 +136,7 @@ export default function SavingsGoalsPage() {
     <AppShell>
       <div className="space-y-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <h1 className="font-headline text-3xl font-semibold text-foreground">Savings Goals</h1>
+          <h1 className="font-headline text-2xl md:text-3xl font-semibold text-foreground">Savings Goals</h1>
           <Button onClick={handleOpenGoalFormForNew} className="w-full sm:w-auto" disabled={!user}>
             <PlusCircle className="mr-2 h-4 w-4" /> Create New Goal
           </Button>

@@ -7,10 +7,10 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Trash2, Edit3, Target, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
-import { useSettings } from "@/contexts/SettingsContext"; // Use displayCurrency
+import { useSettings } from "@/contexts/SettingsContext"; 
 import { formatCurrency } from "@/lib/utils";
 
-const ITEMS_PER_PAGE = 10; // Updated from 5 to 10
+const ITEMS_PER_PAGE = 10; 
 
 interface BudgetListItemProps {
   budget: Budget;
@@ -19,17 +19,16 @@ interface BudgetListItemProps {
 }
 
 function BudgetListItem({ budget, onDeleteBudget, onEditBudget }: BudgetListItemProps) {
-  const { displayCurrency, isMounted: settingsMounted } = useSettings(); // Use displayCurrency
-  // budget.amount and budget.spentAmount are in base currency
+  const { displayCurrency, isMounted: settingsMounted } = useSettings(); 
   const progress = budget.amount > 0 ? (budget.spentAmount / budget.amount) * 100 : 0;
-  const remaining = budget.amount - budget.spentAmount; // This calculation is fine in base currency
+  const remaining = budget.amount - budget.spentAmount; 
   const isOverBudget = budget.spentAmount > budget.amount;
 
   if (!settingsMounted) {
     return (
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border-b h-28 animate-pulse bg-muted/30 rounded-md my-1">
             <div className="flex items-start space-x-3 flex-grow mb-3 sm:mb-0">
-                <div className="h-6 w-6 sm:h-5 sm:w-5 mt-1 sm:mt-0 rounded-full bg-muted"></div>
+                <div className="h-5 w-5 sm:h-6 sm:w-6 mt-1 sm:mt-0 rounded-full bg-muted"></div>
                 <div className="flex-grow space-y-1">
                     <div className="h-5 w-32 bg-muted rounded"></div>
                     <div className="h-3 w-24 bg-muted rounded"></div>
@@ -54,14 +53,13 @@ function BudgetListItem({ budget, onDeleteBudget, onEditBudget }: BudgetListItem
   return (
     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border-b hover:bg-muted/50 transition-colors">
       <div className="flex items-start space-x-3 flex-grow mb-3 sm:mb-0">
-        <Target className="h-6 w-6 sm:h-5 sm:w-5 mt-1 sm:mt-0 text-primary flex-shrink-0" />
+        <Target className="h-5 w-5 sm:h-6 sm:w-6 mt-1 sm:mt-0 text-primary flex-shrink-0" />
         <div className="flex-grow space-y-1">
-          <p className="font-semibold text-base sm:text-lg text-foreground">{budget.name}</p>
-          <p className="text-sm text-muted-foreground">{budget.category}</p>
+          <p className="font-semibold text-sm sm:text-base md:text-lg text-foreground">{budget.name}</p>
+          <p className="text-xs sm:text-sm text-muted-foreground">{budget.category}</p>
           <div className="w-full max-w-xs mt-1">
             <Progress value={Math.min(progress, 100)} className={`h-2 ${isOverBudget ? "[&>div]:bg-destructive" : ""}`} />
             <div className="flex justify-between text-xs text-muted-foreground mt-1">
-              {/* Format amounts for display */}
               <span>Spent: {formatCurrency(budget.spentAmount, displayCurrency)}</span>
               <span>Budget: {formatCurrency(budget.amount, displayCurrency)}</span>
             </div>
@@ -135,10 +133,10 @@ export function BudgetList({ budgets, onDeleteBudget, onEditBudget }: BudgetList
 
   if (budgets.length === 0) {
     return (
-      <Card className="mt-8">
+      <Card className="mt-8 rounded-xl">
         <CardContent className="pt-6">
-          <p className="text-center text-muted-foreground">No budgets set yet.</p>
-          <CardDescription className="text-center mt-2">Click &quot;Set New Budget&quot; to define your spending limits.</CardDescription>
+          <p className="text-center text-muted-foreground text-sm md:text-base">No budgets set yet.</p>
+          <CardDescription className="text-center mt-2 text-xs sm:text-sm">Click &quot;Set New Budget&quot; to define your spending limits.</CardDescription>
         </CardContent>
       </Card>
     );
@@ -186,4 +184,3 @@ export function BudgetList({ budgets, onDeleteBudget, onEditBudget }: BudgetList
     </div>
   );
 }
-

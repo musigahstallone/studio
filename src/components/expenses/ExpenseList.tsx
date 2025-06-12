@@ -11,7 +11,7 @@ import { useSettings } from "@/contexts/SettingsContext"; // Use displayCurrency
 import { formatCurrency } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
-const ITEMS_PER_PAGE = 10; // Updated from 5 to 10
+const ITEMS_PER_PAGE = 10; 
 
 interface ExpenseListItemProps {
   expense: Expense;
@@ -20,7 +20,7 @@ interface ExpenseListItemProps {
 }
 
 function ExpenseListItem({ expense, onDeleteExpense, onEditExpense }: ExpenseListItemProps) {
-  const { displayCurrency, isMounted: settingsMounted } = useSettings(); // Use displayCurrency
+  const { displayCurrency, isMounted: settingsMounted } = useSettings(); 
   const isIncome = expense.type === 'income';
   const TypeIcon = isIncome ? ArrowUpCircle : ArrowDownCircle;
   const amountColor = isIncome ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
@@ -78,10 +78,10 @@ function ExpenseListItem({ expense, onDeleteExpense, onEditExpense }: ExpenseLis
   return (
     <div className="p-4 border-b hover:bg-muted/50 transition-colors grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4 sm:gap-6 items-center">
       <div className="flex items-start gap-3">
-        <TypeIcon className={`h-6 w-6 mt-1 ${iconColor} flex-shrink-0`} />
+        <TypeIcon className={`h-5 w-5 sm:h-6 sm:w-6 mt-1 ${iconColor} flex-shrink-0`} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <p className="font-semibold text-base sm:text-lg text-foreground truncate">{expense.description}</p>
+            <p className="font-semibold text-sm sm:text-base md:text-lg text-foreground truncate">{expense.description}</p>
             {isSavingsRelatedTransaction && (
                  <Tooltip>
                     <TooltipTrigger asChild>
@@ -93,7 +93,7 @@ function ExpenseListItem({ expense, onDeleteExpense, onEditExpense }: ExpenseLis
                 </Tooltip>
             )}
           </div>
-          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground mt-1">
+          <div className="flex flex-wrap gap-x-3 sm:gap-x-4 gap-y-1 text-xs text-muted-foreground mt-1">
             <span className="flex items-center"><Tag className="h-3 w-3 mr-1" />{expense.category}</span>
             <span className="flex items-center"><CalendarDays className="h-3 w-3 mr-1" />{formattedDate || 'Loading date...'}</span>
             {expense.merchant && (
@@ -104,7 +104,7 @@ function ExpenseListItem({ expense, onDeleteExpense, onEditExpense }: ExpenseLis
       </div>
 
       <div className="flex sm:flex-col items-end sm:items-end justify-between sm:justify-center gap-2 sm:gap-3">
-        <p className={`text-lg sm:text-xl font-bold ${amountColor} text-right sm:text-left`}>
+        <p className={`text-base sm:text-lg md:text-xl font-bold ${amountColor} text-right sm:text-left`}>
           {isIncome ? '+' : '-'}{formatCurrency(expense.amount, displayCurrency)}
         </p>
 
@@ -146,7 +146,15 @@ export function ExpenseList({ expenses, onDeleteExpense, onEditExpense }: Expens
   const [currentPage, setCurrentPage] = useState(1);
   const { isMounted: settingsMounted } = useSettings();
 
-  const sortedExpenses = expenses.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const sortedExpenses = expenses.sort((a, b) => {
+    const dateA = new Date(a.date).getTime();
+    const dateB = new Date(b.date).getTime();
+    if (dateB !== dateA) return dateB - dateA;
+    // If dates are the same, sort by creation time (newer first)
+    const createdAtA = a.createdAt && typeof a.createdAt === 'string' ? new Date(a.createdAt).getTime() : (a.createdAt as any)?.seconds || 0;
+    const createdAtB = b.createdAt && typeof b.createdAt === 'string' ? new Date(b.createdAt).getTime() : (b.createdAt as any)?.seconds || 0;
+    return createdAtB - createdAtA;
+  });
 
   const totalPages = Math.ceil(sortedExpenses.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -181,10 +189,10 @@ export function ExpenseList({ expenses, onDeleteExpense, onEditExpense }: Expens
 
   if (expenses.length === 0) {
     return (
-      <Card className="mt-8">
+      <Card className="mt-8 rounded-xl">
         <CardContent className="pt-6">
-          <p className="text-center text-muted-foreground">No transactions recorded yet.</p>
-          <CardDescription className="text-center mt-2">Click &quot;Add Transaction&quot; to get started.</CardDescription>
+          <p className="text-center text-muted-foreground text-sm md:text-base">No transactions recorded yet.</p>
+          <CardDescription className="text-center mt-2 text-xs sm:text-sm">Click &quot;Add Transaction&quot; to get started.</CardDescription>
         </CardContent>
       </Card>
     );
@@ -232,4 +240,3 @@ export function ExpenseList({ expenses, onDeleteExpense, onEditExpense }: Expens
     </div>
   );
 }
-

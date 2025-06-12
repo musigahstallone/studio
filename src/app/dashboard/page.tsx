@@ -62,7 +62,7 @@ export default function DashboardPage() {
       <AppShell>
         <div className="flex flex-col items-center justify-center h-full py-10">
           <Loader2 className="h-12 w-12 animate-spin text-primary" />
-          <p className="mt-4 text-muted-foreground">Loading Dashboard...</p>
+          <p className="mt-4 text-muted-foreground text-sm md:text-base">Loading Dashboard...</p>
         </div>
       </AppShell>
     );
@@ -73,64 +73,64 @@ export default function DashboardPage() {
     <AppShell>
       <div className="space-y-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <h1 className="font-headline text-3xl font-semibold text-foreground">
+          <h1 className="font-headline text-2xl md:text-3xl font-semibold text-foreground">
             Welcome Back, {user?.displayName || user?.email?.split('@')[0] || 'User'}!
           </h1>
         </div>
 
-        <p className="text-lg text-muted-foreground">
+        <p className="text-md md:text-lg text-muted-foreground">
           Here&apos;s your financial overview. All amounts displayed in {displayCurrency}.
         </p>
 
         <div className="grid gap-6 md:grid-cols-3">
-          <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+          <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-xl">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Income</CardTitle>
-              <TrendingUp className="h-5 w-5 text-green-500" />
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Total Income</CardTitle>
+              <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-foreground">{formatCurrency(totalIncome, displayCurrency)}</div>
+              <div className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">{formatCurrency(totalIncome, displayCurrency)}</div>
             </CardContent>
           </Card>
-          <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+          <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-xl">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Expenses</CardTitle>
-              <TrendingDown className="h-5 w-5 text-red-500" />
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Total Expenses</CardTitle>
+              <TrendingDown className="h-4 w-4 sm:h-5 sm:w-5 text-red-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-foreground">{formatCurrency(totalExpensesValue, displayCurrency)}</div>
+              <div className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">{formatCurrency(totalExpensesValue, displayCurrency)}</div>
             </CardContent>
           </Card>
-          <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+          <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-xl">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Current Balance</CardTitle>
-              <DollarSign className="h-5 w-5 text-primary" />
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Current Balance</CardTitle>
+              <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-foreground">{formatCurrency(balance, displayCurrency)}</div>
+              <div className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">{formatCurrency(balance, displayCurrency)}</div>
             </CardContent>
           </Card>
         </div>
 
         {budgetHighlights.length > 0 && (
-          <Card className="shadow-lg">
+          <Card className="shadow-lg rounded-xl">
             <CardHeader>
-              <CardTitle className="flex items-center text-xl">
-                <Target className="h-6 w-6 mr-3 text-primary" />
+              <CardTitle className="flex items-center text-lg md:text-xl">
+                <Target className="h-5 w-5 md:h-6 md:w-6 mr-3 text-primary" />
                 Budget Highlights
               </CardTitle>
-              <CardDescription>Your top budgets by spending progress (displayed in {displayCurrency}).</CardDescription>
+              <CardDescription className="text-xs sm:text-sm">Your top budgets by spending progress (displayed in {displayCurrency}).</CardDescription>
             </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {budgetHighlights.map(budget => (
-                <Card key={budget.id} className="flex flex-col bg-card hover:shadow-md transition-shadow">
+                <Card key={budget.id} className="flex flex-col bg-card hover:shadow-md transition-shadow rounded-lg">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-lg">{budget.name}</CardTitle>
-                    <CardDescription>{budget.category}</CardDescription>
+                    <CardTitle className="text-base md:text-lg">{budget.name}</CardTitle>
+                    <CardDescription className="text-xs sm:text-sm">{budget.category}</CardDescription>
                   </CardHeader>
                   <CardContent className="flex-grow space-y-2">
                     <Progress value={budget.progress} className={`h-2.5 ${budget.isOverBudget ? "[&>div]:bg-destructive" : ""}`} />
-                    <div className="flex justify-between text-sm">
+                    <div className="flex justify-between text-xs sm:text-sm">
                       <span className={budget.isOverBudget ? "text-destructive font-medium" : "text-muted-foreground"}>
                         Spent: {formatCurrency(budget.spentAmount, displayCurrency)}
                       </span>
@@ -161,8 +161,8 @@ export default function DashboardPage() {
             )}
              {budgets.length === 0 && (
                 <CardContent>
-                    <p className="text-muted-foreground text-center">No budgets set yet.
-                        <Button variant="link" asChild className="p-1 h-auto text-sm">
+                    <p className="text-muted-foreground text-center text-sm md:text-base">No budgets set yet.
+                        <Button variant="link" asChild className="p-1 h-auto text-sm md:text-base">
                            <Link href="/budgets">Create one</Link>
                         </Button>
                          to see highlights here.
@@ -172,13 +172,13 @@ export default function DashboardPage() {
           </Card>
         )}
 
-        <Card className="shadow-lg">
+        <Card className="shadow-lg rounded-xl">
           <CardHeader>
-            <CardTitle className="flex items-center text-xl">
-              <ListChecks className="h-6 w-6 mr-3 text-primary" />
+            <CardTitle className="flex items-center text-lg md:text-xl">
+              <ListChecks className="h-5 w-5 md:h-6 md:w-6 mr-3 text-primary" />
               Recent Transactions
             </CardTitle>
-             <CardDescription>Your latest financial movements (displayed in {displayCurrency}).</CardDescription>
+             <CardDescription className="text-xs sm:text-sm">Your latest financial movements (displayed in {displayCurrency}).</CardDescription>
           </CardHeader>
           <CardContent>
             <RecentTransactionsList count={5} />
@@ -189,5 +189,3 @@ export default function DashboardPage() {
     </AppShell>
   );
 }
-
-    

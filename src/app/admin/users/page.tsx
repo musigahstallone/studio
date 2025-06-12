@@ -126,7 +126,7 @@ export default function AdminUsersPage() {
     <AdminShell>
       <div className="space-y-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <h1 className="font-headline text-3xl font-semibold text-foreground">
+          <h1 className="font-headline text-2xl md:text-3xl font-semibold text-foreground">
             User Management
           </h1>
           <div className="flex gap-2">
@@ -140,10 +140,10 @@ export default function AdminUsersPage() {
             </Button>
           </div>
         </div>
-        <Card className="shadow-lg">
+        <Card className="shadow-lg rounded-xl">
           <CardHeader>
-            <CardTitle>All Platform Users</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-lg md:text-xl">All Platform Users</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">
               Overview of registered users. Transaction and spending data is calculated on load.
             </CardDescription>
           </CardHeader>
@@ -151,25 +151,25 @@ export default function AdminUsersPage() {
             {isLoadingUsers && !isRefreshing ? (
               <div className="flex justify-center py-4">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="ml-3 text-muted-foreground">Loading users...</p>
+                <p className="ml-3 text-muted-foreground text-sm md:text-base">Loading users...</p>
               </div>
             ) : fetchedUsers.length > 0 ? (
               <UserList users={fetchedUsers} />
             ) : (
-              <p className="text-muted-foreground text-center py-4">No users found or failed to load.</p>
+              <p className="text-muted-foreground text-center py-4 text-sm md:text-base">No users found or failed to load.</p>
             )}
           </CardContent>
         </Card>
-         <Card className="shadow-lg bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-700/30">
+         <Card className="shadow-lg bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-700/30 rounded-xl">
             <CardHeader>
-                <CardTitle className="text-amber-700 dark:text-amber-400">Performance Note</CardTitle>
+                <CardTitle className="text-amber-700 dark:text-amber-400 text-base md:text-lg">Performance Note</CardTitle>
             </CardHeader>
             <CardContent>
-                <p className="text-sm text-amber-600 dark:text-amber-300">
+                <p className="text-xs sm:text-sm text-amber-600 dark:text-amber-300">
                     Displaying real-time transaction counts and total spending for each user requires fetching all transactions for each user listed. 
                     This client-side calculation can be slow and resource-intensive for a large number of users or transactions.
                 </p>
-                <p className="text-sm text-amber-600 dark:text-amber-300 mt-2">
+                <p className="text-xs sm:text-sm text-amber-600 dark:text-amber-300 mt-2">
                     For production applications, it is highly recommended to pre-calculate and store these aggregates (e.g., using Cloud Functions) on each user's document for better performance and scalability.
                 </p>
             </CardContent>

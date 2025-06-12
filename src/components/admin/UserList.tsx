@@ -36,7 +36,7 @@ function UserListItem({ user }: UserListItemProps) {
         }
       } catch (e) {
         console.error("Error formatting join date for user:", user.uid, user.joinDate, e);
-        setFormattedJoinDate(String(user.joinDate)); // Fallback to original string
+        setFormattedJoinDate(String(user.joinDate)); 
       }
     } else {
       setFormattedJoinDate('N/A');
@@ -70,7 +70,7 @@ function UserListItem({ user }: UserListItemProps) {
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <p className="font-semibold text-base sm:text-lg text-foreground truncate">{user.name || 'Unnamed User'}</p>
+          <p className="font-semibold text-sm sm:text-base md:text-lg text-foreground truncate">{user.name || 'Unnamed User'}</p>
           {user.isAdmin ? <Badge variant="secondary" className="text-xs"><ShieldCheck className="h-3 w-3 mr-1" />Admin</Badge> : <Badge variant="outline" className="text-xs"><ShieldAlert className="h-3 w-3 mr-1" />User</Badge>}
           {user.isDeletedAccount ? (
             <Badge variant="destructive" className="text-xs"><DeletedIcon className="h-3 w-3 mr-1" />Deleted</Badge>
@@ -131,10 +131,10 @@ export function UserList({ users }: UserListProps) {
 
   if (users.length === 0) {
     return (
-      <Card className="mt-8">
+      <Card className="mt-8 rounded-xl">
         <CardContent className="pt-6">
-          <p className="text-center text-muted-foreground">No users found in the database.</p>
-          <CardDescription className="text-center mt-2">Ensure users have signed up and their data is in the 'users' collection.</CardDescription>
+          <p className="text-center text-muted-foreground text-sm md:text-base">No users found in the database.</p>
+          <CardDescription className="text-center mt-2 text-xs sm:text-sm">Ensure users have signed up and their data is in the 'users' collection.</CardDescription>
         </CardContent>
       </Card>
     );

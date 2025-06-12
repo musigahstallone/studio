@@ -84,7 +84,7 @@ export default function ExpensesPage() {
       <AppShell>
         <div className="flex items-center justify-center h-64">
           <Loader2 className="h-12 w-12 animate-spin text-primary" />
-           <p className="ml-4 text-muted-foreground">Loading transactions...</p>
+           <p className="ml-4 text-muted-foreground text-sm md:text-base">Loading transactions...</p>
         </div>
       </AppShell>
     );
@@ -94,7 +94,7 @@ export default function ExpensesPage() {
     <AppShell>
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <h1 className="font-headline text-3xl font-semibold text-foreground">Manage Transactions</h1>
+          <h1 className="font-headline text-2xl md:text-3xl font-semibold text-foreground">Manage Transactions</h1>
           <Button onClick={handleOpenFormForNew} className="w-full sm:w-auto" disabled={!user}>
             <PlusCircle className="mr-2 h-4 w-4" /> Add Transaction
           </Button>
@@ -102,14 +102,14 @@ export default function ExpensesPage() {
 
         <div className="w-full sm:max-w-xs">
           <Select value={activeView} onValueChange={setActiveView} disabled={!user}>
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="w-full text-sm md:text-base">
               <SelectValue placeholder="Select View" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="list">All Transactions</SelectItem>
-              <SelectItem value="text-ai">AI: Text Input</SelectItem>
-              <SelectItem value="receipt-ai">AI: Receipt Upload</SelectItem>
-              <SelectItem value="camera-ai">AI: Scan with Camera</SelectItem>
+              <SelectItem value="list" className="text-sm md:text-base">All Transactions</SelectItem>
+              <SelectItem value="text-ai" className="text-sm md:text-base">AI: Text Input</SelectItem>
+              <SelectItem value="receipt-ai" className="text-sm md:text-base">AI: Receipt Upload</SelectItem>
+              <SelectItem value="camera-ai" className="text-sm md:text-base">AI: Scan with Camera</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -124,10 +124,10 @@ export default function ExpensesPage() {
           )}
 
           {activeView === "text-ai" && (
-            <Card>
+            <Card className="rounded-xl">
               <CardHeader>
-                <CardTitle>Categorize by Text</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-lg md:text-xl">Categorize by Text</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
                   Type a description (e.g., &quot;Lunch at Cafe Mocha $12.50&quot; or &quot;Received salary $2000&quot;), and AI will parse it.
                 </CardDescription>
               </CardHeader>
@@ -138,10 +138,10 @@ export default function ExpensesPage() {
           )}
 
           {activeView === "receipt-ai" && (
-            <Card>
+            <Card className="rounded-xl">
               <CardHeader>
-                <CardTitle>Extract from Receipt/Document</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-lg md:text-xl">Extract from Receipt/Document</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
                   Upload an image of your receipt or financial document, and AI handles the rest.
                 </CardDescription>
               </CardHeader>
@@ -152,10 +152,10 @@ export default function ExpensesPage() {
           )}
 
           {activeView === "camera-ai" && (
-            <Card>
+            <Card className="rounded-xl">
               <CardHeader>
-                <CardTitle>Scan with Camera</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-lg md:text-xl">Scan with Camera</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
                   Use your camera to scan a receipt or document for AI-powered data extraction.
                 </CardDescription>
               </CardHeader>

@@ -26,7 +26,7 @@ export default function SettingsPage() {
       <AppShell>
         <div className="flex flex-col items-center justify-center h-full py-10">
           <Loader2 className="h-12 w-12 animate-spin text-primary" />
-          <p className="mt-4 text-muted-foreground">Loading Settings...</p>
+          <p className="mt-4 text-muted-foreground text-sm md:text-base">Loading Settings...</p>
         </div>
       </AppShell>
     );
@@ -35,14 +35,14 @@ export default function SettingsPage() {
   return (
     <AppShell>
       <div className="space-y-8">
-        <h1 className="font-headline text-3xl font-semibold text-foreground">
+        <h1 className="font-headline text-2xl md:text-3xl font-semibold text-foreground">
           Settings
         </h1>
         
-        <Card className="shadow-lg">
+        <Card className="shadow-lg rounded-xl">
           <CardHeader>
-            <CardTitle>Appearance</CardTitle>
-            <CardDescription>Customize the look and feel of the application.</CardDescription>
+            <CardTitle className="text-lg md:text-xl">Appearance</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Customize the look and feel of the application.</CardDescription>
           </CardHeader>
           <CardContent>
             <ThemeSwitcher />
