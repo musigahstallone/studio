@@ -4,21 +4,25 @@
 import { AdminShell } from '@/components/admin/layout/AdminShell';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useExpenses } from '@/contexts/ExpenseContext';
-// import { RecentTransactionsList } from '@/components/dashboard/RecentTransactionsList'; // Removed
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Activity, TrendingDown, TrendingUp, Users as UsersIcon, ArrowRight, /* BarChart3, Tag as TagIcon, CreditCard */ } from 'lucide-react'; // Commented out unused icons
+import { Activity, TrendingDown, TrendingUp, Users as UsersIcon, ArrowRight, DollarSign, HandCoins } from 'lucide-react';
 import { useSettings } from '@/contexts/SettingsContext';
 import { formatCurrency } from '@/lib/utils';
 import { useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext'; 
 
 export default function AdminDashboardPage() {
-  const { allPlatformExpenses, loadingAllPlatformExpenses } = useExpenses();
+  const { 
+    allPlatformExpenses, 
+    loadingAllPlatformExpenses,
+    platformRevenue,
+    loadingPlatformRevenue 
+  } = useExpenses();
   const { displayCurrency, isMounted: settingsMounted } = useSettings();
   const { user } = useAuth(); 
 
-  const pageSpecificLoading = loadingAllPlatformExpenses || !settingsMounted;
+  const pageSpecificLoading = loadingAllPlatformExpenses || loadingPlatformRevenue || !settingsMounted;
 
   const totalTransactions = allPlatformExpenses.length;
 
@@ -29,10 +33,15 @@ export default function AdminDashboardPage() {
   }, [allPlatformExpenses]);
 
   const totalIncomeValue = useMemo(() => {
+    // This is user-generated income, not platform profits
     return allPlatformExpenses
       .filter(e => e.type === 'income')
       .reduce((sum, e) => sum + e.amount, 0);
   }, [allPlatformExpenses]);
+
+  const totalPlatformProfits = useMemo(() => {
+    return platformRevenue.reduce((sum, entry) => sum + entry.amount, 0);
+  }, [platformRevenue]);
 
 
   const managementLinks = [
@@ -52,7 +61,7 @@ export default function AdminDashboardPage() {
           Global platform analytics (all amounts displayed in {pageSpecificLoading ? '...' : displayCurrency}).
         </p>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4">
           <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-xl">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Total Platform Transactions</CardTitle>
@@ -64,7 +73,7 @@ export default function AdminDashboardPage() {
           </Card>
           <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-xl">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Total Platform Expenses</CardTitle>
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Total User Expenses</CardTitle>
               <TrendingDown className="h-4 w-4 sm:h-5 sm:w-5 text-red-500" />
             </CardHeader>
             <CardContent>
@@ -73,11 +82,21 @@ export default function AdminDashboardPage() {
           </Card>
           <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-xl">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Total Platform Income</CardTitle>
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Total User Income</CardTitle>
               <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />
             </CardHeader>
             <CardContent>
               <div className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">{pageSpecificLoading ? '...' : formatCurrency(totalIncomeValue, displayCurrency)}</div>
+            </CardContent>
+          </Card>
+          <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-xl bg-primary/5 dark:bg-primary/10 border-primary/30">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-xs sm:text-sm font-medium text-primary">Total Platform Profits</CardTitle>
+              <HandCoins className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-xl sm:text-2xl md:text-3xl font-bold text-primary">{pageSpecificLoading ? '...' : formatCurrency(totalPlatformProfits, displayCurrency)}</div>
+              <p className="text-xs text-muted-foreground mt-1">From penalties & transaction fees.</p>
             </CardContent>
           </Card>
         </div>
@@ -128,6 +147,7 @@ export default function AdminDashboardPage() {
                     <li>Average transactions per hour.</li>
                     <li>Real-time data streams for key metrics.</li>
                     <li>Breakdown of most common and highest-spending categories (currently calculated client-side from all transactions, better done on backend).</li>
+                    <li>Detailed breakdown of platform profits (e.g., by type, by user).</li>
                 </ul>
                  <p className="mt-3 text-xs">
                   These features typically involve server-side aggregation of data and potentially storing pre-calculated results for quick retrieval.

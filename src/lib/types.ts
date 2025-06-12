@@ -20,7 +20,7 @@ export type Category =
   | 'Groceries'
   | 'Savings' // For contributions to savings goals
   | 'Savings Withdrawal' // For withdrawals from savings goals
-  | 'Penalty Revenue' // For penalties collected by the platform
+  | 'Penalty Revenue' // For penalties collected by the platform - DEPRECATED, use PlatformRevenueEntry
   | 'Other';
 
 export const allCategories = [
@@ -41,7 +41,7 @@ export const allCategories = [
   'Groceries',
   'Savings',
   'Savings Withdrawal',
-  'Penalty Revenue',
+  // 'Penalty Revenue', // Deprecated
   'Other',
 ] as const;
 
@@ -169,7 +169,7 @@ export interface SavingsGoalWithdrawal {
   incomeTransactionId: string | null; // Nullable if net amount is zero
   amountWithdrawn: number; // Gross amount taken from savings goal, in DEFAULT_STORED_CURRENCY
   penaltyAmount: number; // Penalty applied, in DEFAULT_STORED_CURRENCY
-  transactionCost: number; // Future use, in DEFAULT_STORED_CURRENCY
+  transactionCost: number; // Transaction cost applied, in DEFAULT_STORED_CURRENCY
   netAmountToUser: number; // Amount user received as income, in DEFAULT_STORED_CURRENCY
   date: string; // YYYY-MM-DD
   isEarlyWithdrawal: boolean;

@@ -197,6 +197,9 @@ export const SavingsGoalProvider = ({ children }: { children: ReactNode }) => {
         if (expenseId) {
           const expenseDocRef = doc(db, 'users', user.uid, 'expenses', expenseId);
           batch.delete(expenseDocRef);
+          // Also delete from expenses_all
+          const allExpenseDocRef = doc(db, 'expenses_all', expenseId);
+          batch.delete(allExpenseDocRef);
         }
       });
       
@@ -211,8 +214,21 @@ export const SavingsGoalProvider = ({ children }: { children: ReactNode }) => {
         if (incomeTxId) {
             const incomeTxRef = doc(db, 'users', user.uid, 'expenses', incomeTxId);
             batch.delete(incomeTxRef);
+            // Also delete from expenses_all
+            const allIncomeTxRef = doc(db, 'expenses_all', incomeTxId);
+            batch.delete(allIncomeTxRef);
         }
       });
+      
+      // Delete related platform revenue entries
+      const penaltyRevenueQuery = query(collection(db, 'platformRevenue'), where('relatedGoalId', '==', goalId), where('type', '==', 'penalty'));
+      const penaltyRevenueSnapshot = await getDocs(penaltyRevenueQuery);
+      penaltyRevenueSnapshot.forEach(doc => batch.delete(doc.ref));
+
+      const feeRevenueQuery = query(collection(db, 'platformRevenue'), where('relatedGoalId', '==', goalId), where('type', '==', 'transaction_fee'));
+      const feeRevenueSnapshot = await getDocs(feeRevenueQuery);
+      feeRevenueSnapshot.forEach(doc => batch.delete(doc.ref));
+
 
       await batch.commit();
       toast({ title: "Savings Goal Deleted", description: "Goal and related records removed." });
@@ -251,6 +267,7 @@ export const SavingsGoalProvider = ({ children }: { children: ReactNode }) => {
 
     const goalDocRef = doc(db, 'users', user.uid, 'savingsGoals', goalId);
     const expenseColRef = collection(db, 'users', user.uid, 'expenses');
+    const allExpensesColRef = collection(db, 'expenses_all'); // For platform wide copy
     const contributionColRef = collection(db, 'users', user.uid, 'savingsGoalContributions');
     let expenseIdToLink = '';
 
@@ -284,12 +301,18 @@ export const SavingsGoalProvider = ({ children }: { children: ReactNode }) => {
         const newExpenseDocRef = doc(expenseColRef); 
         expenseIdToLink = newExpenseDocRef.id; 
 
-        transaction.set(newExpenseDocRef, {
+        const fullExpenseDataForStorage = {
           ...expensePayload,
+          id: expenseIdToLink, // Add the generated ID for expenses_all
           userId: user.uid,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
-        });
+        };
+
+        transaction.set(newExpenseDocRef, fullExpenseDataForStorage);
+        // Also write to expenses_all, ensuring the ID is included
+        transaction.set(doc(allExpensesColRef, expenseIdToLink), fullExpenseDataForStorage);
+
 
         transaction.update(goalDocRef, {
           currentAmount: Math.min(newCurrentAmount, goalData.targetAmount),
@@ -335,6 +358,7 @@ export const SavingsGoalProvider = ({ children }: { children: ReactNode }) => {
 
     const goalDocRef = doc(db, 'users', user.uid, 'savingsGoals', goal.id);
     const expenseColRef = collection(db, 'users', user.uid, 'expenses');
+    const allExpensesColRef = collection(db, 'expenses_all'); // For platform wide copy
     const withdrawalLogColRef = collection(db, 'users', user.uid, 'savingsGoalWithdrawals');
     const platformRevenueColRef = collection(db, 'platformRevenue');
 
@@ -457,31 +481,41 @@ export const SavingsGoalProvider = ({ children }: { children: ReactNode }) => {
             };
             const newIncomeDocRef = doc(expenseColRef);
             incomeTransactionId = newIncomeDocRef.id;
-            transaction.set(newIncomeDocRef, { ...incomePayload, userId: user.uid, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+
+            const fullIncomeDataForStorage = {
+                ...incomePayload,
+                id: incomeTransactionId, // Add the generated ID for expenses_all
+                userId: user.uid,
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp()
+            };
+            transaction.set(newIncomeDocRef, fullIncomeDataForStorage);
+            // Also write to expenses_all
+            transaction.set(doc(allExpensesColRef, incomeTransactionId), fullIncomeDataForStorage);
         }
 
         if (actualPenaltyCollected > 0) {
             const penaltyRevenuePayload: Omit<PlatformRevenueEntry, 'id'|'createdAt'> = {
-                userId: user.uid,
+                userId: user.uid!,
                 relatedGoalId: goal.id,
                 type: 'penalty',
                 amount: actualPenaltyCollected,
                 description: `Early withdrawal penalty from goal: ${goal.name}`,
                 date: new Date().toISOString().split('T')[0],
             };
-            const newPenaltyRevenueDocRef = doc(platformRevenueColRef);
+            const newPenaltyRevenueDocRef = doc(platformRevenueColRef); // Auto-generate ID
             transaction.set(newPenaltyRevenueDocRef, {...penaltyRevenuePayload, createdAt: serverTimestamp()});
         }
         if (actualTransactionCostCollected > 0) {
             const costRevenuePayload: Omit<PlatformRevenueEntry, 'id'|'createdAt'> = {
-                userId: user.uid,
+                userId: user.uid!,
                 relatedGoalId: goal.id,
                 type: 'transaction_fee',
                 amount: actualTransactionCostCollected,
                 description: `Transaction fee for withdrawal from goal: ${goal.name}`,
                 date: new Date().toISOString().split('T')[0],
             };
-            const newCostRevenueDocRef = doc(platformRevenueColRef);
+            const newCostRevenueDocRef = doc(platformRevenueColRef); // Auto-generate ID
             transaction.set(newCostRevenueDocRef, {...costRevenuePayload, createdAt: serverTimestamp()});
         }
       });
