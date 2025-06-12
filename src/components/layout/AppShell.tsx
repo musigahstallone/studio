@@ -3,7 +3,7 @@
 
 import type { ReactNode } from 'react';
 import { AppHeader } from './AppHeader';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'; // Import useRouter & useSearchParams
+import { usePathname, useRouter } from 'next/navigation'; // Removed useSearchParams
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffect } from 'react';
 
@@ -13,27 +13,29 @@ interface AppShellProps {
 
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
-  const searchParams = useSearchParams(); // Get searchParams
+  // const searchParams = useSearchParams(); // Removed
   const { user, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (!loading && !user && pathname !== '/login') {
-      const searchParamsString = searchParams.toString();
-      const fullPath = searchParamsString ? `${pathname}?${searchParamsString}` : pathname;
+      // const searchParamsString = searchParams.toString(); // Removed
+      // const fullPath = searchParamsString ? `${pathname}?${searchParamsString}` : pathname; // Simplified
+      const fullPath = pathname; // Now only preserves the pathname, not query params
       
       sessionStorage.setItem('intendedPath', fullPath);
-      sessionStorage.setItem('loginReason', 'authRedirect'); // Generic reason for redirect
+      sessionStorage.setItem('loginReason', 'authRedirect'); 
 
       router.push('/login');
     }
-  }, [user, loading, router, pathname, searchParams]);
+  // Removed searchParams from dependency array
+  }, [user, loading, router, pathname]); 
 
   if (pathname === '/login' || pathname === '/' || pathname === '/privacy' || pathname === '/terms' || pathname === '/contact' || pathname === '/features' || pathname === '/faq') {
     return <>{children}</>; 
   }
   
-  if (loading || (!user && pathname !== '/login')) { // Keep loading if user is null and not on login page (redirect is in progress)
+  if (loading || (!user && pathname !== '/login')) { 
      return (
       <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -50,3 +52,4 @@ export function AppShell({ children }: AppShellProps) {
     </div>
   );
 }
+
