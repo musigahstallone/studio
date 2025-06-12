@@ -23,6 +23,17 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useSettings } from '@/contexts/SettingsContext';
 import type { Theme } from '@/lib/types';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'; // Added Tooltip
+
+// Define base navigation items, Dashboard and Budgets will be filtered out for desktop
+const baseNavItems = [
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Transactions', href: '/expenses', icon: UserIcon }, // Kept UserIcon for generic representation
+  { name: 'Budgets', href: '/budgets', icon: UserIcon }, // Kept UserIcon
+  { name: 'Savings Goals', href: '/savings-goals', icon: UserIcon }, // Kept UserIcon
+  // Send Money will be handled separately as an icon button
+];
+
 
 export function AppHeader() {
   const pathname = usePathname();
@@ -64,6 +75,9 @@ export function AppHeader() {
   };
   const ThemeIconForSettingsPage = theme === 'light' ? Moon : Sun;
 
+  // Filter out Dashboard and Budgets for desktop navigation
+  const desktopNavItems = baseNavItems.filter(item => item.name !== 'Dashboard' && item.name !== 'Budgets');
+
 
   return (
     <>
@@ -79,15 +93,15 @@ export function AppHeader() {
 
         {hasMounted && user && (
           <nav className="hidden md:flex items-center gap-1">
-            <ButtonLink href="/dashboard" currentPathname={pathname}><LayoutDashboard className="mr-1.5 h-4 w-4"/>Dashboard</ButtonLink>
-            <ButtonLink href="/expenses" currentPathname={pathname}><UserIcon className="mr-1.5 h-4 w-4"/>Transactions</ButtonLink>
-            <ButtonLink href="/budgets" currentPathname={pathname}><UserIcon className="mr-1.5 h-4 w-4"/>Budgets</ButtonLink>
-            <ButtonLink href="/savings-goals" currentPathname={pathname}><UserIcon className="mr-1.5 h-4 w-4"/>Savings Goals</ButtonLink>
-            <ButtonLink href="/send-money" currentPathname={pathname}><SendHorizontal className="mr-1.5 h-4 w-4"/>Send Money</ButtonLink>
+            {desktopNavItems.map(item => (
+              <ButtonLink href={item.href} currentPathname={pathname} key={item.href}>
+                <item.icon className="mr-1.5 h-4 w-4"/>{item.name}
+              </ButtonLink>
+            ))}
           </nav>
         )}
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3"> {/* Adjusted gap for sm screens */}
           {hasMounted && !loading && !user && (
             <Button asChild variant="outline" size="sm">
               <Link href="/login">
@@ -96,6 +110,21 @@ export function AppHeader() {
             </Button>
           )}
 
+          {hasMounted && user && (
+             <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" asChild className="hidden md:inline-flex">
+                  <Link href="/send-money" aria-label="Send Money">
+                    <SendHorizontal className="h-5 w-5" />
+                  </Link>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Send Money</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
+          
           {hasMounted && user && appUser && (
             <DropdownMenu>
               <DropdownMenuTriggerPrimitive asChild>
@@ -198,3 +227,4 @@ function ButtonLink({ href, currentPathname, children }: ButtonLinkProps) {
     </Link>
   );
 }
+

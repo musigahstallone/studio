@@ -206,7 +206,7 @@ export default function ProfilePage() {
                   (isEditingEmail && watchedEmail !== initialEmail) || 
                   selectedFile !== null;
 
-  if (authLoading && !appUser) { // Show loader if auth is loading AND appUser isn't available yet
+  if (authLoading && !appUser) { 
     return (
       <AppShell>
         <div className="flex items-center justify-center h-full py-10">
@@ -336,7 +336,7 @@ export default function ProfilePage() {
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-                {authLoading && !appUser ? (
+                {(authLoading && !appUser) ? (
                     <div className="flex items-center text-sm text-muted-foreground">
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading P2P details...
                     </div>
@@ -362,6 +362,7 @@ export default function ProfilePage() {
                          {sendMoneyLink ? (
                             <div>
                                 <Label className="text-xs sm:text-sm font-medium">Shareable &quot;Send Me Money&quot; Link</Label>
+                                {/* The Input field for showing the link is now commented out
                                 <div className="flex items-center gap-2 mt-1">
                                     <Input type="text" value={sendMoneyLink} readOnly className="text-xs h-8"/>
                                     <Button 
@@ -374,11 +375,19 @@ export default function ProfilePage() {
                                         <LinkIcon className="h-4 w-4" />
                                     </Button>
                                 </div>
+                                */}
+                                <div className="mt-1">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => copyToClipboard(sendMoneyLink, "Link copied to clipboard.")}
+                                        title="Copy Send Me Money Link"
+                                    >
+                                        <LinkIcon className="mr-2 h-4 w-4" /> Copy Your Send Money Link
+                                    </Button>
+                                </div>
                                 <p className="text-xs text-muted-foreground mt-1">
                                     Share this link to allow others to send money directly to you.
-                                    {!(process.env.NEXT_PUBLIC_APP_URL) && 
-                                        <span className="text-amber-600 dark:text-amber-400"> (Warning: NEXT_PUBLIC_APP_URL not set, link may not work in deployed environments.)</span>
-                                    }
                                 </p>
                             </div>
                         ) : (
@@ -387,8 +396,8 @@ export default function ProfilePage() {
                     </>
                 ) : (
                     <p className="text-sm text-muted-foreground">
-                        Transaction Tag not available for this account.
-                        It should be assigned upon account creation. If this user existed before tags were implemented, an admin can assign one via the Admin Panel &gt; User Management section.
+                        Transaction Tag not available. It should be assigned upon account creation. 
+                        If this user existed before tags were implemented, an admin can assign one via the Admin Panel &gt; User Management section.
                     </p>
                 )}
             </CardContent>
@@ -436,3 +445,4 @@ export default function ProfilePage() {
     </AppShell>
   );
 }
+
