@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react'; // Added useEffect
 import { useRouter } from 'next/navigation';
 import { auth, db } from '@/lib/firebase';
 import {
@@ -9,14 +9,14 @@ import {
   signInWithEmailAndPassword,
   sendPasswordResetEmail
 } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp, Timestamp, collection, query, where, getDocs } from 'firebase/firestore'; // Added Firestore imports
+import { doc, setDoc, serverTimestamp, Timestamp, collection, query, where, getDocs } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, LogIn, UserPlus, KeyRound, CheckCircle, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { Loader2, LogIn, UserPlus, KeyRound, CheckCircle, AlertCircle, Eye, EyeOff, Info } from 'lucide-react'; // Added Info
 import { generateTransactionTag } from '@/lib/types'; 
 
 export default function LoginPage() {
@@ -30,6 +30,19 @@ export default function LoginPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+
+  useEffect(() => {
+    const loginReason = sessionStorage.getItem('loginReason');
+    if (loginReason === 'authRedirect') {
+      toast({
+        title: 'Authentication Required',
+        description: 'Please log in or sign up to continue to your destination.',
+        action: <Info className="text-blue-500" />,
+        duration: 7000,
+      });
+      sessionStorage.removeItem('loginReason');
+    }
+  }, [toast]);
 
   const handleAuthError = (err: any, action: 'Login' | 'Signup') => {
     console.error(`${action} error:`, err);
@@ -59,6 +72,16 @@ export default function LoginPage() {
     toast({ variant: 'destructive', title: `${action} Failed`, description: friendlyMessage, action: <AlertCircle className="text-red-500" /> });
   };
 
+  const redirectToIntendedPathOrDashboard = () => {
+    const intendedPath = sessionStorage.getItem('intendedPath');
+    if (intendedPath) {
+      sessionStorage.removeItem('intendedPath');
+      router.push(intendedPath);
+    } else {
+      router.push('/'); // Or '/dashboard'
+    }
+  };
+
   const handleLogin = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setIsLoading(true);
@@ -70,7 +93,7 @@ export default function LoginPage() {
         description: `Welcome back!`,
         action: <CheckCircle className="text-green-500" />,
       });
-      router.push('/');
+      redirectToIntendedPathOrDashboard();
     } catch (err: any) {
       handleAuthError(err, 'Login');
     } finally {
@@ -93,16 +116,22 @@ export default function LoginPage() {
       if (user) {
         const userDocRef = doc(db, 'users', user.uid);
         
-        // Generate unique transaction tag
         let uniqueTransactionTag = '';
         let tagExists = true;
         const usersRef = collection(db, 'users');
-        
-        while (tagExists) {
+        let attempts = 0;
+        const maxAttempts = 20;
+
+        while (tagExists && attempts < maxAttempts) {
           uniqueTransactionTag = generateTransactionTag();
           const q = query(usersRef, where('transactionTag', '==', uniqueTransactionTag));
           const querySnapshot = await getDocs(q);
           tagExists = !querySnapshot.empty;
+          attempts++;
+        }
+        if (attempts >= maxAttempts && tagExists) {
+           console.error("Failed to generate a unique transaction tag after multiple attempts.");
+           throw new Error("Could not generate a unique user identifier. Please try again.");
         }
         
         await setDoc(userDocRef, {
@@ -122,7 +151,7 @@ export default function LoginPage() {
         description: 'Your account has been created. Welcome to SM Cash!',
         action: <CheckCircle className="text-green-500" />,
       });
-      router.push('/');
+      redirectToIntendedPathOrDashboard();
     } catch (err: any) {
       handleAuthError(err, 'Signup');
     } finally {
