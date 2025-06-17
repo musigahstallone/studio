@@ -1,8 +1,17 @@
 
+"use client"; // Added 'use client' for Framer Motion
+
 import { PublicPageShell } from '@/components/layout/PublicPageShell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
 import * as React from 'react';
+import { motion } from 'framer-motion'; // Import motion
+
+const mainCardAnimation = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.6, ease: "easeOut", delay: 0.1 },
+};
 
 const privacySections = [
   {
@@ -96,53 +105,56 @@ const privacySections = [
 export default function PrivacyPolicyPage() {
   return (
     <PublicPageShell>
-      <div className="container mx-auto px-4 py-12 sm:px-6 lg:px-8">
-        <Card className="max-w-3xl mx-auto shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-3xl font-headline text-center">Privacy Policy</CardTitle>
-          </CardHeader>
-          <CardContent className="px-6 py-4 md:px-8 md:py-6">
-            <p className="text-muted-foreground text-center mb-8">Last updated: {new Date().toLocaleDateString()}</p>
+      <div className="container mx-auto px-4 py-12 sm:px-6 lg:px-8 overflow-hidden">
+        <motion.div {...mainCardAnimation}>
+          <Card className="max-w-3xl mx-auto shadow-lg">
+            <CardHeader>
+              <CardTitle className="text-3xl font-headline text-center">Privacy Policy</CardTitle>
+            </CardHeader>
+            <CardContent className="px-6 py-4 md:px-8 md:py-6">
+              <p className="text-muted-foreground text-center mb-8">Last updated: {new Date().toLocaleDateString()}</p>
 
-            <div className="space-y-8">
-              {privacySections.map((section) => (
-                <div key={section.number} className="space-y-0">
-
-                  {/* == SMALL SCREEN LAYOUT (stacked: Number+Title then Content) == */}
-                  <div className="md:hidden mb-6">
-                    <div className="flex items-baseline space-x-2 mb-2">
-                      <span className="text-lg font-bold text-primary font-mono">
-                        {section.number}
-                      </span>
-                      <h2 className="text-base font-semibold text-foreground">
-                        {section.title}
-                      </h2>
-                    </div>
-                    <div className="prose prose-sm dark:prose-invert max-w-none">
-                      {section.content.map((el, idx) => React.cloneElement(el, { key: `content-sm-${section.number}-${idx}` }))}
-                    </div>
-                  </div>
-
-                  {/* == LARGE SCREEN (md and up) LAYOUT (offset Number, then Title & Content) == */}
-                  <div className="hidden md:flex md:items-start md:space-x-4 mb-6">
-                    <span className="mt-px text-xl font-bold text-primary font-mono shrink-0 w-10 text-right pr-2">
-                      {section.number}
-                    </span>
-                    <div className="flex-1">
-                      <h2 className="text-lg font-semibold text-foreground !mt-0 !mb-2">
-                        {section.title}
-                      </h2>
-                      <div className="prose prose-base dark:prose-invert max-w-none">
-                        {section.content.map((el, idx) => React.cloneElement(el, { key: `content-lg-${section.number}-${idx}` }))}
+              <div className="space-y-8">
+                {privacySections.map((section, index) => (
+                  <motion.div 
+                    key={section.number} 
+                    className="space-y-0"
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: 0.1 + index * 0.05, ease: "easeOut" }}
+                  >
+                    <div className="md:hidden mb-6">
+                      <div className="flex items-baseline space-x-2 mb-2">
+                        <span className="text-lg font-bold text-primary font-mono">
+                          {section.number}
+                        </span>
+                        <h2 className="text-base font-semibold text-foreground">
+                          {section.title}
+                        </h2>
+                      </div>
+                      <div className="prose prose-sm dark:prose-invert max-w-none">
+                        {section.content.map((el, idx) => React.cloneElement(el, { key: `content-sm-${section.number}-${idx}` }))}
                       </div>
                     </div>
-                  </div>
-
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                    <div className="hidden md:flex md:items-start md:space-x-4 mb-6">
+                      <span className="mt-px text-xl font-bold text-primary font-mono shrink-0 w-10 text-right pr-2">
+                        {section.number}
+                      </span>
+                      <div className="flex-1">
+                        <h2 className="text-lg font-semibold text-foreground !mt-0 !mb-2">
+                          {section.title}
+                        </h2>
+                        <div className="prose prose-base dark:prose-invert max-w-none">
+                          {section.content.map((el, idx) => React.cloneElement(el, { key: `content-lg-${section.number}-${idx}` }))}
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
     </PublicPageShell>
   );

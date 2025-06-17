@@ -40,11 +40,11 @@ export const metadata: Metadata = {
     url: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002'),
     images: [
       {
-        url: 'https://placehold.co/1200x630.png',
+        url: 'https://images.pexels.com/photos/1601775/pexels-photo-1601775.jpeg?auto=compress&cs=tinysrgb&w=1200&h=630&dpr=1', // Pexels placeholder
         width: 1200,
         height: 630,
         alt: `${APP_NAME} - Smart Financial Management`,
-        'data-ai-hint': 'finance app logo',
+        'data-ai-hint': 'modern finance abstract',
       },
     ],
     locale: 'en_US',
@@ -56,7 +56,7 @@ export const metadata: Metadata = {
       template: `%s | ${APP_NAME}`,
     },
     description: APP_DESCRIPTION,
-    images: ['https://placehold.co/1200x630.png'],
+    images: ['https://images.pexels.com/photos/1601775/pexels-photo-1601775.jpeg?auto=compress&cs=tinysrgb&w=1200&h=630&dpr=1'], // Pexels placeholder
   },
   robots: {
     index: true,

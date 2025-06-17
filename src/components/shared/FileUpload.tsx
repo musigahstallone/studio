@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Input } from "@/components/ui/input";
@@ -45,7 +46,7 @@ export function FileUpload({ onFileChange, id = "file-upload" }: FileUploadProps
               width={200}
               height={200}
               className="mx-auto mb-4 h-32 w-auto rounded-md object-contain"
-              data-ai-hint="receipt preview"
+              data-ai-hint="uploaded receipt document" // Updated hint
             />
           ) : (
             <UploadCloud className="mx-auto h-12 w-12 text-muted-foreground" />
