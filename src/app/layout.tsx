@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   formatDetection: {
     telephone: false,
   },
-  keywords: ['expense tracker', 'budgeting app', 'personal finance', 'ai finance', 'savings goals', 'multi-currency', 'financial management'],
+  keywords: ['expense tracker', 'budgeting app', 'personal finance', 'ai finance', 'savings goals', 'multi-currency', 'financial management', 'kenya finance', 'm-pesa tracking', 'budget app kenya'],
   authors: [{ name: 'Stallone Musigah', url: 'https://musigahstallone.tech' }],
   creator: 'Stallone Musigah',
   publisher: 'SM Cash',
@@ -40,11 +40,11 @@ export const metadata: Metadata = {
     url: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002'),
     images: [
       {
-        url: 'https://images.pexels.com/photos/1601775/pexels-photo-1601775.jpeg?auto=compress&cs=tinysrgb&w=1200&h=630&dpr=1', // Pexels placeholder
+        url: 'https://images.pexels.com/photos/730547/pexels-photo-730547.jpeg?auto=compress&cs=tinysrgb&w=1200&h=630&dpr=1', 
         width: 1200,
         height: 630,
         alt: `${APP_NAME} - Smart Financial Management`,
-        'data-ai-hint': 'modern finance abstract',
+        'data-ai-hint': 'finance abstract purple',
       },
     ],
     locale: 'en_US',
@@ -56,7 +56,7 @@ export const metadata: Metadata = {
       template: `%s | ${APP_NAME}`,
     },
     description: APP_DESCRIPTION,
-    images: ['https://images.pexels.com/photos/1601775/pexels-photo-1601775.jpeg?auto=compress&cs=tinysrgb&w=1200&h=630&dpr=1'], // Pexels placeholder
+    images: ['https://images.pexels.com/photos/730547/pexels-photo-730547.jpeg?auto=compress&cs=tinysrgb&w=1200&h=630&dpr=1'], 
   },
   robots: {
     index: true,
@@ -80,6 +80,9 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Space+Grotesk:wght@300..700&display=swap" rel="stylesheet" />
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -97,7 +100,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="font-sans antialiased bg-background text-foreground">
+      <body className="antialiased bg-background text-foreground"> {/* Removed font-sans as it's now applied via CSS var */}
         <AppProviders>
           {children}
           <Toaster />

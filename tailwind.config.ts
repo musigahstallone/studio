@@ -10,14 +10,13 @@ export default {
   ],
   theme: {
     extend: {
-      /*
       fontFamily: {
-        // These will now use CSS variables set by the active font theme class
-        body: ['var(--font-family-body)', 'serif'], 
-        headline: ['var(--font-family-headline)', 'sans-serif'],
-        code: ['monospace'],
+        // Use CSS variables for fonts defined in globals.css
+        // Tailwind's 'sans' will become the body font, 'headline' for headlines
+        sans: ['var(--font-family-body)'], 
+        headline: ['var(--font-family-headline)'],
+        // code: ['monospace'], // You can keep this or define a var if needed
       },
-      */
       colors: {
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',

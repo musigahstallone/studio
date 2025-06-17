@@ -1,115 +1,107 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 0 0% 98%; /* Almost White */
-    --foreground: 0 0% 10%; /* Near Black */
-    --card: 0 0% 100%; /* White */
-    --card-foreground: 0 0% 10%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 10%;
-    --primary: 40 90% 55%; /* Warm Gold/Orange */
-    --primary-foreground: 40 90% 10%; /* Dark text on primary */
-    --secondary: 40 30% 92%; /* Light Gold/Cream */
-    --secondary-foreground: 40 80% 40%; /* Darker Gold */
-    --muted: 0 0% 92%; /* Light Gray */
-    --muted-foreground: 0 0% 45%; /* Medium Gray */
-    --accent: 30 95% 60%; /* Brighter Orange Accent */
-    --accent-foreground: 30 90% 10%; /* Dark text on accent */
+    /* Indigo/Purple Theme based on PRD */
+    --background: 233 67% 94%; /* Very Light Indigo (E8EAF6) */
+    --foreground: 231 30% 20%; /* Darker text for contrast on light indigo */
+    --card: 233 60% 97%; /* Slightly lighter than background or pure white */
+    --card-foreground: 231 30% 20%;
+    --popover: 233 60% 98%;
+    --popover-foreground: 231 30% 20%;
+    
+    --primary: 231 48% 48%; /* Deep Indigo (3F51B5) */
+    --primary-foreground: 0 0% 100%; /* White text on primary */
+    
+    --secondary: 231 40% 65%; /* Lighter Indigo */
+    --secondary-foreground: 0 0% 100%; /* White text on secondary */
+    
+    --accent: 261 36% 58%; /* Deep Purple (7E57C2) */
+    --accent-foreground: 0 0% 100%; /* White text on accent */
+    
+    --muted: 233 30% 88%; /* Lighter Grayish Indigo */
+    --muted-foreground: 231 25% 45%; /* Medium Grayish Indigo */
+    
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 85%; /* Gray border */
-    --input: 0 0% 90%; /* Light Gray input */
-    --ring: 40 90% 55%; /* Primary color for focus rings */
-    --chart-1: 40 90% 55%; /* Primary */
-    --chart-2: 30 95% 60%; /* Accent */
-    --chart-3: 20 80% 60%; 
-    --chart-4: 50 70% 65%;
-    --chart-5: 30 50% 70%;
+    
+    --border: 231 20% 75%; /* Indigo-tinted border */
+    --input: 231 30% 90%; /* Light Indigo input */
+    --ring: 231 48% 48%; /* Primary color for focus rings */
+    
+    --chart-1: 231 48% 48%; /* Primary */
+    --chart-2: 261 36% 58%; /* Accent */
+    --chart-3: 231 40% 65%; /* Secondary */
+    --chart-4: 261 50% 70%; /* Lighter Purple */
+    --chart-5: 231 30% 80%; /* Very Light Indigo/Blue */
+
     --radius: 0.5rem;
 
-    /* Sidebar Light Theme */
-    --sidebar-background: 0 0% 95%; 
-    --sidebar-foreground: 0 0% 15%;
-    --sidebar-primary: 40 90% 55%;
-    --sidebar-primary-foreground: 40 90% 10%;
-    --sidebar-accent: 0 0% 98%; /* Main background color for active item highlight */
-    --sidebar-accent-foreground: 40 90% 55%; /* Primary color for text on active item */
-    --sidebar-border: 0 0% 80%;
-    --sidebar-ring: 40 90% 55%;
+    /* Sidebar Light Theme - Adjusted for Indigo */
+    --sidebar-background: 233 50% 90%; 
+    --sidebar-foreground: 231 30% 15%;
+    --sidebar-primary: 231 48% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 233 67% 94%; /* Main background for active item highlight */
+    --sidebar-accent-foreground: 231 48% 48%; /* Primary for text on active item */
+    --sidebar-border: 231 30% 70%;
+    --sidebar-ring: 231 48% 48%;
 
-    /* Default Font Variables - Commented out to use Tailwind defaults */
-    /* --font-family-body: 'Lora', serif; */
-    /* --font-family-headline: 'Manrope', sans-serif; */
+    /* Font Variables based on PRD */
+    --font-family-body: 'PT Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    --font-family-headline: 'Space Grotesk', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   }
 
   .dark {
-    --background: 0 0% 8%; /* Very Dark Gray/Almost Black */
-    --foreground: 0 0% 95%; /* Light Gray/Almost White */
-    --card: 0 0% 12%; /* Slightly Lighter Dark Gray */
-    --card-foreground: 0 0% 95%;
-    --popover: 0 0% 12%;
-    --popover-foreground: 0 0% 95%;
-    --primary: 40 80% 60%; /* Gold/Orange, slightly brighter for dark mode */
-    --primary-foreground: 40 90% 10%; /* Dark text on primary */
-    --secondary: 40 20% 20%; /* Darker Gold/Brownish */
-    --secondary-foreground: 0 0% 85%; /* Light gray text on secondary */
-    --muted: 0 0% 15%; /* Dark Gray */
-    --muted-foreground: 0 0% 60%; /* Medium-Light Gray */
-    --accent: 30 85% 65%; /* Brighter Orange Accent, brighter for dark mode */
-    --accent-foreground: 30 90% 10%; /* Dark text on accent */
-    --destructive: 0 70% 50%; /* Slightly less intense red for dark mode */
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 25%; /* Dark Gray border */
-    --input: 0 0% 20%; /* Dark Gray input */
-    --ring: 40 80% 60%; /* Primary color for focus rings */
-    --chart-1: 40 80% 60%; /* Primary dark */
-    --chart-2: 30 85% 65%; /* Accent dark */
-    --chart-3: 20 70% 70%;
-    --chart-4: 50 60% 75%;
-    --chart-5: 30 40% 80%;
+    /* Dark Indigo/Purple Theme */
+    --background: 231 30% 12%; /* Very Dark Indigo */
+    --foreground: 233 30% 88%; /* Light Grayish Indigo */
+    --card: 231 30% 18%; /* Darker Indigo */
+    --card-foreground: 233 30% 88%;
+    --popover: 231 30% 16%;
+    --popover-foreground: 233 30% 88%;
+
+    --primary: 231 55% 60%; /* Brighter Indigo for dark mode */
+    --primary-foreground: 231 20% 10%; /* Dark text on brighter primary */
     
-    /* Sidebar Dark Theme */
-    --sidebar-background: 0 0% 10%; 
-    --sidebar-foreground: 0 0% 90%;
-    --sidebar-primary: 40 80% 60%;
-    --sidebar-primary-foreground: 40 90% 10%;
-    --sidebar-accent: 0 0% 8%; 
-    --sidebar-accent-foreground: 40 80% 60%;
-    --sidebar-border: 0 0% 20%;
-    --sidebar-ring: 40 80% 60%;
+    --secondary: 231 40% 40%; /* Muted Dark Indigo */
+    --secondary-foreground: 233 30% 85%; 
+    
+    --accent: 261 45% 65%; /* Brighter Purple for dark mode */
+    --accent-foreground: 0 0% 100%; 
+    
+    --muted: 231 25% 25%; /* Dark Muted Indigo */
+    --muted-foreground: 233 30% 65%; 
+    
+    --destructive: 0 60% 50%;
+    --destructive-foreground: 0 0% 98%;
+    
+    --border: 231 20% 30%; 
+    --input: 231 25% 22%; 
+    --ring: 231 55% 60%; 
+    
+    --chart-1: 231 55% 60%; /* Primary dark */
+    --chart-2: 261 45% 65%; /* Accent dark */
+    --chart-3: 231 40% 50%;
+    --chart-4: 261 35% 75%;
+    --chart-5: 231 25% 70%;
+    
+    /* Sidebar Dark Theme - Adjusted for Indigo */
+    --sidebar-background: 231 30% 15%; 
+    --sidebar-foreground: 233 30% 85%;
+    --sidebar-primary: 231 55% 60%;
+    --sidebar-primary-foreground: 231 20% 10%;
+    --sidebar-accent: 231 30% 12%; 
+    --sidebar-accent-foreground: 231 55% 60%;
+    --sidebar-border: 231 20% 25%;
+    --sidebar-ring: 231 55% 60%;
 
-    /* Default Font Variables for Dark Mode - Commented out */
-    /* --font-family-body: 'Lora', serif; */
-    /* --font-family-headline: 'Manrope', sans-serif; */
+    /* Font Variables for Dark Mode (same as light, defined once) */
+    /* --font-family-body: 'PT Sans', ... */
+    /* --font-family-headline: 'Space Grotesk', ... */
   }
-
-  /* Font Theme Classes - Commented out */
-  /*
-  .font-theme-manrope-lora {
-    --font-family-body: 'Lora', serif;
-    --font-family-headline: 'Manrope', sans-serif;
-  }
-  .font-theme-inter-merriweather {
-    --font-family-body: 'Inter', sans-serif;
-    --font-family-headline: "'Merriweather', serif";
-  }
-  .font-theme-work-sans-dm-serif-display {
-    --font-family-body: 'Work Sans', sans-serif;
-    --font-family-headline: "'DM Serif Display', serif";
-  }
-  .font-theme-poppins-source-serif-pro {
-    --font-family-body: 'Poppins', sans-serif;
-    --font-family-headline: "'Source Serif Pro', serif";
-  }
-  .font-theme-space-grotesk-eb-garamond {
-    --font-family-body: "'Space Grotesk', sans-serif";
-    --font-family-headline: "'EB Garamond', serif";
-  }
-  */
 }
 
 @layer base {
@@ -118,11 +110,9 @@
   }
   body {
     @apply bg-background text-foreground overflow-x-hidden;
-    /* font-family: var(--font-family-body); */ /* Commented out, Tailwind base will apply sans-serif */
+    font-family: var(--font-family-body);
   }
-  /* Apply headline font variable to h1-h6 or a specific class */
   h1, h2, h3, h4, h5, h6, .font-headline {
-    /* font-family: var(--font-family-headline); */ /* Commented out, elements will inherit or use Tailwind defaults */
-    /* You might want to apply Tailwind's font-serif or similar here if desired */
+    font-family: var(--font-family-headline);
   }
 }
