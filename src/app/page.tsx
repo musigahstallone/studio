@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { PublicPageShell } from '@/components/layout/PublicPageShell';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'; // Added CardFooter
 import { ArrowRight, Cpu, SlidersHorizontal, LandmarkIcon, Coins, ScanLine, TextSearch, Edit, LogIn, CheckCircle, BarChartBig, LockKeyhole, Zap, Star } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -93,21 +93,21 @@ export default function LandingPage() {
       name: "Alex P.",
       role: "Freelance Designer",
       avatarHint: "smiling person tech",
-      avatarId: "237957", // Placeholder Pexels ID
+      avatarId: "237957", 
     },
     {
       quote: "Finally, a budgeting app that's intuitive and actually helps me save. The multi-currency support is fantastic for my travels.",
       name: "Maria K.",
       role: "Travel Blogger",
       avatarHint: "woman travel",
-      avatarId: "1065002", // Placeholder Pexels ID
+      avatarId: "1065002", 
     },
     {
       quote: "Managing my savings goals has never been easier. I love the clear progress tracking and smart insights.",
       name: "David L.",
       role: "Software Engineer",
       avatarHint: "man professional",
-      avatarId: "927298", // Placeholder Pexels ID
+      avatarId: "927298", 
     },
   ];
 
